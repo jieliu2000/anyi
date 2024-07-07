@@ -1,6 +1,8 @@
 package llm
 
 import (
+	"errors"
+
 	"github.com/jieliu2000/anyi/llm/azureopenai"
 	"github.com/jieliu2000/anyi/llm/chat"
 	"github.com/jieliu2000/anyi/llm/openai"
@@ -15,6 +17,7 @@ type Client interface {
 }
 
 func NewClient(config ModelConfig) (Client, error) {
+
 	//lint:ignore S1034 config variable will be used in future so we ignore this linter for now
 	switch config.(type) {
 
@@ -25,5 +28,5 @@ func NewClient(config ModelConfig) (Client, error) {
 		return azureopenai.NewClient(config.(*azureopenai.AzureOpenAIModelConfig))
 
 	}
-	return nil, nil
+	return nil, errors.New("unknown model config")
 }
