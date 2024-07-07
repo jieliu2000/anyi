@@ -36,3 +36,12 @@ func TestConvertToOpenAIChatMessages(t *testing.T) {
 	assert.Equal(t, "Hello", openAIMessages[1].Content, "Expected content %s, got %s", "Hello", openAIMessages[1].Content)
 
 }
+
+func TestNewConfig(t *testing.T) {
+	config := NewConfig("token", "model", "URL")
+
+	assert.Equal(t, "token", config.APIKey, "Expected token %s, got %s", "token", config.APIKey)
+	assert.Equal(t, "model", config.Model, "Expected model %s, got %s", "model", config.Model)
+	assert.Equal(t, "URL", config.BaseURL, "Expected URL %s, got %s", "URL", config.BaseURL)
+
+}

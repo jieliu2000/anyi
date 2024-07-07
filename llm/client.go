@@ -1,6 +1,7 @@
 package llm
 
 import (
+	"github.com/jieliu2000/anyi/llm/azureopenai"
 	"github.com/jieliu2000/anyi/llm/chat"
 	"github.com/jieliu2000/anyi/llm/openai"
 )
@@ -19,7 +20,10 @@ func NewClient(config ModelConfig) (Client, error) {
 
 	case *openai.OpenAIModelConfig:
 		return openai.NewClient(config.(*openai.OpenAIModelConfig))
-	}
 
+	case *azureopenai.AzureOpenAIModelConfig:
+		return azureopenai.NewClient(config.(*azureopenai.AzureOpenAIModelConfig))
+
+	}
 	return nil, nil
 }

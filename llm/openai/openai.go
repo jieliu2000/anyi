@@ -8,6 +8,11 @@ import (
 	impl "github.com/sashabaranov/go-openai"
 )
 
+const (
+	DefaultBaseURL = "https://api.openai.com/v1"
+	DefaultModel   = "gpt-3.5-turbo"
+)
+
 type OpenAIModelConfig struct {
 	APIKey  string `json:"api_key"`
 	BaseURL string `json:"base_url"`
@@ -22,6 +27,26 @@ type OpenAIClient struct {
 func (c *OpenAIClient) Init() error {
 
 	return nil
+}
+
+func DefaultConfig(apiKey string) *OpenAIModelConfig {
+	return NewConfig(apiKey, "", "")
+}
+
+func NewConfigWithModel(apiKey string, model string) *OpenAIModelConfig {
+	return NewConfig(apiKey, model, "")
+}
+
+// Create a new config with the given API, model, and baseURL
+// If you don't know the baseURL or model, you can leave them as blank string. The function will use default values if they are not provided.
+func NewConfig(apiKey string, model string, baseURL string) *OpenAIModelConfig {
+	if model == "" {
+		model = DefaultModel
+	}
+	if baseURL == "" {
+		baseURL = DefaultBaseURL
+	}
+	return &OpenAIModelConfig{APIKey: apiKey, Model: model, BaseURL: baseURL}
 }
 
 func NewClient(config *OpenAIModelConfig) (*OpenAIClient, error) {
