@@ -4,8 +4,8 @@ import (
 	"errors"
 
 	"github.com/jieliu2000/anyi/llm/azureopenai"
-	"github.com/jieliu2000/anyi/llm/chat"
 	"github.com/jieliu2000/anyi/llm/openai"
+	"github.com/jieliu2000/anyi/message"
 )
 
 type ModelConfig interface {
@@ -13,7 +13,7 @@ type ModelConfig interface {
 
 type Client interface {
 	Init() error
-	Chat(messages []chat.Message) (*chat.Message, error)
+	Chat(messages []message.Message) (*message.Message, error)
 }
 
 func NewClient(config ModelConfig) (Client, error) {

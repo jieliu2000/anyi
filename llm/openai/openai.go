@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/jieliu2000/anyi/llm/chat"
+	"github.com/jieliu2000/anyi/message"
 	impl "github.com/sashabaranov/go-openai"
 )
 
@@ -64,7 +64,7 @@ func NewClient(config *OpenAIModelConfig) (*OpenAIClient, error) {
 	return client, nil
 }
 
-func (c *OpenAIClient) Chat(messages []chat.Message) (*chat.Message, error) {
+func (c *OpenAIClient) Chat(messages []message.Message) (*message.Message, error) {
 
 	client := c.clientImpl
 	if client == nil {
@@ -84,14 +84,14 @@ func (c *OpenAIClient) Chat(messages []chat.Message) (*chat.Message, error) {
 	if err != nil {
 		return nil, err
 	}
-	result := chat.Message{
+	result := message.Message{
 		Content: resp.Choices[0].Message.Content,
 		Role:    resp.Choices[0].Message.Role,
 	}
 	return &result, nil
 }
 
-func convertToOpenAIChatMessages(messages []chat.Message) []impl.ChatCompletionMessage {
+func convertToOpenAIChatMessages(messages []message.Message) []impl.ChatCompletionMessage {
 	result := []impl.ChatCompletionMessage{}
 	for _, msg := range messages {
 		openaiMessage := impl.ChatCompletionMessage{

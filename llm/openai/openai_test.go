@@ -3,10 +3,9 @@ package openai
 import (
 	"testing"
 
+	"github.com/jieliu2000/anyi/message"
 	impl "github.com/sashabaranov/go-openai"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/jieliu2000/anyi/llm/chat"
 )
 
 func TestChatWithNoClient(t *testing.T) {
@@ -19,7 +18,7 @@ func TestChatWithNoClient(t *testing.T) {
 }
 
 func TestConvertToOpenAIChatMessages(t *testing.T) {
-	messages := []chat.Message{
+	messages := []message.Message{
 		{Role: "system", Content: "You are an assisstant"},
 		{Role: "user", Content: "Hello"},
 	}
