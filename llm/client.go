@@ -10,7 +10,7 @@ type ModelConfig interface {
 
 type Client interface {
 	Init() error
-	Chat(messages []*chat.Message, history []*chat.Message) (*chat.Message, error)
+	Chat(messages []chat.Message) (*chat.Message, error)
 }
 
 func NewClient(config ModelConfig) (Client, error) {
