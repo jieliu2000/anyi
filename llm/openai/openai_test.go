@@ -41,8 +41,3 @@ func TestNewConfig(t *testing.T) {
 	assert.Equal(t, "model", config.Model, "Expected model %s, got %s", "model", config.Model)
 	assert.Equal(t, "URL", config.BaseURL, "Expected URL %s, got %s", "URL", config.BaseURL)
 }
-
-func TestChat(t *testing.T) {
-	config := NewConfig("token", "model", "URL")
-
-}
