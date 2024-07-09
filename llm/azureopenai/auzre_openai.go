@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/jieliu2000/anyi/llm/openai"
 	"github.com/jieliu2000/anyi/message"
 
 	impl "github.com/sashabaranov/go-openai"
@@ -49,7 +50,7 @@ func (c *AzureOpenAIClient) Chat(messages []message.Message) (*message.Message, 
 		return nil, errors.New("client not initialized")
 	}
 
-	messagesInput := convertToOpenAIChatMessages(messages)
+	messagesInput := openai.ConvertToOpenAIChatMessages(messages)
 
 	resp, err := client.CreateChatCompletion(
 		context.Background(),
@@ -67,16 +68,4 @@ func (c *AzureOpenAIClient) Chat(messages []message.Message) (*message.Message, 
 		Role:    resp.Choices[0].Message.Role,
 	}
 	return &result, nil
-}
-
-func convertToOpenAIChatMessages(messages []message.Message) []impl.ChatCompletionMessage {
-	result := []impl.ChatCompletionMessage{}
-	for _, msg := range messages {
-		openaiMessage := impl.ChatCompletionMessage{
-			Content: msg.Content,
-			Role:    msg.Role,
-		}
-		result = append(result, openaiMessage)
-	}
-	return result
 }

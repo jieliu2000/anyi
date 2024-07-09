@@ -71,7 +71,7 @@ func (c *OpenAIClient) Chat(messages []message.Message) (*message.Message, error
 		return nil, errors.New("client not initialized")
 	}
 
-	messagesInput := convertToOpenAIChatMessages(messages)
+	messagesInput := ConvertToOpenAIChatMessages(messages)
 
 	resp, err := client.CreateChatCompletion(
 		context.Background(),
@@ -89,16 +89,4 @@ func (c *OpenAIClient) Chat(messages []message.Message) (*message.Message, error
 		Role:    resp.Choices[0].Message.Role,
 	}
 	return &result, nil
-}
-
-func convertToOpenAIChatMessages(messages []message.Message) []impl.ChatCompletionMessage {
-	result := []impl.ChatCompletionMessage{}
-	for _, msg := range messages {
-		openaiMessage := impl.ChatCompletionMessage{
-			Content: msg.Content,
-			Role:    msg.Role,
-		}
-		result = append(result, openaiMessage)
-	}
-	return result
 }

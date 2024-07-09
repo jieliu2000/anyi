@@ -40,18 +40,17 @@ func main() {
 	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
 	client, err := llm.NewClient(config)
 
-	if err ! = nil {
+	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)
 	}
 
-	messages := []message.
-		{Role: "user", Content: "5+1=?"} {Role: "user", Content: "5+1=?"}
+	messages := []message.Message{
+		{Role: "user", Content: "5+1=?"},
 	}
 	message, _ := client.Chat(messages)
 
 	log.Printf("Response: %s\n", message.Content)
 }
-
 
 ```
 

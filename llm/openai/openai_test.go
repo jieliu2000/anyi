@@ -22,7 +22,7 @@ func TestConvertToOpenAIChatMessages(t *testing.T) {
 		{Role: "user", Content: "Hello"},
 	}
 
-	openAIMessages := convertToOpenAIChatMessages(messages)
+	openAIMessages := ConvertToOpenAIChatMessages(messages)
 
 	if len(openAIMessages) != len(messages) {
 		t.Errorf("Expected %d messages, got %d", len(messages), len(openAIMessages))
