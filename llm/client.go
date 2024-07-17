@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/jieliu2000/anyi/llm/azureopenai"
+	"github.com/jieliu2000/anyi/llm/dashscope"
 	"github.com/jieliu2000/anyi/llm/openai"
 	"github.com/jieliu2000/anyi/message"
 )
@@ -26,6 +27,9 @@ func NewClient(config ModelConfig) (Client, error) {
 
 	case *azureopenai.AzureOpenAIModelConfig:
 		return azureopenai.NewClient(config.(*azureopenai.AzureOpenAIModelConfig))
+
+	case *dashscope.DashScopeModelConfig:
+		return dashscope.NewClient(config.(*dashscope.DashScopeModelConfig))
 
 	}
 	return nil, errors.New("unknown model config")

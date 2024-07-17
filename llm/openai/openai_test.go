@@ -22,7 +22,7 @@ func TestConvertToOpenAIChatMessages(t *testing.T) {
 		{Role: "user", Content: "Hello"},
 	}
 
-	openAIMessages := convertToOpenAIChatMessages(messages)
+	openAIMessages := ConvertToOpenAIChatMessages(messages)
 
 	if len(openAIMessages) != len(messages) {
 		t.Errorf("Expected %d messages, got %d", len(messages), len(openAIMessages))
@@ -43,6 +43,5 @@ func TestNewConfig(t *testing.T) {
 }
 
 func TestChat(t *testing.T) {
-	config := NewConfig("token", "model", "URL")
-
+	// TODO: Implement test for Chat function
 }
