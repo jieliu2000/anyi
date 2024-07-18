@@ -11,8 +11,19 @@ import (
 	config "github.com/spf13/viper"
 )
 
+// ClientConfig is the configuration for a client. In Anyi, this struct is mainly used for reading the client config file. The config file can be in any formats that viper (https://github.com/spf13/viper) supports.
+// If you create clients based on programmed ModelConfig then you don't need to use this struct.
+// The function NewModelConfigFromFile is provided to help you read the config file and convert it to corresponding ModelConfig.
 type ClientConfig struct {
-	Model  string
+	// The model to use. Currently, it supports these values:
+	// "openai" - OpenAI model
+	//"azureopenai" - Azure OpenAI model
+	//"dashscope" - DashScope model
+	Model string
+
+	// The model config. The type of this field depends on the model. We define this property as map[string]interface{} for extensibility.
+	// You can refer to the ModelConfig type of your model to see what properties you need to define hee.
+	// For example, for openai, you need to define properties based on openai.OpenAIModelConfig struct.
 	Config map[string]interface{}
 }
 
@@ -41,33 +52,30 @@ func readConfigFile(configFile string) (*ClientConfig, error) {
 	return &clientConfig, nil
 }
 
-func NewConfigFromConfigFile(configFile string) (ModelConfig, error) {
+func NewModelConfigFromFile(configFile string) (ModelConfig, error) {
 	clientConfig, err := readConfigFile(configFile)
 	if err != nil {
 		return nil, err
 	}
 
+	var modelConfig ModelConfig
 	switch clientConfig.Model {
-
 	case "openai":
-		openaiConfig := openai.OpenAIModelConfig{}
-		err := mapstructure.Decode(clientConfig.Config, &openaiConfig)
-		return &openaiConfig, err
-
+		modelConfig = &openai.OpenAIModelConfig{}
 	case "azureopenai":
-		azureOpenAIConfig := azureopenai.AzureOpenAIModelConfig{}
-		err := mapstructure.Decode(clientConfig.Config, &azureOpenAIConfig)
-		return &azureOpenAIConfig, err
-
+		modelConfig = &azureopenai.AzureOpenAIModelConfig{}
 	case "dashscope":
-		dashScopeConfig := dashscope.DashScopeModelConfig{}
-		err := mapstructure.Decode(clientConfig.Config, &dashScopeConfig)
-		return &dashScopeConfig, err
+		modelConfig = &dashscope.DashScopeModelConfig{}
+	default:
+		return nil, errors.New("unknown model")
 	}
 
-	return nil, errors.New("unknown model")
+	err = mapstructure.Decode(clientConfig.Config, modelConfig)
+	return modelConfig, err
 }
 
+// NewClient creates a new client based on the model config. The type of client is determined by the type of model config.
+// For example, if you pass in an OpenAIModelConfig, it will return a new OpenAIClient.
 func NewClient(config ModelConfig) (Client, error) {
 
 	//lint:ignore S1034 config variable will be used in future so we ignore this linter for now
@@ -86,9 +94,12 @@ func NewClient(config ModelConfig) (Client, error) {
 	return nil, errors.New("unknown model config")
 }
 
+// NewClientFromConfigFile creates a new client based on the model config file.
+// The @configFile parameter is the path to the model config file. Anyi reads config file using viper (https://github.com/spf13/viper) library.
+// Refer to the ClientConfig struct on what contents can be speified in the config file.
 func NewClientFromConfigFile(configFile string) (Client, error) {
 
-	config, err := NewConfigFromConfigFile(configFile)
+	config, err := NewModelConfigFromFile(configFile)
 	if err != nil {
 		return nil, err
 	}

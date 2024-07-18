@@ -54,28 +54,42 @@ func NewConfig(apiKey string, model string, baseUrl string) *DashScopeModelConfi
 
 func NewClient(config *DashScopeModelConfig) (*DashScopeClient, error) {
 
+	// Check if the config is nil to prevent panic or unexpected behavior
+	if config == nil {
+		return nil, errors.New("config cannot be nil")
+	}
+
+	// Create a new default configuration implementation using the provided API key
 	configImpl := impl.DefaultConfig(config.APIKey)
+
+	// Set the BaseURL from the provided config
 	configImpl.BaseURL = config.BaseUrl
 
+	// Define a mapping function for Azure model IDs (in this case, it just returns the same ID)
 	configImpl.AzureModelMapperFunc = func(modelId string) string { return modelId }
 
+	// Create a new DashScopeClient using the provided config and the configured client implementation
 	client := &DashScopeClient{
 		Config:     config,
 		clientImpl: impl.NewClientWithConfig(configImpl),
 	}
 
+	// Return the newly created DashScopeClient and nil error
 	return client, nil
 }
 
 func (c *DashScopeClient) Chat(messages []message.Message) (*message.Message, error) {
 
+	// Check if the client implementation is initialized
 	client := c.clientImpl
 	if client == nil {
 		return nil, errors.New("client not initialized")
 	}
 
+	// Convert the messages to OpenAI ChatMessages format
 	messagesInput := openai.ConvertToOpenAIChatMessages(messages)
 
+	// Create a ChatCompletion request using the client and the converted messages
 	resp, err := client.CreateChatCompletion(
 		context.Background(),
 		impl.ChatCompletionRequest{
@@ -84,12 +98,22 @@ func (c *DashScopeClient) Chat(messages []message.Message) (*message.Message, er
 		},
 	)
 
+	// Check if there was an error in creating the ChatCompletion
 	if err != nil {
 		return nil, err
 	}
+
+	// Check if there are no choices in the response
+	if len(resp.Choices) == 0 {
+		return nil, errors.New("no choices found in the response")
+	}
+
+	// Extract the first choice from the response and create a new message object
 	result := message.Message{
 		Content: resp.Choices[0].Message.Content,
 		Role:    resp.Choices[0].Message.Role,
 	}
+
+	// Return the new message object and nil error
 	return &result, nil
 }

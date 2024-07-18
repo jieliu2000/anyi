@@ -1,3 +1,4 @@
+// message package contains the Message related structs and their related functions.
 package message
 
 import (
@@ -9,6 +10,22 @@ import (
 type Message struct {
 	Content string `json:"content"`
 	Role    string `json:"role"`
+}
+
+func NewMessage(role, content string) Message {
+	return Message{Content: content, Role: role}
+}
+
+func NewSystemMessage(content string) Message {
+	return Message{Content: content, Role: "system"}
+}
+
+func NewUserMessage(content string) Message {
+	return Message{Content: content, Role: "user"}
+}
+
+func NewAssistantMessage(content string) Message {
+	return Message{Content: content, Role: "assistant"}
 }
 
 type MessageFormatter interface {
