@@ -3,6 +3,7 @@ module github.com/jieliu2000/anyi
 go 1.22.1
 
 require (
+	github.com/mitchellh/mapstructure v1.5.0
 	github.com/sashabaranov/go-openai v1.26.2
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.9.0
@@ -13,7 +14,6 @@ require (
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
-	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
