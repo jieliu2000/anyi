@@ -1,0 +1,5 @@
+model = "openai"
+
+[config]
+apiKey = "key"
+model = "model"
