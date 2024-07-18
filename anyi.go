@@ -16,3 +16,11 @@ func NewMessage(role string, content string) message.Message {
 		Content: content,
 	}
 }
+
+func NewMessageTemplateFormatter(templateFile string) (*message.MessageTemplateFormatter, error) {
+	return message.NewMessageTemplateFormatter(templateFile)
+}
+
+func NewFlowFromConfigFile(configfile string) {
+
+}

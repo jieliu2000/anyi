@@ -1,12 +1,14 @@
 # Anyi - Open Source Autonomouse AI Agent Framework
 
+| [English](README.md) | [中文](README-zh.md) |
+
 ## Introduction
 
 Anyi is an open source AI Agent framework designed to help you build AI Agents that can be integrated with real-world work. We also provide APIs for accessing large models.
 
 ## Features
 
-Anyi is a go-language programming framework that provides the following features:
+Anyi is a Go language programming framework that provides the following features:
 
 - Access to big models, allowing different big models to be accessed through the same interface with different configurations.
 
@@ -55,4 +57,3 @@ func main() {
 ```
 
 In the above example, an OpenAI anyi configuration is created via `openai.DefaultConfig`. Then this config instance is passed to `llm.NewClient` to create an OpenAI client, and finally a chat request is sent via `client.Chat`.
-
