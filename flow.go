@@ -34,10 +34,6 @@ type LLMFlowStep struct {
 	SystemMessage     string
 }
 
-func NewFlow(client llm.Client, steps ...FlowStep) *Flow {
-	return &Flow{Steps: steps, clientImpl: client}
-}
-
 func (flow *Flow) Run(initialContext *FlowContext) (*FlowContext, error) {
 
 	context := initialContext

@@ -29,6 +29,10 @@ func NewMessageTemplateFormatter(templateFile string) (*message.MessageTemplateF
 	return message.NewMessageTemplateFormatter(templateFile)
 }
 
+func NewFlow(client llm.Client, steps ...FlowStep) *Flow {
+	return &Flow{Steps: steps, clientImpl: client}
+}
+
 func NewFlowFromConfigFile(configfile string) {
 	//TODO
 }
