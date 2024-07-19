@@ -146,5 +146,4 @@ func TestChat(t *testing.T) {
 	assert.NotNil(t, response)
 
 	assert.Equal(t, "Reply to your input", response.Content)
-
 }
