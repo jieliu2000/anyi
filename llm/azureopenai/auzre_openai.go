@@ -27,6 +27,19 @@ func NewConfig(apiKey string, modelDeploymentId string, endpoint string) *AzureO
 
 func NewClient(config *AzureOpenAIModelConfig) (*AzureOpenAIClient, error) {
 
+	if config == nil {
+		return nil, errors.New("config is required")
+	}
+	if config.APIKey == "" {
+		return nil, errors.New("api_key is required")
+	}
+	if config.ModelDeploymentId == "" {
+		return nil, errors.New("model_deployment_id is required")
+	}
+	if config.Endpoint == "" {
+		return nil, errors.New("endpoint is required")
+	}
+
 	configImpl := impl.DefaultAzureConfig(config.APIKey, config.Endpoint)
 	configImpl.AzureModelMapperFunc = func(modelId string) string { return modelId }
 
