@@ -35,8 +35,10 @@ type MessageFormatter interface {
 // MessageTemplateFormatter is a struct that implements the MessageFormatter interface. It uses Golang's text/template package to format a message based on a template and parameters.
 // @see https://pkg.go.dev/text/template about how to use the Golang text template.
 type MessageTemplateFormatter struct {
-	File        string
-	theTemplate *template.Template
+	TemplateName   string
+	TemplateString string
+	File           string
+	theTemplate    *template.Template
 }
 
 func (t *MessageTemplateFormatter) Init() error {
@@ -63,9 +65,13 @@ func (t *MessageTemplateFormatter) Format(data any) (string, error) {
 	return buffer.String(), nil
 }
 
-func NewMessageTemplateFormatter(file string) (*MessageTemplateFormatter, error) {
-	t := &MessageTemplateFormatter{File: file}
-	err := t.Init()
+func NewMessageTemplateFormatterFromFile(templateFilePath string) (*MessageTemplateFormatter, error) {
 
-	return t, err
+	tmpl, err := template.New("template").ParseFiles(templateFilePath)
+	if err != nil {
+		return nil, err
+	}
+	return &MessageTemplateFormatter{
+		theTemplate: tmpl,
+	}, nil
 }

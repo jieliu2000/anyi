@@ -21,11 +21,6 @@ type AzureOpenAIClient struct {
 	clientImpl *impl.Client
 }
 
-func (c *AzureOpenAIClient) Init() error {
-
-	return nil
-}
-
 func NewConfig(apiKey string, modelDeploymentId string, endpoint string) *AzureOpenAIModelConfig {
 	return &AzureOpenAIModelConfig{APIKey: apiKey, ModelDeploymentId: modelDeploymentId, Endpoint: endpoint}
 }

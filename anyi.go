@@ -26,11 +26,11 @@ func NewMessage(role string, content string) message.Message {
 }
 
 func NewMessageTemplateFormatter(templateFile string) (*message.MessageTemplateFormatter, error) {
-	return message.NewMessageTemplateFormatter(templateFile)
+	return message.NewMessageTemplateFormatterFromFile(templateFile)
 }
 
-func NewFlow(client llm.Client, steps ...FlowStep) *Flow {
-	return &Flow{Steps: steps, clientImpl: client}
+func NewFlow(client llm.Client, name string, steps ...FlowStep) *Flow {
+	return &Flow{Steps: steps, Name: name, clientImpl: client}
 }
 
 func NewFlowFromConfigFile(configfile string) {

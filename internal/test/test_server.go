@@ -1,16 +1,43 @@
 package test
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 )
 
-func NewTestServer() *httptest.Server {
+type MockServer struct {
+	*httptest.Server
 
-	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Hello, %s", r.Proto)
+	RequestHandler func(w http.ResponseWriter, r *http.Request)
+}
+
+func (m *MockServer) Init() {
+	m.Server = httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if m.RequestHandler != nil {
+			m.RequestHandler(w, r)
+		}
 	}))
+}
 
-	return ts
+func (m *MockServer) SetRequestHandler(handler func(w http.ResponseWriter, r *http.Request)) {
+	m.RequestHandler = handler
+}
+
+func (m *MockServer) URL() string {
+	return m.Server.URL
+}
+func (m *MockServer) Start() {
+	m.Server.Start()
+}
+
+func (m *MockServer) Close() {
+	m.Server.Close()
+}
+
+func NewTestServer() *MockServer {
+
+	mockServer := MockServer{}
+	mockServer.Init()
+
+	return &mockServer
 }

@@ -27,11 +27,6 @@ type DashScopeClient struct {
 	clientImpl *impl.Client
 }
 
-func (c *DashScopeClient) Init() error {
-
-	return nil
-}
-
 // Creats a default DashScope model config.
 func DefaultConfig(apiKey string, model string) *DashScopeModelConfig {
 	return &DashScopeModelConfig{

@@ -24,11 +24,6 @@ type OpenAIClient struct {
 	clientImpl *impl.Client
 }
 
-func (c *OpenAIClient) Init() error {
-
-	return nil
-}
-
 func DefaultConfig(apiKey string) *OpenAIModelConfig {
 	return NewConfig(apiKey, "", "")
 }
@@ -51,6 +46,10 @@ func NewConfig(apiKey string, model string, baseURL string) *OpenAIModelConfig {
 
 func NewClient(config *OpenAIModelConfig) (*OpenAIClient, error) {
 
+	if config == nil {
+		return nil, errors.New("config cannot be null")
+	}
+
 	configImpl := impl.DefaultConfig(config.APIKey)
 	if config.BaseURL != "" {
 		configImpl.BaseURL = config.BaseURL
@@ -65,28 +64,29 @@ func NewClient(config *OpenAIModelConfig) (*OpenAIClient, error) {
 }
 
 func (c *OpenAIClient) Chat(messages []message.Message) (*message.Message, error) {
-
-	client := c.clientImpl
-	if client == nil {
+	if c.clientImpl == nil {
 		return nil, errors.New("client not initialized")
 	}
 
 	messagesInput := ConvertToOpenAIChatMessages(messages)
 
-	resp, err := client.CreateChatCompletion(
+	resp, err := c.clientImpl.CreateChatCompletion(
 		context.Background(),
 		impl.ChatCompletionRequest{
 			Model:    c.Config.Model,
 			Messages: messagesInput,
 		},
 	)
-
 	if err != nil {
 		return nil, err
 	}
-	result := message.Message{
+
+	if len(resp.Choices) == 0 {
+		return nil, errors.New("no chat completion choices returned")
+	}
+
+	return &message.Message{
 		Content: resp.Choices[0].Message.Content,
 		Role:    resp.Choices[0].Message.Role,
-	}
-	return &result, nil
+	}, nil
 }

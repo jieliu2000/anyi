@@ -31,7 +31,6 @@ type ModelConfig interface {
 }
 
 type Client interface {
-	Init() error
 	Chat(messages []message.Message) (*message.Message, error)
 }
 
