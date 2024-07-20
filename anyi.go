@@ -63,7 +63,15 @@ func GetClient(name string) (llm.Client, error) {
 // Please note that if the name is empty but the config is valid, the client will still be created but it won't be added to Anyi. No error will be returned in this case.
 // If the config is invalid, an error will be returned.
 func NewClientFromConfigFile(configFile string, name string) (llm.Client, error) {
-	return llm.NewClientFromConfigFile(configFile)
+	client, err := llm.NewClientFromConfigFile(configFile)
+	if err != nil {
+		return nil, err
+	}
+	// If name is not empty, add the client to Anyi.Clients
+	if name != "" {
+		Anyi.Clients[name] = client
+	}
+	return client, nil
 }
 
 func NewMessage(role string, content string) message.Message {
