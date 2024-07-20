@@ -3,6 +3,7 @@ package message
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"text/template"
 )
@@ -10,6 +11,12 @@ import (
 type Message struct {
 	Content string `json:"content"`
 	Role    string `json:"role"`
+}
+
+func (m *Message) ToJSON() string {
+
+	bytes, _ := json.Marshal(m)
+	return string(bytes)
 }
 
 func NewMessage(role, content string) Message {

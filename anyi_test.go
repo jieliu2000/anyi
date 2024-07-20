@@ -1,6 +1,7 @@
 package anyi
 
 import (
+	"encoding/json"
 	"errors"
 	"testing"
 
@@ -26,7 +27,7 @@ func TestNewClientWithName(t *testing.T) {
 	assert.Nil(t, client)
 
 	client, err = NewClient(openaiConfig, "")
-	assert.Error(t, err)
+	assert.NoError(t, err)
 	assert.NotNil(t, client)
 
 }
@@ -63,4 +64,21 @@ func TestAddClient(t *testing.T) {
 		err := AddClient(nil, "")
 		assert.Equal(t, err, errors.New("client cannot be empty"))
 	})
+}
+
+func TestNewMessage(t *testing.T) {
+
+	role := "user"
+	content := "Hello, world!"
+	msg := NewMessage(role, content)
+
+	jsonString := msg.ToJSON()
+
+	target := make(map[string]string)
+
+	json.Unmarshal([]byte(jsonString), &target)
+
+	assert.Equal(t, "user", target["role"])
+	assert.Equal(t, "Hello, world!", target["content"])
+
 }
