@@ -66,6 +66,29 @@ func TestAddClient(t *testing.T) {
 	})
 }
 
+func TestGetClient(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		client := &test.MockClient{}
+		name := "get_client"
+		err := AddClient(client, name)
+		assert.Nil(t, err)
+		client1, err := GetClient(name)
+		assert.NoError(t, err)
+		assert.Equal(t, client1, client)
+	})
+	t.Run("EmptyName", func(t *testing.T) {
+		_, err := GetClient("")
+		assert.Error(t, err)
+	})
+	t.Run("NotExist", func(t *testing.T) {
+		client := &test.MockClient{}
+		name := "get_client"
+		AddClient(client, name)
+		result, err := GetClient("not_exist")
+		assert.Nil(t, result)
+		assert.Error(t, err)
+	})
+}
 func TestNewMessage(t *testing.T) {
 
 	role := "user"
@@ -80,5 +103,4 @@ func TestNewMessage(t *testing.T) {
 
 	assert.Equal(t, "user", target["role"])
 	assert.Equal(t, "Hello, world!", target["content"])
-
 }

@@ -82,62 +82,46 @@ type LLMFlowStepConfig struct {
 	SystemMessage     string
 }
 
-// Run the flow step.
 func RunForLLMStep(context FlowContext, step *FlowStep) (*FlowContext, error) {
-
 	if step == nil {
 		return nil, errors.New("no step provided")
 	}
 
-	llmStepConfig := step.StepConfig.(LLMFlowStepConfig)
+	llmStepConfig, ok := step.StepConfig.(LLMFlowStepConfig)
+	if !ok {
+		return nil, errors.New("invalid step config type")
+	}
 
-	// Check if the client is set for the flow step
 	if step.clientImpl == nil {
 		step.clientImpl = context.flow.clientImpl
 	}
-	// Check if the client is set for the flow step
 	if step.clientImpl == nil {
 		return nil, errors.New("no client set for flow step")
 	}
 
-	// Get the template formatter for the step
-	formatter := llmStepConfig.TemplateFormatter
-
-	// Get the input from the flow context
-	input := context.Context
-
-	// Apply the formatter if it's not nil
-	var err error
-	if formatter != nil {
-		input, err = formatter.Format(context)
+	var input string
+	if llmStepConfig.TemplateFormatter != nil {
+		var err error
+		input, err = llmStepConfig.TemplateFormatter.Format(context)
 		if err != nil {
 			return nil, err
 		}
+	} else {
+		input = context.Context
 	}
 
-	// Initialize the message slice
-	messages := []message.Message{}
-
-	// If there is a system message set for the step, append it to the messages
+	messages := make([]message.Message, 0, 2)
 	if llmStepConfig.SystemMessage != "" {
 		messages = append(messages, message.NewSystemMessage(llmStepConfig.SystemMessage))
 	}
-
-	// Append a user message with the input to the messages
 	messages = append(messages, message.NewUserMessage(input))
 
-	// Send the messages to the chat client
 	output, err := step.clientImpl.Chat(messages)
-
-	// If there is an error during the chat, return it
 	if err != nil {
 		return nil, err
 	}
 
-	// Update the context with the chat output content
 	context.Context = output.Content
-
-	// Return the updated context and nil error
 	return &context, nil
 }
 

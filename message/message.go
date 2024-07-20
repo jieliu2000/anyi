@@ -42,9 +42,9 @@ type MessageFormatter interface {
 // MessageTemplateFormatter is a struct that implements the MessageFormatter interface. It uses Golang's text/template package to format a message based on a template and parameters.
 // @see https://pkg.go.dev/text/template about how to use the Golang text template.
 type MessageTemplateFormatter struct {
-	TemplateName   string
-	TemplateString string
-	File           string
+	TemplateName   string `json:"template_name,omitempty" yaml:"template_name,omitempty" mapstructure:"template_name,omitempty"`
+	TemplateString string `json:"template_string,omitempty" yaml:"template_string,omitempty" mapstructure:"template_string"`
+	File           string `json:"file,omitempty" yaml:"file,omitempty" mapstructure:"file"`
 	theTemplate    *template.Template
 }
 
