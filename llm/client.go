@@ -15,6 +15,10 @@ import (
 // If you create clients based on programmed ModelConfig then you don't need to use this struct.
 // The function NewModelConfigFromFile is provided to help you read the config file and convert it to corresponding ModelConfig.
 type ClientConfig struct {
+
+	// The name of the client. This property is only used when you want anyi to have multiple client configurations and allows workflows/steps to configure clients via the name.
+	// If you don't need to use multiple clients, you can ignore this property.
+	Name string
 	// The model to use. Currently, it supports these values:
 	// "openai" - OpenAI model
 	//"azureopenai" - Azure OpenAI model

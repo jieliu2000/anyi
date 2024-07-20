@@ -8,11 +8,17 @@ import (
 )
 
 type Flow struct {
-	Name         string
+	Name string
+
+	ClientName   string
 	Steps        []FlowStep
 	ClientConfig llm.ClientConfig
 	// The default clientImpl for the flow
 	clientImpl llm.Client
+}
+
+func NewFlow(client llm.Client, name string, steps ...FlowStep) *Flow {
+	return &Flow{Steps: steps, Name: name, clientImpl: client}
 }
 
 type StepExecutor func(context FlowContext, Step *FlowStep) (*FlowContext, error)
@@ -22,11 +28,12 @@ type StepValidator func(stepOutput string, Step *FlowStep) error
 type FlowStep struct {
 	clientImpl llm.Client
 
-	StepConfig     any
-	Run            StepExecutor
-	Validate       StepValidator
-	repeatTimes    int
-	MaxRepeatTimes int
+	ClientName    string
+	StepConfig    any
+	Run           StepExecutor
+	Validate      StepValidator
+	retryTimes    int
+	MaxRetryTimes int
 }
 
 // FlowContext is the context for a flow. It will be passed to each flow step.
@@ -40,12 +47,12 @@ type FlowContext struct {
 
 func NewStep(stepConfig any, executor StepExecutor, validator StepValidator, client llm.Client) *FlowStep {
 	return &FlowStep{
-		StepConfig:     stepConfig,
-		Run:            executor,
-		Validate:       validator,
-		repeatTimes:    0,
-		MaxRepeatTimes: 1,
-		clientImpl:     client,
+		StepConfig:    stepConfig,
+		Run:           executor,
+		Validate:      validator,
+		retryTimes:    0,
+		MaxRetryTimes: 1,
+		clientImpl:    client,
 	}
 }
 
