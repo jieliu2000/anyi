@@ -49,3 +49,114 @@ func TestNewAssistantMessage(t *testing.T) {
 	assert.Equal(t, "assistant", m.Role)
 	assert.Equal(t, "Hello, world!", m.Content)
 }
+
+func TestNewMessageTemplateFormatter(t *testing.T) {
+
+	t.Run("Success with map", func(t *testing.T) {
+		f, err := NewMessageTemplateFormatter("Hello, {{.Name}}!")
+
+		assert.Nil(t, err)
+
+		input := map[string]interface{}{
+			"Name": "world",
+		}
+
+		expected := "Hello, world!"
+
+		output, err := f.Format(input)
+		assert.Equal(t, expected, output)
+		assert.NoError(t, err)
+	})
+	t.Run("Success with struct", func(t *testing.T) {
+		type User struct {
+			Name string
+		}
+		f, err := NewMessageTemplateFormatter("Hello, {{.Name}}!")
+		assert.Nil(t, err)
+		input := User{
+			Name: "world",
+		}
+		expected := "Hello, world!"
+		output, err := f.Format(input)
+		assert.Equal(t, expected, output)
+		assert.NoError(t, err)
+	})
+	t.Run("Success with struct pointer", func(t *testing.T) {
+
+		type User struct {
+			Name string
+		}
+		f, err := NewMessageTemplateFormatter("Hello, {{.Name}}!")
+		assert.NoError(t, err)
+		input := &User{
+			Name: "world",
+		}
+		expected := "Hello, world!"
+		output, err := f.Format(input)
+		assert.Equal(t, expected, output)
+		assert.NoError(t, err)
+	})
+
+	t.Run("Success with plain text", func(t *testing.T) {
+		f, err := NewMessageTemplateFormatter("Hello, {{.}}!")
+		assert.Nil(t, err)
+		input := "world"
+		expected := "Hello, world!"
+		output, err := f.Format(input)
+		assert.Equal(t, expected, output)
+		assert.NoError(t, err)
+	})
+
+	t.Run("Success with array", func(t *testing.T) {
+
+		f, err := NewMessageTemplateFormatter("Hello, {{index . 0}}!")
+		assert.Nil(t, err)
+		input := []string{
+			"world",
+		}
+		expected := "Hello, world!"
+		output, err := f.Format(input)
+		assert.Equal(t, expected, output)
+		assert.NoError(t, err)
+	})
+
+	t.Run("Success with struct array", func(t *testing.T) {
+
+		type User struct {
+			Name string
+		}
+		input := []User{
+			{
+				Name: "world",
+			},
+		}
+
+		f, err := NewMessageTemplateFormatter(`Hello, {{(index . 0).Name}}!`)
+		assert.Nil(t, err)
+
+		expected := "Hello, world!"
+		output, err := f.Format(input)
+		assert.Equal(t, expected, output)
+		assert.NoError(t, err)
+
+	})
+
+	t.Run("Error with invalid template", func(t *testing.T) {
+		f, err := NewMessageTemplateFormatter("Hello, {{.Name")
+		assert.Nil(t, f)
+		assert.Error(t, err)
+	})
+
+	t.Run("Error with invalid input", func(t *testing.T) {
+		f, err := NewMessageTemplateFormatter("Hello, {{.Name}}!")
+		assert.NotNil(t, f)
+		assert.NoError(t, err)
+
+		input := "world"
+		_, err = f.Format(input)
+
+		assert.Error(t, err)
+
+	})
+
+}

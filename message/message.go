@@ -49,12 +49,43 @@ type MessageTemplateFormatter struct {
 }
 
 func (t *MessageTemplateFormatter) Init() error {
-	tmpl, err := template.New(t.File).ParseFiles(t.File)
-	if err != nil {
-		return err
+
+	var tmpl *template.Template
+	var err error
+
+	if t.TemplateString != "" {
+		tmpl, err = template.New("template").Parse(t.TemplateString)
+		if err != nil {
+			return err
+		}
+
 	}
+	if t.File != "" {
+		tmpl, err = template.New("template").ParseFiles(t.File)
+		if err != nil {
+			return err
+		}
+	}
+
 	t.theTemplate = tmpl
 	return nil
+}
+
+func NewMessageTemplateFormatter(templateContent string) (*MessageTemplateFormatter, error) {
+	tmpl := &MessageTemplateFormatter{TemplateString: templateContent}
+	if err := tmpl.Init(); err != nil {
+		return nil, err
+	}
+	return tmpl, nil
+}
+
+func NewMessageTemplateFormatterFromFile(templateFilePath string) (*MessageTemplateFormatter, error) {
+
+	tmpl := &MessageTemplateFormatter{File: templateFilePath}
+	if err := tmpl.Init(); err != nil {
+		return nil, err
+	}
+	return tmpl, nil
 }
 
 func (t *MessageTemplateFormatter) Format(data any) (string, error) {
@@ -70,15 +101,4 @@ func (t *MessageTemplateFormatter) Format(data any) (string, error) {
 	}
 
 	return buffer.String(), nil
-}
-
-func NewMessageTemplateFormatterFromFile(templateFilePath string) (*MessageTemplateFormatter, error) {
-
-	tmpl, err := template.New("template").ParseFiles(templateFilePath)
-	if err != nil {
-		return nil, err
-	}
-	return &MessageTemplateFormatter{
-		theTemplate: tmpl,
-	}, nil
 }
