@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	DefaultMaxRetryTimes = 5
+	DefaultMaxRetryTimes = 3
 )
 
 type Flow struct {
@@ -27,7 +27,7 @@ func NewFlow(client llm.Client, name string, steps ...FlowStep) *Flow {
 
 type StepExecutor func(context FlowContext, Step *FlowStep) (*FlowContext, error)
 
-type StepValidator func(stepOutput string, Step *FlowStep) error
+type StepValidator func(stepOutput string, Step *FlowStep) bool
 
 type FlowStep struct {
 	clientImpl         llm.Client
@@ -41,7 +41,7 @@ type FlowStep struct {
 	// The client name which will be used to validate the step output. If not set, validator will use the default client of the step (which is identified by the ClientName field). If the step doesn't have a default client, the validator will use the default client of the flow.
 	ValidatorClientName string
 	Validate            StepValidator
-	retryTimes          int
+	runTimes            int
 	MaxRetryTimes       int
 }
 
@@ -71,31 +71,60 @@ func NewStepWithValidator(stepConfig any, executor StepExecutor, validator StepV
 		StepConfig:         stepConfig,
 		Run:                executor,
 		Validate:           validator,
-		retryTimes:         0,
+		runTimes:           0,
 		MaxRetryTimes:      DefaultMaxRetryTimes,
 		clientImpl:         client,
 		validateClientImpl: validateClient,
 	}
 }
 
+func tryStep(step *FlowStep, context FlowContext) (*FlowContext, error) {
+	var err error
+
+	// Run the step and get the updated context
+	result, err := step.Run(context, step)
+	step.runTimes++
+	if err != nil {
+		return result, err
+	}
+	if step.runTimes > step.MaxRetryTimes {
+		return result, errors.New("step retry times exceeded")
+	}
+	if step.Validate != nil {
+		// Validate the step output
+		if step.Validate(result.Context, step) {
+			// If the step output is valid, update context and continue to the next step
+			return result, nil
+		} else {
+			// Otherwise, try again
+			return tryStep(step, *result)
+		}
+	}
+	// If no validator is set, simply return the updated context.
+	return result, nil
+}
+
 func (flow *Flow) Run(initialContext FlowContext) (*FlowContext, error) {
 
-	context := initialContext
+	context := &initialContext
 	context.flow = flow
 
 	// For each step in the flow
 	for _, step := range flow.Steps {
 		// Run the step and get the updated context
 
-		var err error
-		result, err := step.Run(context, &step)
+		result, err := tryStep(&step, *context)
+
 		if err != nil {
-			return result, err
+			return nil, err
 		}
+
+		// Update the context
+		context = result
 	}
 
 	// Return the context content
-	return &context, nil
+	return context, nil
 }
 
 type LLMFlowStepConfig struct {
