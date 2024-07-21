@@ -1,5 +1,6 @@
 // Use the openai compatible interface to access the DashScope service.
-// @see https://help.aliyun.com/zh/dashscope/developer-reference/compatibility-of-openai-with-dashscope/?spm=a2c4g.11186623.0.0.17504ad0abpnzJ for details
+// See [Dashscope Document] for details.
+// [Dashscope Document]: https://help.aliyun.com/zh/dashscope/developer-reference/compatibility-of-openai-with-dashscope/?spm=a2c4g.11186623.0.0.17504ad0abpnzJ for details
 package dashscope
 
 import (

@@ -1,4 +1,4 @@
-// message package contains the Message related structs and their related functions.
+// message package contains the Message and Prompt related structs and their related functions.
 package message
 
 import (
@@ -19,36 +19,47 @@ func (m *Message) ToJSON() string {
 	return string(bytes)
 }
 
+// Creates a new message with the given role and content.
 func NewMessage(role, content string) Message {
 	return Message{Content: content, Role: role}
 }
 
+// Creates a new system message with the given content.
 func NewSystemMessage(content string) Message {
 	return Message{Content: content, Role: "system"}
 }
 
+// Creates a new user message with the given content.
 func NewUserMessage(content string) Message {
 	return Message{Content: content, Role: "user"}
 }
 
+// Creates a new assistant message with the given content.
 func NewAssistantMessage(content string) Message {
 	return Message{Content: content, Role: "assistant"}
 }
 
-type MessageFormatter interface {
+type PromptFormatter interface {
 	Format(Data any) (string, error)
 }
 
-// MessageTemplateFormatter is a struct that implements the MessageFormatter interface. It uses Golang's text/template package to format a message based on a template and parameters.
-// @see https://pkg.go.dev/text/template about how to use the Golang text template.
-type MessageTemplateFormatter struct {
+// PromptyTemplateFormatter is a struct that implements the [PromptFormatter] interface. It uses [Golang's text/template package] to format a message based on a template and parameters.
+// See https://pkg.go.dev/text/template about how to use the Golang text template.
+//
+// [Golang's text/template package]: https://pkg.go.dev/text/template
+type PromptyTemplateFormatter struct {
 	TemplateName   string `json:"template_name,omitempty" yaml:"template_name,omitempty" mapstructure:"template_name,omitempty"`
 	TemplateString string `json:"template_string,omitempty" yaml:"template_string,omitempty" mapstructure:"template_string"`
 	File           string `json:"file,omitempty" yaml:"file,omitempty" mapstructure:"file"`
 	theTemplate    *template.Template
 }
 
-func (t *MessageTemplateFormatter) Init() error {
+// Initializes the PromptyTemplateFormatter.
+// This method will init the TemplateFormatter based based on the values of the TemplateString and File fields. It works in the following order:
+//  1. If TemplateString is not empty, it will parse the string as a template and set the Template field to that parsed template.
+//  2. If TemplateString is empty and File is not empty, it will parse the file as a template and set the Template field to that parsed template.
+//  3. If both TemplateString and File are empty, it will return an error.
+func (t *PromptyTemplateFormatter) Init() error {
 
 	var tmpl *template.Template
 	var err error
@@ -59,8 +70,7 @@ func (t *MessageTemplateFormatter) Init() error {
 			return err
 		}
 
-	}
-	if t.File != "" {
+	} else if t.File != "" {
 		tmpl, err = template.New("template").ParseFiles(t.File)
 		if err != nil {
 			return err
@@ -71,24 +81,34 @@ func (t *MessageTemplateFormatter) Init() error {
 	return nil
 }
 
-func NewMessageTemplateFormatter(templateContent string) (*MessageTemplateFormatter, error) {
-	tmpl := &MessageTemplateFormatter{TemplateString: templateContent}
+// Creates a new PromptyTemplateFormatter with the given template string. See [Golang's text/template package documentation] about how to use the Golang text template.
+//
+// [Golang's text/template package documentation]: https://pkg.go.dev/text/template
+func NewPromptTemplateFormatter(templateContent string) (*PromptyTemplateFormatter, error) {
+	tmpl := &PromptyTemplateFormatter{TemplateString: templateContent}
 	if err := tmpl.Init(); err != nil {
 		return nil, err
 	}
 	return tmpl, nil
 }
 
-func NewMessageTemplateFormatterFromFile(templateFilePath string) (*MessageTemplateFormatter, error) {
+// Creates a new PromptyTemplateFormatter with the given template file path. See [Golang's text/template package documentation] about how to use the Golang text template.
+// Parameter templateFilePath is the path to the template file.
+//
+// [Golang's text/template package documentation]: https://pkg.go.dev/text/template
+func NewPromptTemplateFormatterFromFile(templateFilePath string) (*PromptyTemplateFormatter, error) {
 
-	tmpl := &MessageTemplateFormatter{File: templateFilePath}
+	tmpl := &PromptyTemplateFormatter{File: templateFilePath}
 	if err := tmpl.Init(); err != nil {
 		return nil, err
 	}
 	return tmpl, nil
 }
 
-func (t *MessageTemplateFormatter) Format(data any) (string, error) {
+// Formats the given data using the template. See [Golang's text/template package documentation] about how to use the Golang text template.
+//
+// [Golang's text/template package documentation]: https://pkg.go.dev/text/template
+func (t *PromptyTemplateFormatter) Format(data any) (string, error) {
 
 	if t.theTemplate == nil {
 		return "", errors.New("template is not set")

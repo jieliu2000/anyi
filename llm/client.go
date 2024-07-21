@@ -11,18 +11,21 @@ import (
 	config "github.com/spf13/viper"
 )
 
-// ClientConfig is the configuration for a client. In Anyi, this struct is mainly used for reading the client config file. The config file can be in any formats that viper (https://github.com/spf13/viper) supports.
+// ClientConfig is the configuration for a client. In Anyi, this struct is mainly used for reading the client config file. The config file can be in any formats that [viper] supports.
 // If you create clients based on programmed ModelConfig then you don't need to use this struct.
 // The function NewModelConfigFromFile is provided to help you read the config file and convert it to corresponding ModelConfig.
+//
+// [viper]: https://github.com/spf13/viper
 type ClientConfig struct {
 
 	// The name of the client. This property is only used when you want anyi to have multiple client configurations and allows workflows/steps to configure clients via the name.
 	// If you don't need to use multiple clients, you can ignore this property.
 	Name string
+
 	// The model to use. Currently, it supports these values:
-	// "openai" - OpenAI model
-	//"azureopenai" - Azure OpenAI model
-	//"dashscope" - DashScope model
+	//	* "openai" - OpenAI model
+	//	* "azureopenai" - Azure OpenAI model
+	//	* "dashscope" - DashScope model
 	Model string
 
 	// The model config. The type of this field depends on the model. We define this property as map[string]interface{} for extensibility.
@@ -98,8 +101,10 @@ func NewClient(config ModelConfig) (Client, error) {
 }
 
 // NewClientFromConfigFile creates a new client based on the model config file.
-// The @configFile parameter is the path to the model config file. Anyi reads config file using viper (https://github.com/spf13/viper) library.
+// The @configFile parameter is the path to the model config file. Anyi reads config file using [viper] library.
 // Refer to the ClientConfig struct on what contents can be speified in the config file.
+//
+// [viper]: https://github.com/spf13/viper
 func NewClientFromConfigFile(configFile string) (Client, error) {
 
 	config, err := NewModelConfigFromFile(configFile)

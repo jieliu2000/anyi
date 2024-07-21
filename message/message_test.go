@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewMessage(t *testing.T) {
+func TestNewPrompt(t *testing.T) {
 
 	msg := NewMessage("user", "hello")
 	assert.Equal(t, "user", msg.Role, "role should be user")
@@ -50,10 +50,10 @@ func TestNewAssistantMessage(t *testing.T) {
 	assert.Equal(t, "Hello, world!", m.Content)
 }
 
-func TestNewMessageTemplateFormatter(t *testing.T) {
+func TestNewPromptTemplateFormatter(t *testing.T) {
 
 	t.Run("Success with map", func(t *testing.T) {
-		f, err := NewMessageTemplateFormatter("Hello, {{.Name}}!")
+		f, err := NewPromptTemplateFormatter("Hello, {{.Name}}!")
 
 		assert.Nil(t, err)
 
@@ -71,7 +71,7 @@ func TestNewMessageTemplateFormatter(t *testing.T) {
 		type User struct {
 			Name string
 		}
-		f, err := NewMessageTemplateFormatter("Hello, {{.Name}}!")
+		f, err := NewPromptTemplateFormatter("Hello, {{.Name}}!")
 		assert.Nil(t, err)
 		input := User{
 			Name: "world",
@@ -86,7 +86,7 @@ func TestNewMessageTemplateFormatter(t *testing.T) {
 		type User struct {
 			Name string
 		}
-		f, err := NewMessageTemplateFormatter("Hello, {{.Name}}!")
+		f, err := NewPromptTemplateFormatter("Hello, {{.Name}}!")
 		assert.NoError(t, err)
 		input := &User{
 			Name: "world",
@@ -98,7 +98,7 @@ func TestNewMessageTemplateFormatter(t *testing.T) {
 	})
 
 	t.Run("Success with plain text", func(t *testing.T) {
-		f, err := NewMessageTemplateFormatter("Hello, {{.}}!")
+		f, err := NewPromptTemplateFormatter("Hello, {{.}}!")
 		assert.Nil(t, err)
 		input := "world"
 		expected := "Hello, world!"
@@ -109,7 +109,7 @@ func TestNewMessageTemplateFormatter(t *testing.T) {
 
 	t.Run("Success with array", func(t *testing.T) {
 
-		f, err := NewMessageTemplateFormatter("Hello, {{index . 0}}!")
+		f, err := NewPromptTemplateFormatter("Hello, {{index . 0}}!")
 		assert.Nil(t, err)
 		input := []string{
 			"world",
@@ -131,7 +131,7 @@ func TestNewMessageTemplateFormatter(t *testing.T) {
 			},
 		}
 
-		f, err := NewMessageTemplateFormatter(`Hello, {{(index . 0).Name}}!`)
+		f, err := NewPromptTemplateFormatter(`Hello, {{(index . 0).Name}}!`)
 		assert.Nil(t, err)
 
 		expected := "Hello, world!"
@@ -142,13 +142,13 @@ func TestNewMessageTemplateFormatter(t *testing.T) {
 	})
 
 	t.Run("Error with invalid template", func(t *testing.T) {
-		f, err := NewMessageTemplateFormatter("Hello, {{.Name")
+		f, err := NewPromptTemplateFormatter("Hello, {{.Name")
 		assert.Nil(t, f)
 		assert.Error(t, err)
 	})
 
 	t.Run("Error with invalid input", func(t *testing.T) {
-		f, err := NewMessageTemplateFormatter("Hello, {{.Name}}!")
+		f, err := NewPromptTemplateFormatter("Hello, {{.Name}}!")
 		assert.NotNil(t, f)
 		assert.NoError(t, err)
 

@@ -7,6 +7,10 @@ import (
 	"github.com/jieliu2000/anyi/message"
 )
 
+const (
+	DefaultMaxRetryTimes = 5
+)
+
 type Flow struct {
 	Name string
 
@@ -26,19 +30,24 @@ type StepExecutor func(context FlowContext, Step *FlowStep) (*FlowContext, error
 type StepValidator func(stepOutput string, Step *FlowStep) error
 
 type FlowStep struct {
-	clientImpl llm.Client
+	clientImpl         llm.Client
+	validateClientImpl llm.Client
 
-	ClientName    string
-	StepConfig    any
-	Run           StepExecutor
-	Validate      StepValidator
-	retryTimes    int
-	MaxRetryTimes int
+	StepConfig any
+	ClientName string
+
+	Run StepExecutor
+
+	// The client name which will be used to validate the step output. If not set, validator will use the default client of the step (which is identified by the ClientName field). If the step doesn't have a default client, the validator will use the default client of the flow.
+	ValidatorClientName string
+	Validate            StepValidator
+	retryTimes          int
+	MaxRetryTimes       int
 }
 
 // FlowContext is the context for a flow. It will be passed to each flow step.
-// The @Context field provides the input and output string for a step. For example, before the step runs, the "Context" field is the input string (which might be formatted by the template formatter). After the step runs, the "Context" field is the output string.
-// The @Data field could be any data you want to pass between steps.
+// The Context field provides the input and output string for a step. For example, before the step runs, the "Context" field is the input string (which might be formatted by the template formatter). After the step runs, the "Context" field is the output string.
+// The Data field could be any data you want to pass between steps.
 type FlowContext struct {
 	Context string
 	Data    any
@@ -46,13 +55,26 @@ type FlowContext struct {
 }
 
 func NewStep(stepConfig any, executor StepExecutor, validator StepValidator, client llm.Client) *FlowStep {
+	return &FlowStep{StepConfig: stepConfig, Run: executor, Validate: validator, clientImpl: client}
+}
+
+// Create a new flow step with executor and validator.
+// Parameters:
+//
+//   - stepConfig: the configuration of the step. This parameter is used to pass parameters to the executor and validator. This can be a flexible type object which will be used by the executor and validator. We provide a default StepConfig in Anyi, see [LLMFlowStepConfig] for more details.
+//   - executor: the executor of the step. See [StepExecutor] for more details.
+//   - validator: the validator of the step. Set this parameter to nil if you don't want to validate the step output. See [StepValidator] for more details.
+//   - client: the default client of the step. If set to nil, the default client of the flow will be used.
+//   - validateClient: the client used to validate the step output. If set to nil, the default client of the step will be used. If the step doesn't have a default client, the default client of the flow will be used.
+func NewStepWithValidator(stepConfig any, executor StepExecutor, validator StepValidator, client llm.Client, validateClient llm.Client) *FlowStep {
 	return &FlowStep{
-		StepConfig:    stepConfig,
-		Run:           executor,
-		Validate:      validator,
-		retryTimes:    0,
-		MaxRetryTimes: 1,
-		clientImpl:    client,
+		StepConfig:         stepConfig,
+		Run:                executor,
+		Validate:           validator,
+		retryTimes:         0,
+		MaxRetryTimes:      DefaultMaxRetryTimes,
+		clientImpl:         client,
+		validateClientImpl: validateClient,
 	}
 }
 
@@ -77,9 +99,10 @@ func (flow *Flow) Run(initialContext FlowContext) (*FlowContext, error) {
 }
 
 type LLMFlowStepConfig struct {
-	// The client of the flow step. If not set, the default client of the flow will be used.
-	TemplateFormatter *message.MessageTemplateFormatter
-	SystemMessage     string
+	TemplateFormatter       *message.PromptyTemplateFormatter
+	SystemMessage           string
+	ValidatePromptFormatter *message.PromptyTemplateFormatter
+	ValidateSystemMessage   string
 }
 
 func RunForLLMStep(context FlowContext, step *FlowStep) (*FlowContext, error) {
@@ -128,7 +151,7 @@ func RunForLLMStep(context FlowContext, step *FlowStep) (*FlowContext, error) {
 func NewLLMStepWithTemplateFile(templateFilePath string, systemMessage string, client llm.Client) (*FlowStep, error) {
 
 	// Create a new formatter with the template
-	formatter, err := message.NewMessageTemplateFormatterFromFile(templateFilePath)
+	formatter, err := message.NewPromptTemplateFormatterFromFile(templateFilePath)
 	if err != nil {
 		return nil, err
 	}

@@ -18,7 +18,7 @@ var Anyi *AnyiData = &AnyiData{
 }
 
 // The function creates a new client based on the given configuration and, if a non-empty name is provided, add that client to the global Anyi instance.
-// The name is used to identify the client in Anyi. After a client is added to Anyi with a name, you can access it by calling Anyi.GetClient(name).
+// The name is used to identify the client in Anyi. After a client is added to Anyi with a name, you can access it by calling [GetClient].
 // Please note that if the name is empty but the config is valid, the client will still be created but it won't be added to Anyi. No error will be returned in this case.
 // If the config is invalid, an error will be returned.
 func NewClient(config llm.ModelConfig, name string) (llm.Client, error) {
@@ -58,10 +58,12 @@ func GetClient(name string) (llm.Client, error) {
 }
 
 // NewClientFromConfigFile creates a new client based on the model config file.
-// The @configFile parameter is the path to the model config file. Anyi reads config file using viper (https://github.com/spf13/viper) library.
-// The @name is used to identify the client in Anyi. After a client is added to Anyi with a name, you can access it by calling Anyi.GetClient(name).
+// The configFile parameter is the path to the model config file. Anyi reads config file using [viper] library.
+// The name parameter is used to identify the client in Anyi. After a client is added to Anyi with a name, you can access it by calling Anyi.GetClient(name).
 // Please note that if the name is empty but the config is valid, the client will still be created but it won't be added to Anyi. No error will be returned in this case.
 // If the config is invalid, an error will be returned.
+//
+// [viper]: https://github.com/spf13/viper
 func NewClientFromConfigFile(configFile string, name string) (llm.Client, error) {
 	client, err := llm.NewClientFromConfigFile(configFile)
 	if err != nil {
@@ -81,6 +83,10 @@ func NewMessage(role string, content string) message.Message {
 	}
 }
 
-func NewMessageTemplateFormatter(templateFile string) (*message.MessageTemplateFormatter, error) {
-	return message.NewMessageTemplateFormatterFromFile(templateFile)
+func NewPromptTemplateFormatterFromFile(templateFile string) (*message.PromptyTemplateFormatter, error) {
+	return message.NewPromptTemplateFormatterFromFile(templateFile)
+}
+
+func NewPromptTemplateFormatter(template string) (*message.PromptyTemplateFormatter, error) {
+	return message.NewPromptTemplateFormatter(template)
 }
