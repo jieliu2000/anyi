@@ -59,3 +59,6 @@ func main() {
 ```
 
 在上面的示例中，首先通过`openai.DefaultConfig` 创建一个 OpenAI 的 anyi 配置，然后将该配置传递给 `llm.NewClient` 创建一个 OpenAI 客户端，最后通过 `client.Chat` 发送一个聊天请求。
+
+## 许可证
+Anyi 遵循 [Apache License 2.0](LICENSE)。
