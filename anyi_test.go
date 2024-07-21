@@ -104,3 +104,20 @@ func TestNewMessage(t *testing.T) {
 	assert.Equal(t, "user", target["role"])
 	assert.Equal(t, "Hello, world!", target["content"])
 }
+
+func TestNewPromptTemplateFormatter(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		template := "Hello, {{.Name}}!"
+		formatter, err := NewPromptTemplateFormatter(template)
+		assert.NoError(t, err)
+		assert.NotNil(t, formatter)
+	})
+
+	t.Run("InvalidTemplate", func(t *testing.T) {
+		template := "Hello, {{.name" // Incomplete placeholder
+		formatter, err := NewPromptTemplateFormatter(template)
+		assert.Error(t, err)
+		assert.Nil(t, formatter)
+	})
+
+}
