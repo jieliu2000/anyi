@@ -2,6 +2,9 @@
 
 | [English](README.md) | [中文](README-zh.md) |
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/jieliu2000/anyi.svg)](https://pkg.go.dev/github.com/jieliu2000/anyi)
+
+
 ## Introduction
 
 Anyi is an open source AI Agent framework designed to help you build AI Agents that can be integrated with real-world work. We also provide APIs for accessing large models.
