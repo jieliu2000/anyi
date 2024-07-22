@@ -50,6 +50,30 @@ func TestNewAssistantMessage(t *testing.T) {
 	assert.Equal(t, "Hello, world!", m.Content)
 }
 
+func TestNewPromptTemplateFormatterFromFile(t *testing.T) {
+	var tmplFile = "test_prompt1.tmpl"
+	formatter, err := NewPromptTemplateFormatterFromFile(tmplFile)
+
+	if err != nil {
+		panic(err)
+	}
+
+	type AgentTasks struct {
+		Tasks     []string
+		Objective string
+	}
+
+	tasks := AgentTasks{
+		Tasks:     []string{"task1", "task2"},
+		Objective: "objective",
+	}
+	result, err := formatter.Format(tasks)
+	if err != nil {
+		panic(err)
+	}
+	assert.Greater(t, len(result), 0)
+}
+
 func TestNewPromptTemplateFormatter(t *testing.T) {
 
 	t.Run("Success with map", func(t *testing.T) {

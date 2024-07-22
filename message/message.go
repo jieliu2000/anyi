@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"path/filepath"
 	"text/template"
 )
 
@@ -54,6 +55,10 @@ type PromptyTemplateFormatter struct {
 	theTemplate    *template.Template
 }
 
+func (t *PromptyTemplateFormatter) SetTemplate(template *template.Template) {
+	t.theTemplate = template
+}
+
 // Initializes the PromptyTemplateFormatter.
 // This method will init the TemplateFormatter based based on the values of the TemplateString and File fields. It works in the following order:
 //  1. If TemplateString is not empty, it will parse the string as a template and set the Template field to that parsed template.
@@ -71,7 +76,8 @@ func (t *PromptyTemplateFormatter) Init() error {
 		}
 
 	} else if t.File != "" {
-		tmpl, err = template.New("template").ParseFiles(t.File)
+		fileBase := filepath.Base(t.File)
+		tmpl, err = template.New(fileBase).ParseFiles(t.File)
 		if err != nil {
 			return err
 		}

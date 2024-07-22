@@ -128,10 +128,10 @@ func (flow *Flow) Run(initialContext FlowContext) (*FlowContext, error) {
 }
 
 type LLMFlowStepConfig struct {
-	TemplateFormatter       *message.PromptyTemplateFormatter
-	SystemMessage           string
-	ValidatePromptFormatter *message.PromptyTemplateFormatter
-	ValidateSystemMessage   string
+	TemplateFormatter        *message.PromptyTemplateFormatter
+	SystemMessage            string
+	ValidatorPromptFormatter *message.PromptyTemplateFormatter
+	ValidatorSystemMessage   string
 }
 
 func RunForLLMStep(context FlowContext, step *FlowStep) (*FlowContext, error) {
@@ -193,5 +193,21 @@ func NewLLMStepWithTemplateFile(templateFilePath string, systemMessage string, c
 
 	step := NewStep(stepConfig, RunForLLMStep, nil, client)
 
+	return step, nil
+}
+
+func NewLLMStepWithTemplate(tmplate string, systemMessage string, client llm.Client) (*FlowStep, error) {
+	// Create a new formatter with the template
+	formatter, err := message.NewPromptTemplateFormatter(tmplate)
+	if err != nil {
+		return nil, err
+	}
+
+	// Return the step config
+	stepConfig := LLMFlowStepConfig{
+		TemplateFormatter: formatter,
+		SystemMessage:     systemMessage,
+	}
+	step := NewStep(stepConfig, RunForLLMStep, nil, client)
 	return step, nil
 }
