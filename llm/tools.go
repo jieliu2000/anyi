@@ -8,6 +8,11 @@ type ParameterConfig struct {
 }
 
 type FunctionConfig struct {
-	Name        string `json:"name" mapstructure:"name"`
-	Description string `json:"description,omitempty" mapstructure:"description"`
+	Name        string            `json:"name" mapstructure:"name"`
+	Description string            `json:"description,omitempty" mapstructure:"description"`
+	Params      []ParameterConfig `json:"params,omitempty" mapstructure:"params"`
+}
+
+func NewFunctionConfig(name string, description string, params ...ParameterConfig) *FunctionConfig {
+	return &FunctionConfig{Name: name, Description: description, Params: params}
 }
