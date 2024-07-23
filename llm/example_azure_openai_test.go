@@ -10,7 +10,7 @@ import (
 )
 
 func Example_azureOpenAI() {
-	// Make sure you set OPENAI_API_KEY environment variable to your OpenAI API key.
+	// Make sure you set the environment variables before you run this app
 	config := azureopenai.NewConfig(os.Getenv("AZ_OPENAI_API_KEY"), os.Getenv("AZ_OPENAI_MODEL_DEPLOYMENT_ID"), os.Getenv("AZ_OPENAI_ENDPOINT"))
 	client, err := llm.NewClient(config)
 

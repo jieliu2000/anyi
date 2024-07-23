@@ -10,7 +10,7 @@ import (
 )
 
 func Example_dashscope() {
-	// Make sure you set OPENAI_API_KEY environment variable to your OpenAI API key.
+	// Make sure you set DASHSCOPE_API_KEY environment variable to your Dashscope API key.
 	config := dashscope.DefaultConfig(os.Getenv("DASHSCOPE_API_KEY"), "qwen-turbo")
 	client, err := llm.NewClient(config)
 
