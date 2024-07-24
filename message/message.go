@@ -7,6 +7,8 @@ import (
 	"errors"
 	"path/filepath"
 	"text/template"
+
+	"github.com/jieliu2000/anyi/llm/tools"
 )
 
 type Message struct {
@@ -127,4 +129,37 @@ func (t *PromptyTemplateFormatter) Format(data any) (string, error) {
 	}
 
 	return buffer.String(), nil
+}
+
+func AddFunctionDirectivesToPrompt(objective string, functions []tools.FunctionConfig) (string, error) {
+
+	templateString := `Your task is to generate a task list in JSON array format to archieve this target: '''{{.Objective}}'''
+	You can use the following functions in generating the task list:
+	{{range .Functions}}* {{.Name}}: {{.Description}}. {{if .Params}} Parameters:{{range .Params}}	- {{.Name}}(type: {{.Type}}): {{.Description}}, {{end}} {{end}}
+	{{end}}
+	Each task json should be in this format:
+	{"function": "$function_name", "params": [{"param_name": "$param_name", "param_value": "$param_value"}]}
+
+	The output should be a JSON array of JSONs in above format.
+
+	For example, if you only need one task with a function "add" with two params "a" and "b" which have values 1 and 2 , you should finally out
+	put an array like this:
+	[{"function": "add", "params": [{"param_name": "a", "param_value": 1}, {"param_name": "b", "param_value": 2}]}]
+	DO NOT add any extra text execept the task list JSON array.`
+	type TemplateData struct {
+		Objective string
+		Functions []tools.FunctionConfig
+	}
+
+	data := TemplateData{
+		Objective: objective,
+		Functions: functions,
+	}
+
+	tmpl, err := NewPromptTemplateFormatter(templateString)
+	if err != nil {
+		return "", err
+	}
+
+	return tmpl.Format(data)
 }

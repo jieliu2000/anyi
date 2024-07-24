@@ -1,16 +1,14 @@
-package message_test
+package message
 
 import (
 	"fmt"
-
-	"github.com/jieliu2000/anyi/message"
 )
 
 func Example_promptTemplateWithStruct() {
 
 	// See https://pkg.go.dev/text/template about how to write templates
 	template := "Write a guide on how to install and run {{.Application}} on {{.OS}}"
-	formatter, err := message.NewPromptTemplateFormatter(template)
+	formatter, err := NewPromptTemplateFormatter(template)
 
 	if err != nil {
 		panic(err)
@@ -36,7 +34,7 @@ func Example_promptTemplateWithMap() {
 
 	// See https://pkg.go.dev/text/template about how to write templates
 	template := "Write a guide on how to install and run {{.Application}} on {{.OS}}"
-	formatter, err := message.NewPromptTemplateFormatter(template)
+	formatter, err := NewPromptTemplateFormatter(template)
 
 	if err != nil {
 		panic(err)
@@ -57,7 +55,7 @@ func Example_promptTemplateWithStructPointer() {
 
 	// See https://pkg.go.dev/text/template about how to write templates
 	template := "Write a guide on how to install and run {{.Application}} on {{.OS}}"
-	formatter, err := message.NewPromptTemplateFormatter(template)
+	formatter, err := NewPromptTemplateFormatter(template)
 
 	if err != nil {
 		panic(err)
@@ -78,7 +76,7 @@ func Example_promptTemplateWithString() {
 
 	// See https://pkg.go.dev/text/template about how to write templates
 	template := "Hello, {{.}}!"
-	formatter, err := message.NewPromptTemplateFormatter(template)
+	formatter, err := NewPromptTemplateFormatter(template)
 
 	if err != nil {
 		panic(err)
@@ -94,7 +92,7 @@ func Example_promptTemplateWithArray() {
 
 	// See https://pkg.go.dev/text/template about how to write templates
 	template := "Hello, {{index . 0}}!"
-	formatter, err := message.NewPromptTemplateFormatter(template)
+	formatter, err := NewPromptTemplateFormatter(template)
 
 	if err != nil {
 		panic(err)
@@ -113,7 +111,7 @@ func Example_promptTemplateWithStructArray() {
 
 	// See https://pkg.go.dev/text/template about how to write templates
 	template := "Hello, {{(index . 0).Name}}!"
-	formatter, err := message.NewPromptTemplateFormatter(template)
+	formatter, err := NewPromptTemplateFormatter(template)
 
 	if err != nil {
 		panic(err)
@@ -148,7 +146,7 @@ Do not remove any tasks. Return the ranked tasks as a numbered list in the forma
 
 The entries must be consecutively numbered, starting with 1. The number of each entry must be followed by a period.
 Do not include any headers before your ranked list or follow your list with any other output.`
-	formatter, err := message.NewPromptTemplateFormatter(template)
+	formatter, err := NewPromptTemplateFormatter(template)
 
 	if err != nil {
 		panic(err)
