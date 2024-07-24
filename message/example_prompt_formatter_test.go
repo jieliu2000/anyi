@@ -135,7 +135,7 @@ func Example_promptTemplateWithStructArray() {
 func Example_promptTemplateWithArrayField() {
 
 	// See https://pkg.go.dev/text/template about how to write templates
-	template := `{{/* This template is an prompt template in babyagi. See https://github.com/yoheinakajima/babyagi/blob/main/babyagi.py for details */}}
+	template := `{{/* This template is a prompt template in babyagi. See https://github.com/yoheinakajima/babyagi/blob/main/babyagi.py for details */}}
 You are tasked with prioritizing the following tasks: 
 {{range $index, $task := .Tasks}}* {{$task}}.
 {{end}}

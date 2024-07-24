@@ -1,71 +1,67 @@
 package llm
 
 import (
-	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
-func TestNewFunctionConfig(t *testing.T) {
-	testCases := []struct {
-		name        string
-		description string
-		params      []ParameterConfig
-		expected    *FunctionConfig
-	}{
-		{
-			name:        "EmptyConfig",
-			description: "",
-			params:      nil,
-			expected:    &FunctionConfig{},
-		},
-		{
-			name:        "ConfigWithName",
-			description: "",
-			params:      nil,
-			expected:    &FunctionConfig{Name: "ConfigWithName"},
-		},
-		{
-			name:        "ConfigWithDescription",
-			description: "Some description",
-			params:      nil,
-			expected:    &FunctionConfig{Description: "Some description"},
-		},
-		{
-			name:        "ConfigWithParams",
-			description: "",
-			params: []ParameterConfig{
-				{Name: "param1", Type: "type1", Description: "", Required: false},
-				{Name: "param2", Type: "type2", Description: "", Required: true},
-			},
-			expected: &FunctionConfig{
-				Params: []ParameterConfig{
-					{Name: "param1", Type: "type1", Description: "", Required: false},
-					{Name: "param2", Type: "type2", Description: "", Required: true},
-				},
-			},
-		},
-		{
-			name:        "ConfigWithAllFields",
-			description: "Full configuration",
-			params: []ParameterConfig{
-				{Name: "param1", Type: "type1", Description: "desc1", Required: false},
-				{Name: "param2", Type: "type2", Description: "desc2", Required: true},
-			},
-			expected: &FunctionConfig{
-				Name:        "ConfigWithAllFields",
-				Description: "Full configuration",
-				Params: []ParameterConfig{
-					{Name: "param1", Type: "type1", Description: "desc1", Required: false},
-					{Name: "param2", Type: "type2", Description: "desc2", Required: true},
-				},
-			},
-		},
-	}
+func TestNewRequiredParameter(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		name := "example"
+		paramType := "string"
+		description := "An example parameter"
 
-	for _, tc := range testCases {
-		actual := NewFunctionConfig(tc.name, tc.description, tc.params...)
-		if !reflect.DeepEqual(actual, tc.expected) {
-			t.Errorf("Test '%s' failed: got %#v, expected %#v", tc.name, actual, tc.expected)
-		}
-	}
+		param, err := NewRequiredParameter(name, paramType, description)
+		assert.Nil(t, err)
+		assert.NotNil(t, param)
+		assert.Equal(t, name, param.Name)
+		assert.Equal(t, paramType, param.Type)
+		assert.Equal(t, description, param.Description)
+		assert.True(t, param.Required)
+	})
+
+	t.Run("EmptyName", func(t *testing.T) {
+		_, err := NewRequiredParameter("", "string", "An example parameter")
+		assert.Error(t, err)
+	})
+
+	t.Run("InvalidDescription", func(t *testing.T) {
+		name := "example"
+		paramType := "string"
+
+		_, err := NewRequiredParameter(name, paramType, "")
+		assert.Nil(t, err)
+	})
+}
+
+func TestNewParameter(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		name := "example"
+		paramType := "string"
+		description := "An example parameter"
+		required := true
+
+		param, err := NewParameter(name, paramType, description, required)
+		assert.Nil(t, err)
+		assert.NotNil(t, param)
+		assert.Equal(t, name, param.Name)
+		assert.Equal(t, paramType, param.Type)
+		assert.Equal(t, description, param.Description)
+		assert.Equal(t, required, param.Required)
+	})
+
+	t.Run("EmptyName", func(t *testing.T) {
+		_, err := NewParameter("", "string", "An example parameter", true)
+		assert.Error(t, err)
+	})
+
+	t.Run("InvalidDescription", func(t *testing.T) {
+		name := "example"
+		paramType := "string"
+		required := true
+
+		_, err := NewParameter(name, paramType, "", required)
+		assert.Nil(t, err)
+	})
 }
