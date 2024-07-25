@@ -40,7 +40,7 @@ type FlowStep struct {
 
 	// The client name which will be used to validate the step output. If not set, validator will use the default client of the step (which is identified by the ClientName field). If the step doesn't have a default client, the validator will use the default client of the flow.
 	ValidatorClientName string
-	Validate            StepValidator
+	Validator           StepValidator
 	runTimes            int
 	MaxRetryTimes       int
 }
@@ -55,7 +55,7 @@ type FlowContext struct {
 }
 
 func NewStep(stepConfig any, executor StepExecutor, validator StepValidator, client llm.Client) *FlowStep {
-	return &FlowStep{StepConfig: stepConfig, Run: executor, Validate: validator, clientImpl: client}
+	return &FlowStep{StepConfig: stepConfig, Run: executor, Validator: validator, clientImpl: client}
 }
 
 // Create a new flow step with executor and validator.
@@ -70,7 +70,7 @@ func NewStepWithValidator(stepConfig any, executor StepExecutor, validator StepV
 	return &FlowStep{
 		StepConfig:         stepConfig,
 		Run:                executor,
-		Validate:           validator,
+		Validator:          validator,
 		runTimes:           0,
 		MaxRetryTimes:      DefaultMaxRetryTimes,
 		clientImpl:         client,
@@ -87,12 +87,12 @@ func tryStep(step *FlowStep, context FlowContext) (*FlowContext, error) {
 	if err != nil {
 		return result, err
 	}
-	if step.runTimes > step.MaxRetryTimes {
+	if step.runTimes > step.MaxRetryTimes+1 {
 		return result, errors.New("step retry times exceeded")
 	}
-	if step.Validate != nil {
+	if step.Validator != nil {
 		// Validate the step output
-		if step.Validate(result.Context, step) {
+		if step.Validator(result.Context, step) {
 			// If the step output is valid, update context and continue to the next step
 			return result, nil
 		} else {
