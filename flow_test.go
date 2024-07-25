@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/jieliu2000/anyi/internal/test"
-	"github.com/jieliu2000/anyi/llm"
 	"github.com/jieliu2000/anyi/message"
 	"github.com/stretchr/testify/assert"
 )
@@ -259,13 +258,11 @@ func TestRunForLLMStep(t *testing.T) {
 		ctx := FlowContext{
 			Context: "input",
 			flow: &Flow{
-				ClientConfig: llm.ClientConfig{
-					Name: "mock",
-				},
+
 				clientImpl: &test.MockClient{},
 			},
 		}
-		_, err := RunForLLMStep(ctx, nil)
+		_, err := LLMStepExecutor(ctx, nil)
 		assert.Error(t, err, "no step provided")
 	})
 	t.Run("invalid step config type", func(t *testing.T) {
@@ -275,13 +272,11 @@ func TestRunForLLMStep(t *testing.T) {
 		ctx := FlowContext{
 			Context: "input",
 			flow: &Flow{
-				ClientConfig: llm.ClientConfig{
-					Name: "mock",
-				},
+
 				clientImpl: &test.MockClient{},
 			},
 		}
-		_, err := RunForLLMStep(ctx, &step)
+		_, err := LLMStepExecutor(ctx, &step)
 		assert.Error(t, err, "invalid step config type")
 	})
 	t.Run("no client set for flow step", func(t *testing.T) {
@@ -291,13 +286,11 @@ func TestRunForLLMStep(t *testing.T) {
 		ctx := FlowContext{
 			Context: "input",
 			flow: &Flow{
-				ClientConfig: llm.ClientConfig{
-					Name: "mock",
-				},
+
 				clientImpl: nil,
 			},
 		}
-		_, err := RunForLLMStep(ctx, &step)
+		_, err := LLMStepExecutor(ctx, &step)
 		assert.Error(t, err, "no client set for flow step")
 	})
 	t.Run("client chat error", func(t *testing.T) {
@@ -309,7 +302,7 @@ func TestRunForLLMStep(t *testing.T) {
 			},
 		}
 		ctx := FlowContext{}
-		_, err := RunForLLMStep(ctx, &step)
+		_, err := LLMStepExecutor(ctx, &step)
 		assert.Error(t, err, "client chat error")
 	})
 	t.Run("success", func(t *testing.T) {
@@ -321,7 +314,7 @@ func TestRunForLLMStep(t *testing.T) {
 			},
 		}
 		ctx := FlowContext{}
-		newCtx, err := RunForLLMStep(ctx, &step)
+		newCtx, err := LLMStepExecutor(ctx, &step)
 		assert.Nil(t, err)
 		assert.Equal(t, "output", newCtx.Context)
 	})
@@ -337,13 +330,10 @@ func TestRunForLLMStep(t *testing.T) {
 		ctx := FlowContext{
 			Data: "world",
 			flow: &Flow{
-				ClientConfig: llm.ClientConfig{
-					Name: "mock",
-				},
 				clientImpl: &test.MockClient{},
 			},
 		}
-		output, err := RunForLLMStep(ctx, &step)
+		output, err := LLMStepExecutor(ctx, &step)
 
 		assert.NoError(t, err)
 		assert.Equal(t, "Hello, world", output.Context)
@@ -359,13 +349,10 @@ func TestRunForLLMStep(t *testing.T) {
 		}
 		ctx := FlowContext{
 			flow: &Flow{
-				ClientConfig: llm.ClientConfig{
-					Name: "mock",
-				},
 				clientImpl: &test.MockClient{},
 			},
 		}
-		output, err := RunForLLMStep(ctx, &step)
+		output, err := LLMStepExecutor(ctx, &step)
 		assert.Error(t, err)
 		assert.Nil(t, output)
 

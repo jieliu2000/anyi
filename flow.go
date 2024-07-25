@@ -14,9 +14,7 @@ const (
 type Flow struct {
 	Name string
 
-	ClientName   string
-	Steps        []FlowStep
-	ClientConfig llm.ClientConfig
+	Steps []FlowStep
 	// The default clientImpl for the flow
 	clientImpl llm.Client
 }
@@ -34,15 +32,12 @@ type FlowStep struct {
 	validateClientImpl llm.Client
 
 	StepConfig any
-	ClientName string
 
 	Run StepExecutor
 
-	// The client name which will be used to validate the step output. If not set, validator will use the default client of the step (which is identified by the ClientName field). If the step doesn't have a default client, the validator will use the default client of the flow.
-	ValidatorClientName string
-	Validator           StepValidator
-	runTimes            int
-	MaxRetryTimes       int
+	Validate      StepValidator
+	runTimes      int
+	MaxRetryTimes int
 }
 
 // FlowContext is the context for a flow. It will be passed to each flow step.
@@ -55,7 +50,7 @@ type FlowContext struct {
 }
 
 func NewStep(stepConfig any, executor StepExecutor, validator StepValidator, client llm.Client) *FlowStep {
-	return &FlowStep{StepConfig: stepConfig, Run: executor, Validator: validator, clientImpl: client}
+	return &FlowStep{StepConfig: stepConfig, Run: executor, Validate: validator, clientImpl: client}
 }
 
 // Create a new flow step with executor and validator.
@@ -70,7 +65,7 @@ func NewStepWithValidator(stepConfig any, executor StepExecutor, validator StepV
 	return &FlowStep{
 		StepConfig:         stepConfig,
 		Run:                executor,
-		Validator:          validator,
+		Validate:           validator,
 		runTimes:           0,
 		MaxRetryTimes:      DefaultMaxRetryTimes,
 		clientImpl:         client,
@@ -90,9 +85,9 @@ func tryStep(step *FlowStep, context FlowContext) (*FlowContext, error) {
 	if step.runTimes > step.MaxRetryTimes+1 {
 		return result, errors.New("step retry times exceeded")
 	}
-	if step.Validator != nil {
+	if step.Validate != nil {
 		// Validate the step output
-		if step.Validator(result.Context, step) {
+		if step.Validate(result.Context, step) {
 			// If the step output is valid, update context and continue to the next step
 			return result, nil
 		} else {
@@ -134,7 +129,7 @@ type LLMFlowStepConfig struct {
 	ValidatorSystemMessage   string
 }
 
-func RunForLLMStep(context FlowContext, step *FlowStep) (*FlowContext, error) {
+func LLMStepExecutor(context FlowContext, step *FlowStep) (*FlowContext, error) {
 	if step == nil {
 		return nil, errors.New("no step provided")
 	}
@@ -191,7 +186,7 @@ func NewLLMStepWithTemplateFile(templateFilePath string, systemMessage string, c
 		SystemMessage:     systemMessage,
 	}
 
-	step := NewStep(stepConfig, RunForLLMStep, nil, client)
+	step := NewStep(stepConfig, LLMStepExecutor, nil, client)
 
 	return step, nil
 }
@@ -208,6 +203,6 @@ func NewLLMStepWithTemplate(tmplate string, systemMessage string, client llm.Cli
 		TemplateFormatter: formatter,
 		SystemMessage:     systemMessage,
 	}
-	step := NewStep(stepConfig, RunForLLMStep, nil, client)
+	step := NewStep(stepConfig, LLMStepExecutor, nil, client)
 	return step, nil
 }
