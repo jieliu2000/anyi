@@ -49,7 +49,7 @@ func NewClientFromConfig(config *llm.ClientConfig) (llm.Client, error) {
 	return NewClient(config.Name, model)
 }
 
-func SetFlow(name string, flow *flow.Flow) error {
+func RegisterFlow(name string, flow *flow.Flow) error {
 	if name == "" {
 		return errors.New("name cannot be empty")
 	}
@@ -59,7 +59,7 @@ func SetFlow(name string, flow *flow.Flow) error {
 
 // The function Sets a client to the global Anyi instance.
 // If the client or name is nil, an error will be returned.
-func SetClient(name string, client llm.Client) error {
+func RegisterClient(name string, client llm.Client) error {
 	if client == nil {
 		return errors.New("client cannot be empty")
 	}
@@ -125,7 +125,7 @@ func GetFormatter(name string) message.PromptFormatter {
 	return GlobalData.Formatters[name]
 }
 
-func SetFormatter(name string, formatter message.PromptFormatter) error {
+func RegisterFormatter(name string, formatter message.PromptFormatter) error {
 	if name == "" {
 		return errors.New("name cannot be empty")
 	}
@@ -142,7 +142,7 @@ func NewPromptTemplateFormatterFromFile(name string, templateFile string) (*mess
 	if err != nil {
 		return nil, err
 	}
-	err = SetFormatter(name, formatter)
+	err = RegisterFormatter(name, formatter)
 	return formatter, err
 }
 
@@ -154,7 +154,7 @@ func NewPromptTemplateFormatter(name string, template string) (*message.PromptyT
 	if err != nil {
 		return nil, err
 	}
-	err = SetFormatter(name, formatter)
+	err = RegisterFormatter(name, formatter)
 	return formatter, err
 }
 
@@ -172,7 +172,7 @@ func NewFlow(name string, client llm.Client, steps ...flow.Step) (*flow.Flow, er
 	return f, nil
 }
 
-func SetExecutor(name string, executor flow.StepExecutor) error {
+func RegisterExecutor(name string, executor flow.StepExecutor) error {
 	if name == "" {
 		return errors.New("name cannot be empty")
 	}
@@ -195,6 +195,6 @@ func NewLLMStepExecutorWithFormatter(name string, formatter *message.PromptyTemp
 		SystemMessage:     systemMessage,
 	}
 
-	SetExecutor(name, &stepExecutor)
+	RegisterExecutor(name, &stepExecutor)
 	return &stepExecutor
 }

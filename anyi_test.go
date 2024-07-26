@@ -38,7 +38,7 @@ func TestSetClient(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		client := &test.MockClient{}
 		name := "test_client"
-		err := SetClient(name, client)
+		err := RegisterClient(name, client)
 		assert.Nil(t, err)
 		assert.Equal(t, client, GlobalData.Clients[name])
 
@@ -50,19 +50,19 @@ func TestSetClient(t *testing.T) {
 	t.Run("EmptyName", func(t *testing.T) {
 		client := &test.MockClient{}
 		name := ""
-		err := SetClient(name, client)
+		err := RegisterClient(name, client)
 		assert.Equal(t, err, errors.New("name cannot be empty"))
 	})
 
 	t.Run("NilClient", func(t *testing.T) {
 		client := llm.Client(nil)
 		name := "nil_client"
-		err := SetClient(name, client)
+		err := RegisterClient(name, client)
 		assert.Equal(t, err, errors.New("client cannot be empty"))
 	})
 
 	t.Run("NilParams", func(t *testing.T) {
-		err := SetClient("", nil)
+		err := RegisterClient("", nil)
 		assert.Equal(t, err, errors.New("client cannot be empty"))
 	})
 }
@@ -71,7 +71,7 @@ func TestGetClient(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		client := &test.MockClient{}
 		name := "get_client"
-		err := SetClient(name, client)
+		err := RegisterClient(name, client)
 		assert.Nil(t, err)
 		client1, err := GetClient(name)
 		assert.NoError(t, err)
@@ -84,7 +84,7 @@ func TestGetClient(t *testing.T) {
 	t.Run("NotExist", func(t *testing.T) {
 		client := &test.MockClient{}
 		name := "get_client"
-		SetClient(name, client)
+		RegisterClient(name, client)
 		result, err := GetClient("not_exist")
 		assert.Nil(t, result)
 		assert.Error(t, err)
