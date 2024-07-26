@@ -13,7 +13,7 @@ func Example_lLMClient() {
 	// For more documentation and examples, see github.com/jieliu2000/anyi/llm package documentation.
 	// Make sure you set OPENAI_API_KEY environment variable to your OpenAI API key.
 	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
-	client, err := anyi.NewClient(config, "openai")
+	client, err := anyi.NewClient("openai", config)
 
 	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)

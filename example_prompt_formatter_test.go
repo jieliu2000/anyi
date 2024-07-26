@@ -11,7 +11,7 @@ func Example_promptTemplateFormatter() {
 	// See documentation of github.com/jieliu2000/anyi/message for more information and examples on how to use the prompt formatter
 	// See https://pkg.go.dev/text/template about how to write templates
 	template := `Write a guide on how to install and run {{.Application}} on {{.OS}}`
-	formatter, err := anyi.NewPromptTemplateFormatter(template)
+	formatter, err := anyi.NewPromptTemplateFormatter("template1", template)
 
 	if err != nil {
 		panic(err)

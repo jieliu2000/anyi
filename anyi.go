@@ -3,54 +3,92 @@ package anyi
 import (
 	"errors"
 
+	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/llm"
 	"github.com/jieliu2000/anyi/message"
 )
 
-type AnyiData struct {
-	Clients map[string]llm.Client
-	Flows   map[string]*Flow
+type anyiData struct {
+	Clients    map[string]llm.Client
+	Flows      map[string]*flow.Flow
+	Validators map[string]flow.StepValidator
+	Executors  map[string]flow.StepExecutor
+	Formatters map[string]message.PromptFormatter
 }
 
-var Anyi *AnyiData = &AnyiData{
-	Clients: make(map[string]llm.Client),
-	Flows:   make(map[string]*Flow),
+var GlobalData *anyiData = &anyiData{
+	Clients:    make(map[string]llm.Client),
+	Flows:      make(map[string]*flow.Flow),
+	Validators: make(map[string]flow.StepValidator),
+	Executors:  make(map[string]flow.StepExecutor),
+	Formatters: make(map[string]message.PromptFormatter),
 }
 
-// The function creates a new client based on the given configuration and, if a non-empty name is provided, add that client to the global Anyi instance.
-// The name is used to identify the client in Anyi. After a client is added to Anyi with a name, you can access it by calling [GetClient].
-// Please note that if the name is empty but the config is valid, the client will still be created but it won't be added to Anyi. No error will be returned in this case.
+// The function creates a new client based on the given configuration and, if a non-empty name is provided, Set that client to the global Anyi instance.
+// The name is used to identify the client in Anyi. After a client is Seted to Anyi with a name, you can access it by calling [GetClient].
+// Please note that if the name is empty but the config is valid, the client will still be created but it won't be Seted to Anyi. No error will be returned in this case.
 // If the config is invalid, an error will be returned.
-func NewClient(config llm.ModelConfig, name string) (llm.Client, error) {
-	client, err := llm.NewClient(config)
+func NewClient(name string, model llm.ModelConfig) (llm.Client, error) {
+	client, err := llm.NewClient(model)
 	if err != nil {
 		return nil, err
 	}
-	// If name is not empty, add the client to Anyi.Clients
+	// If name is not empty, Set the client to Anyi.Clients
 	if name != "" {
-		Anyi.Clients[name] = client
+		GlobalData.Clients[name] = client
 	}
 	return client, nil
 }
 
-// The function adds a client to the global Anyi instance.
+func NewClientFromConfig(config *llm.ClientConfig) (llm.Client, error) {
+	model, err := llm.NewModelConfigFromClientConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewClient(config.Name, model)
+}
+
+func SetFlow(name string, flow *flow.Flow) error {
+	if name == "" {
+		return errors.New("name cannot be empty")
+	}
+	GlobalData.Flows[name] = flow
+	return nil
+}
+
+// The function Sets a client to the global Anyi instance.
 // If the client or name is nil, an error will be returned.
-func AddClient(client llm.Client, name string) error {
+func SetClient(name string, client llm.Client) error {
 	if client == nil {
 		return errors.New("client cannot be empty")
 	}
 	if name == "" {
 		return errors.New("name cannot be empty")
 	}
-	Anyi.Clients[name] = client
+	GlobalData.Clients[name] = client
 	return nil
+}
+
+func GetValidator(name string) (flow.StepValidator, error) {
+	if name == "" {
+		return nil, errors.New("name cannot be empty")
+	}
+	return GlobalData.Validators[name], nil
+}
+
+func GetExecutor(name string) (flow.StepExecutor, error) {
+	if name == "" {
+		return nil, errors.New("name cannot be empty")
+	}
+	return GlobalData.Executors[name], nil
 }
 
 func GetClient(name string) (llm.Client, error) {
 	if name == "" {
 		return nil, errors.New("name cannot be empty")
 	}
-	client, ok := Anyi.Clients[name]
+	client, ok := GlobalData.Clients[name]
 	if !ok {
 		return nil, errors.New("no client found with the given name: " + name)
 	}
@@ -59,19 +97,19 @@ func GetClient(name string) (llm.Client, error) {
 
 // NewClientFromConfigFile creates a new client based on the model config file.
 // The configFile parameter is the path to the model config file. Anyi reads config file using [viper] library.
-// The name parameter is used to identify the client in Anyi. After a client is added to Anyi with a name, you can access it by calling Anyi.GetClient(name).
-// Please note that if the name is empty but the config is valid, the client will still be created but it won't be added to Anyi. No error will be returned in this case.
+// The name parameter is used to identify the client in Anyi. After a client is Seted to Anyi with a name, you can access it by calling Anyi.GetClient(name).
+// Please note that if the name is empty but the config is valid, the client will still be created but it won't be Seted to Anyi. No error will be returned in this case.
 // If the config is invalid, an error will be returned.
 //
 // [viper]: https://github.com/spf13/viper
-func NewClientFromConfigFile(configFile string, name string) (llm.Client, error) {
+func NewClientFromConfigFile(name string, configFile string) (llm.Client, error) {
 	client, err := llm.NewClientFromConfigFile(configFile)
 	if err != nil {
 		return nil, err
 	}
-	// If name is not empty, add the client to Anyi.Clients
+	// If name is not empty, Set the client to Anyi.Clients
 	if name != "" {
-		Anyi.Clients[name] = client
+		GlobalData.Clients[name] = client
 	}
 	return client, nil
 }
@@ -83,10 +121,72 @@ func NewMessage(role string, content string) message.Message {
 	}
 }
 
-func NewPromptTemplateFormatterFromFile(templateFile string) (*message.PromptyTemplateFormatter, error) {
-	return message.NewPromptTemplateFormatterFromFile(templateFile)
+func GetFormatter(name string) message.PromptFormatter {
+	return GlobalData.Formatters[name]
 }
 
-func NewPromptTemplateFormatter(template string) (*message.PromptyTemplateFormatter, error) {
-	return message.NewPromptTemplateFormatter(template)
+func SetFormatter(name string, formatter message.PromptFormatter) error {
+	if name == "" {
+		return errors.New("name cannot be empty")
+	}
+	GlobalData.Formatters[name] = formatter
+	return nil
+}
+
+func NewPromptTemplateFormatterFromFile(name string, templateFile string) (*message.PromptyTemplateFormatter, error) {
+	if name == "" {
+		return nil, errors.New("name cannot be empty")
+	}
+	formatter, err := message.NewPromptTemplateFormatterFromFile(templateFile)
+
+	if err != nil {
+		return nil, err
+	}
+	err = SetFormatter(name, formatter)
+	return formatter, err
+}
+
+func NewPromptTemplateFormatter(name string, template string) (*message.PromptyTemplateFormatter, error) {
+	if name == "" {
+		return nil, errors.New("name cannot be empty")
+	}
+	formatter, err := message.NewPromptTemplateFormatter(template)
+	if err != nil {
+		return nil, err
+	}
+	err = SetFormatter(name, formatter)
+	return formatter, err
+}
+
+func NewFlow(name string, client llm.Client, steps ...flow.Step) (*flow.Flow, error) {
+	if name == "" {
+		return nil, errors.New("name cannot be empty")
+	}
+	f, err := flow.NewFlow(client, name, steps...)
+
+	if err != nil {
+		return nil, err
+	}
+
+	GlobalData.Flows[name] = f
+	return f, nil
+}
+
+func SetExecutor(name string, executor flow.StepExecutor) error {
+	if name == "" {
+		return errors.New("name cannot be empty")
+	}
+	GlobalData.Executors[name] = executor
+	return nil
+}
+
+func NewLLMStepExecutorWithFormatter(name string, formatter *message.PromptyTemplateFormatter, systemMessage string, client llm.Client) *flow.LLMStepExecutor {
+
+	stepExecutor := flow.LLMStepExecutor{
+		TemplateFormatter: formatter,
+		SystemMessage:     systemMessage,
+	}
+
+	SetExecutor(name, &stepExecutor)
+	return &stepExecutor
 }

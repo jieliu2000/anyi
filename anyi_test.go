@@ -8,12 +8,13 @@ import (
 	"github.com/jieliu2000/anyi/internal/test"
 	"github.com/jieliu2000/anyi/llm"
 	"github.com/jieliu2000/anyi/llm/openai"
+	"github.com/jieliu2000/anyi/message"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewClientWithName(t *testing.T) {
 	openaiConfig := openai.DefaultConfig("test")
-	client, err := NewClient(openaiConfig, "openai")
+	client, err := NewClient("openai", openaiConfig)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, client)
@@ -22,24 +23,24 @@ func TestNewClientWithName(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, client1, client)
 
-	client, err = NewClient(nil, "openai")
+	client, err = NewClient("openai", nil)
 	assert.Error(t, err)
 	assert.Nil(t, client)
 
-	client, err = NewClient(openaiConfig, "")
+	client, err = NewClient("", openaiConfig)
 	assert.NoError(t, err)
 	assert.NotNil(t, client)
 
 }
 
-func TestAddClient(t *testing.T) {
+func TestSetClient(t *testing.T) {
 
 	t.Run("Success", func(t *testing.T) {
 		client := &test.MockClient{}
 		name := "test_client"
-		err := AddClient(client, name)
+		err := SetClient(name, client)
 		assert.Nil(t, err)
-		assert.Equal(t, client, Anyi.Clients[name])
+		assert.Equal(t, client, GlobalData.Clients[name])
 
 		client1, err := GetClient(name)
 		assert.NoError(t, err)
@@ -49,19 +50,19 @@ func TestAddClient(t *testing.T) {
 	t.Run("EmptyName", func(t *testing.T) {
 		client := &test.MockClient{}
 		name := ""
-		err := AddClient(client, name)
+		err := SetClient(name, client)
 		assert.Equal(t, err, errors.New("name cannot be empty"))
 	})
 
 	t.Run("NilClient", func(t *testing.T) {
 		client := llm.Client(nil)
 		name := "nil_client"
-		err := AddClient(client, name)
+		err := SetClient(name, client)
 		assert.Equal(t, err, errors.New("client cannot be empty"))
 	})
 
 	t.Run("NilParams", func(t *testing.T) {
-		err := AddClient(nil, "")
+		err := SetClient("", nil)
 		assert.Equal(t, err, errors.New("client cannot be empty"))
 	})
 }
@@ -70,7 +71,7 @@ func TestGetClient(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		client := &test.MockClient{}
 		name := "get_client"
-		err := AddClient(client, name)
+		err := SetClient(name, client)
 		assert.Nil(t, err)
 		client1, err := GetClient(name)
 		assert.NoError(t, err)
@@ -83,7 +84,7 @@ func TestGetClient(t *testing.T) {
 	t.Run("NotExist", func(t *testing.T) {
 		client := &test.MockClient{}
 		name := "get_client"
-		AddClient(client, name)
+		SetClient(name, client)
 		result, err := GetClient("not_exist")
 		assert.Nil(t, result)
 		assert.Error(t, err)
@@ -108,15 +109,21 @@ func TestNewMessage(t *testing.T) {
 func TestNewPromptTemplateFormatter(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		template := "Hello, {{.Name}}!"
-		formatter, err := NewPromptTemplateFormatter(template)
+		formatter, err := NewPromptTemplateFormatter("template1", template)
 		assert.NoError(t, err)
 		assert.NotNil(t, formatter)
+
+		formatter, ok := (GetFormatter("template1")).(*message.PromptyTemplateFormatter)
+		assert.True(t, ok)
+		assert.Equal(t, template, formatter.TemplateString)
 	})
 
 	t.Run("InvalidTemplate", func(t *testing.T) {
 		template := "Hello, {{.name" // Incomplete placeholder
-		formatter, err := NewPromptTemplateFormatter(template)
+		formatter, err := NewPromptTemplateFormatter("name1", template)
 		assert.Error(t, err)
+
+		assert.Nil(t, GetFormatter("name1"))
 		assert.Nil(t, formatter)
 	})
 

@@ -1,4 +1,4 @@
-package anyi
+package flow
 
 import (
 	"errors"
@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/jieliu2000/anyi/internal/test"
+	"github.com/jieliu2000/anyi/llm"
 	"github.com/jieliu2000/anyi/message"
 	"github.com/stretchr/testify/assert"
 )
@@ -13,7 +14,8 @@ import (
 func TestNewFlow(t *testing.T) {
 
 	client := test.MockClient{}
-	flow := NewFlow(&client, "flow1")
+	flow, err := NewFlow(&client, "flow1")
+	assert.NoError(t, err)
 
 	assert.NotNil(t, flow)
 	assert.Equal(t, "flow1", flow.Name)
@@ -23,17 +25,17 @@ func TestNewFlow(t *testing.T) {
 
 func TestNewLLMStepWithTemplateFile(t *testing.T) {
 
-	step, err := NewLLMStepWithTemplateFile("internal/test/test_prompt1.tmpl", "system_message", nil)
+	step, err := NewLLMStepWithTemplateFile("../internal/test/test_prompt1.tmpl", "system_message", nil)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, step)
 
-	stepConfig := step.StepConfig.(LLMFlowStepConfig)
-	assert.Equal(t, "system_message", stepConfig.SystemMessage)
+	executor := step.Executor.(LLMStepExecutor)
+	assert.Equal(t, "system_message", executor.SystemMessage)
 
-	formatter := stepConfig.TemplateFormatter
+	formatter := executor.TemplateFormatter
 	assert.NotNil(t, formatter)
-	assert.Equal(t, "internal/test/test_prompt1.tmpl", formatter.File)
+	assert.Equal(t, "../internal/test/test_prompt1.tmpl", formatter.File)
 
 	type AgentTasks struct {
 		Tasks     []string
@@ -59,11 +61,11 @@ func TestNewLLMStepWithTemplateString(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, step)
 
-	stepConfig := step.StepConfig.(LLMFlowStepConfig)
+	executor := step.Executor.(LLMStepExecutor)
 
-	assert.Equal(t, "system_message", stepConfig.SystemMessage)
+	assert.Equal(t, "system_message", executor.SystemMessage)
 
-	formatter := stepConfig.TemplateFormatter
+	formatter := executor.TemplateFormatter
 
 	assert.NotNil(t, formatter)
 
@@ -74,13 +76,43 @@ func TestNewLLMStepWithTemplateString(t *testing.T) {
 
 }
 
+type MockExecutor struct {
+	Mock func(context FlowContext, step *Step) (*FlowContext, error)
+}
+
+type MockValidator struct {
+	Mock func(output string, step *Step) bool
+}
+
+func (m MockExecutor) Run(context FlowContext, step *Step) (*FlowContext, error) {
+	return m.Mock(context, step)
+}
+
+func (m MockValidator) Validate(output string, step *Step) bool {
+	if m.Mock == nil {
+		return true
+	}
+	return m.Mock(output, step)
+}
+
+func NewStepWithValidatorAndExectorFunction(name string, runFunc func(context FlowContext, step *Step) (*FlowContext, error), validateFunc func(output string, step *Step) bool, client llm.Client) *Step {
+
+	return NewStep(
+		MockExecutor{
+			Mock: runFunc,
+		},
+		MockValidator{
+			Mock: validateFunc,
+		}, client)
+}
+
 func Test_tryStep_RunError(t *testing.T) {
-	step := NewStep(
+	step := NewStepWithValidatorAndExectorFunction(
 		"",
-		func(context FlowContext, step *FlowStep) (*FlowContext, error) {
+		func(context FlowContext, step *Step) (*FlowContext, error) {
 			return nil, errors.New("run error")
 		},
-		func(output string, step *FlowStep) bool {
+		func(output string, step *Step) bool {
 			return true
 		},
 		test.NewMockClient(),
@@ -90,12 +122,12 @@ func Test_tryStep_RunError(t *testing.T) {
 }
 func Test_tryStep_RetryExceeded(t *testing.T) {
 
-	step := NewStep(
+	step := NewStepWithValidatorAndExectorFunction(
 		"",
-		func(context FlowContext, step *FlowStep) (*FlowContext, error) {
+		func(context FlowContext, step *Step) (*FlowContext, error) {
 			return &FlowContext{}, nil
 		},
-		func(output string, step *FlowStep) bool {
+		func(output string, step *Step) bool {
 			if step.runTimes <= 2 {
 				return false
 			} else {
@@ -119,12 +151,12 @@ func Test_tryStep_RetryExceeded(t *testing.T) {
 	assert.NoError(t, err, "step should be success because retry times doesn't exceed MaxRetryTimes")
 }
 func Test_tryStep_ValidatorError(t *testing.T) {
-	step := NewStep(
+	step := NewStepWithValidatorAndExectorFunction(
 		"",
-		func(context FlowContext, step *FlowStep) (*FlowContext, error) {
+		func(context FlowContext, step *Step) (*FlowContext, error) {
 			return &FlowContext{}, nil
 		},
-		func(output string, step *FlowStep) bool {
+		func(output string, step *Step) bool {
 			return false
 		},
 		test.NewMockClient(),
@@ -133,12 +165,12 @@ func Test_tryStep_ValidatorError(t *testing.T) {
 	assert.Error(t, err)
 }
 func Test_tryStep_ValidatorSuccess(t *testing.T) {
-	step := NewStep(
+	step := NewStepWithValidatorAndExectorFunction(
 		"",
-		func(context FlowContext, step *FlowStep) (*FlowContext, error) {
+		func(context FlowContext, step *Step) (*FlowContext, error) {
 			return &FlowContext{}, nil
 		},
-		func(output string, step *FlowStep) bool {
+		func(output string, step *Step) bool {
 			return true
 		},
 		test.NewMockClient(),
@@ -149,107 +181,120 @@ func Test_tryStep_ValidatorSuccess(t *testing.T) {
 }
 
 func TestFlow_Run(t *testing.T) {
-	flow := NewFlow(&test.MockClient{}, "Test Flow",
-		*NewStep("Step 1", func(context FlowContext, step *FlowStep) (*FlowContext, error) {
+	flow, err := NewFlow(&test.MockClient{}, "Test Flow",
+		*NewStepWithValidatorAndExectorFunction("Step 1", func(context FlowContext, step *Step) (*FlowContext, error) {
 			context.Data = "Data from Step 1"
 			return &context, nil
 		}, nil, nil),
-		*NewStep("Step 2", func(context FlowContext, step *FlowStep) (*FlowContext, error) {
+		*NewStepWithValidatorAndExectorFunction("Step 2", func(context FlowContext, step *Step) (*FlowContext, error) {
 			context.Data = context.Data.(string) + " and Step 2"
 			return &context, nil
 		}, nil, nil),
 	)
+	assert.Nil(t, err)
+
 	flowContext, err := flow.Run(FlowContext{Context: "Initial"})
 	assert.Nil(t, err)
 	assert.Equal(t, "Initial", flowContext.Context)
 	assert.Equal(t, "Data from Step 1 and Step 2", flowContext.Data)
 }
 func TestFlow_Run_WithInvalidStep(t *testing.T) {
-	flow := NewFlow(&test.MockClient{}, "Test Flow",
-		*NewStep("Step 1", func(context FlowContext, step *FlowStep) (*FlowContext, error) {
+	flow, err := NewFlow(&test.MockClient{}, "Test Flow",
+		*NewStepWithValidatorAndExectorFunction("Step 1", func(context FlowContext, step *Step) (*FlowContext, error) {
 			context.Data = "Data from Step 1"
 			return &context, nil
 		}, nil, nil),
-		*NewStep("Step 2", func(context FlowContext, step *FlowStep) (*FlowContext, error) {
+		*NewStepWithValidatorAndExectorFunction("Step 2", func(context FlowContext, step *Step) (*FlowContext, error) {
 			return nil, errors.New("Error in Step 2")
 		}, nil, nil),
 	)
-	_, err := flow.Run(FlowContext{Context: "Initial"})
+
+	assert.Nil(t, err)
+	_, err = flow.Run(FlowContext{Context: "Initial"})
 	assert.NotNil(t, err)
 }
 func TestFlow_Run_WithMaxRetryTimes(t *testing.T) {
-	flow := NewFlow(&test.MockClient{}, "Test Flow",
-		*NewStep("Step 1", func(context FlowContext, step *FlowStep) (*FlowContext, error) {
+	flow, err := NewFlow(&test.MockClient{}, "Test Flow",
+		*NewStepWithValidatorAndExectorFunction("Step 1", func(context FlowContext, step *Step) (*FlowContext, error) {
 			return nil, errors.New("Error in Step 1")
 		}, nil, nil),
-		*NewStep("Step 2", func(context FlowContext, step *FlowStep) (*FlowContext, error) {
+		*NewStepWithValidatorAndExectorFunction("Step 2", func(context FlowContext, step *Step) (*FlowContext, error) {
 			return nil, errors.New("Error in Step 2")
 		}, nil, nil),
-		*NewStep("Step 3", func(context FlowContext, step *FlowStep) (*FlowContext, error) {
+		*NewStepWithValidatorAndExectorFunction("Step 3", func(context FlowContext, step *Step) (*FlowContext, error) {
 			return nil, errors.New("Error in Step 3")
 		}, nil, nil),
 	)
-	_, err := flow.Run(FlowContext{Context: "Initial"})
+
+	assert.NoError(t, err)
+	_, err = flow.Run(FlowContext{Context: "Initial"})
+
 	assert.NotNil(t, err)
 }
 
 func TestFlow_Run_WithValidator_And_Validation_Passed(t *testing.T) {
-	flow := NewFlow(&test.MockClient{}, "Test Flow",
-		*NewStep("Step 1", func(context FlowContext, step *FlowStep) (*FlowContext, error) {
+	flow, err := NewFlow(&test.MockClient{}, "Test Flow",
+		*NewStepWithValidatorAndExectorFunction("Step 1", func(context FlowContext, step *Step) (*FlowContext, error) {
 			assert.Equal(t, "Initial", context.Context)
 			context.Context = "Data from Step 1"
 			return &context, nil
-		}, func(stepOutput string, step *FlowStep) bool {
+		}, func(stepOutput string, step *Step) bool {
 			return stepOutput == "Data from Step 1"
 		}, nil),
-		*NewStep("Step 2", func(context FlowContext, step *FlowStep) (*FlowContext, error) {
+		*NewStepWithValidatorAndExectorFunction("Step 2", func(context FlowContext, step *Step) (*FlowContext, error) {
 			assert.Equal(t, "Data from Step 1", context.Context)
 			context.Context = "Data from Step 2"
 			return &context, nil
-		}, func(stepOutput string, step *FlowStep) bool {
+		}, func(stepOutput string, step *Step) bool {
 			return stepOutput == "Data from Step 2"
 		}, nil),
 	)
+
+	assert.NoError(t, err)
 	flowContext, err := flow.Run(FlowContext{Context: "Initial"})
 	assert.NoError(t, err)
 	assert.Equal(t, "Data from Step 2", flowContext.Context)
 }
 func TestFlow_Run_WithValidator_And_Validation_Failed(t *testing.T) {
-	flow := NewFlow(&test.MockClient{}, "Test Flow",
-		*NewStep("Step 1", func(context FlowContext, step *FlowStep) (*FlowContext, error) {
+	flow, err := NewFlow(&test.MockClient{}, "Test Flow",
+		*NewStepWithValidatorAndExectorFunction("Step 1", func(context FlowContext, step *Step) (*FlowContext, error) {
 
 			return &context, nil
-		}, func(stepOutput string, step *FlowStep) bool {
+		}, func(stepOutput string, step *Step) bool {
 			return stepOutput == "Data from Step 1"
 		}, nil),
-		*NewStep("Step 2", func(context FlowContext, step *FlowStep) (*FlowContext, error) {
+		*NewStepWithValidatorAndExectorFunction("Step 2", func(context FlowContext, step *Step) (*FlowContext, error) {
 			context.Data = "Data from Step 1"
 			return &context, nil
-		}, func(stepOutput string, step *FlowStep) bool {
+		}, func(stepOutput string, step *Step) bool {
 			return stepOutput == "Data from Step 1 and Step 2"
 		}, nil),
 	)
-	_, err := flow.Run(FlowContext{Context: "Initial"})
+
+	assert.NoError(t, err)
+	_, err = flow.Run(FlowContext{Context: "Initial"})
 	assert.Error(t, err)
 }
 func TestFlow_Run_WithValidatorAndInvalidStep(t *testing.T) {
-	flow := NewFlow(&test.MockClient{}, "Test Flow",
-		*NewStep("Step 1",
-			func(context FlowContext, step *FlowStep) (*FlowContext, error) {
+	flow, err := NewFlow(&test.MockClient{}, "Test Flow",
+		*NewStepWithValidatorAndExectorFunction("Step 1",
+			func(context FlowContext, step *Step) (*FlowContext, error) {
 				return &context, nil
 			},
-			func(stepOutput string, step *FlowStep) bool {
+			func(stepOutput string, step *Step) bool {
 				return stepOutput == "Data from Step 1"
 			}, nil),
-		*NewStep("Step 2",
-			func(context FlowContext, step *FlowStep) (*FlowContext, error) {
+		*NewStepWithValidatorAndExectorFunction("Step 2",
+			func(context FlowContext, step *Step) (*FlowContext, error) {
 				return nil, errors.New("Error in Step 2")
 			},
-			func(stepOutput string, step *FlowStep) bool {
+			func(stepOutput string, step *Step) bool {
 				return stepOutput == "Data from Step 1 and Step 2"
 			}, nil),
 	)
-	_, err := flow.Run(FlowContext{Context: "Initial"})
+
+	assert.NoError(t, err)
+	_, err = flow.Run(FlowContext{Context: "Initial"})
 	assert.NotNil(t, err)
 }
 
@@ -262,27 +307,12 @@ func TestRunForLLMStep(t *testing.T) {
 				clientImpl: &test.MockClient{},
 			},
 		}
-		_, err := LLMStepExecutor(ctx, nil)
+		_, err := LLMStepExecutor{}.Run(ctx, nil)
 		assert.Error(t, err, "no step provided")
 	})
-	t.Run("invalid step config type", func(t *testing.T) {
-		step := FlowStep{
-			StepConfig: struct{}{},
-		}
-		ctx := FlowContext{
-			Context: "input",
-			flow: &Flow{
 
-				clientImpl: &test.MockClient{},
-			},
-		}
-		_, err := LLMStepExecutor(ctx, &step)
-		assert.Error(t, err, "invalid step config type")
-	})
 	t.Run("no client set for flow step", func(t *testing.T) {
-		step := FlowStep{
-			StepConfig: LLMFlowStepConfig{},
-		}
+		step := Step{}
 		ctx := FlowContext{
 			Context: "input",
 			flow: &Flow{
@@ -290,41 +320,37 @@ func TestRunForLLMStep(t *testing.T) {
 				clientImpl: nil,
 			},
 		}
-		_, err := LLMStepExecutor(ctx, &step)
+		_, err := LLMStepExecutor{}.Run(ctx, &step)
 		assert.Error(t, err, "no client set for flow step")
 	})
 	t.Run("client chat error", func(t *testing.T) {
 
-		step := FlowStep{
-			StepConfig: LLMFlowStepConfig{},
+		step := Step{
 			clientImpl: &test.MockClient{
 				Err: errors.New("client chat error"),
 			},
 		}
 		ctx := FlowContext{}
-		_, err := LLMStepExecutor(ctx, &step)
+		_, err := LLMStepExecutor{}.Run(ctx, &step)
 		assert.Error(t, err, "client chat error")
 	})
 	t.Run("success", func(t *testing.T) {
 
-		step := FlowStep{
-			StepConfig: LLMFlowStepConfig{},
+		step := Step{
 			clientImpl: &test.MockClient{
 				ChatOutput: "output",
 			},
 		}
 		ctx := FlowContext{}
-		newCtx, err := LLMStepExecutor(ctx, &step)
+		newCtx, err := LLMStepExecutor{}.Run(ctx, &step)
 		assert.Nil(t, err)
 		assert.Equal(t, "output", newCtx.Context)
 	})
 
 	t.Run("template formatter success", func(t *testing.T) {
 		templateFromatter, _ := message.NewPromptTemplateFormatter("Hello, {{.Data}}")
-		step := FlowStep{
-			StepConfig: LLMFlowStepConfig{
-				TemplateFormatter: templateFromatter,
-			},
+		step := Step{
+
 			clientImpl: &test.MockClient{},
 		}
 		ctx := FlowContext{
@@ -333,7 +359,9 @@ func TestRunForLLMStep(t *testing.T) {
 				clientImpl: &test.MockClient{},
 			},
 		}
-		output, err := LLMStepExecutor(ctx, &step)
+		output, err := LLMStepExecutor{
+			TemplateFormatter: templateFromatter,
+		}.Run(ctx, &step)
 
 		assert.NoError(t, err)
 		assert.Equal(t, "Hello, world", output.Context)
@@ -341,10 +369,7 @@ func TestRunForLLMStep(t *testing.T) {
 
 	t.Run("template formatter error", func(t *testing.T) {
 		templateFromatter, _ := message.NewPromptTemplateFormatter("Hello, {{.None}}")
-		step := FlowStep{
-			StepConfig: LLMFlowStepConfig{
-				TemplateFormatter: templateFromatter,
-			},
+		step := Step{
 			clientImpl: &test.MockClient{},
 		}
 		ctx := FlowContext{
@@ -352,7 +377,9 @@ func TestRunForLLMStep(t *testing.T) {
 				clientImpl: &test.MockClient{},
 			},
 		}
-		output, err := LLMStepExecutor(ctx, &step)
+		output, err := LLMStepExecutor{
+			TemplateFormatter: templateFromatter,
+		}.Run(ctx, &step)
 		assert.Error(t, err)
 		assert.Nil(t, output)
 

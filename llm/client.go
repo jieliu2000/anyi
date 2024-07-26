@@ -7,8 +7,8 @@ import (
 	"github.com/jieliu2000/anyi/llm/dashscope"
 	"github.com/jieliu2000/anyi/llm/openai"
 	"github.com/jieliu2000/anyi/message"
+	"github.com/jieliu2000/anyi/utils"
 	"github.com/mitchellh/mapstructure"
-	config "github.com/spf13/viper"
 )
 
 // ClientConfig is the configuration for a client. In Anyi, this struct is mainly used for reading the client config file. The config file can be in any formats that [viper] supports.
@@ -41,29 +41,16 @@ type Client interface {
 	Chat(messages []message.Message) (*message.Message, error)
 }
 
-func readConfigFile(configFile string) (*ClientConfig, error) {
-	config.SetConfigFile(configFile)
-
-	err := config.ReadInConfig() // Find and read the config file
-	if err != nil {              // Handle errors reading the config file
-		return nil, err
+// NewModelConfigFromClientConfig creates a new ModelConfig instance based on the provided ClientConfig.
+// Parameters:
+// - clientConfig *ClientConfig: The ClientConfig object containing configuration information.
+// Return values:
+// - ModelConfig: The newly created ModelConfig instance.
+// - error: An error object if any occurs during the process, nil otherwise.
+func NewModelConfigFromClientConfig(clientConfig *ClientConfig) (ModelConfig, error) {
+	if clientConfig == nil {
+		return nil, errors.New("client config is null")
 	}
-
-	clientConfig := ClientConfig{}
-	err = config.Unmarshal(&clientConfig)
-	if err != nil {
-
-		return nil, err
-	}
-	return &clientConfig, nil
-}
-
-func NewModelConfigFromFile(configFile string) (ModelConfig, error) {
-	clientConfig, err := readConfigFile(configFile)
-	if err != nil {
-		return nil, err
-	}
-
 	var modelConfig ModelConfig
 	switch clientConfig.Model {
 	case "openai":
@@ -75,9 +62,22 @@ func NewModelConfigFromFile(configFile string) (ModelConfig, error) {
 	default:
 		return nil, errors.New("unknown model")
 	}
-
-	err = mapstructure.Decode(clientConfig.Config, modelConfig)
+	err := mapstructure.Decode(clientConfig.Config, modelConfig)
 	return modelConfig, err
+}
+
+// NewModelConfigFromFile function creates a new ModelConfig object from a configuration file.
+// Parameters:
+// - configFile string: The path to the configuration file.
+// Return values:
+// - ModelConfig: The created ModelConfig object.
+// - error: If an error occurs during the process, the corresponding error message is returned.
+func NewModelConfigFromFile(configFile string) (ModelConfig, error) {
+	clientConfig, err := utils.UnmarshallConfig(configFile, &ClientConfig{})
+	if err != nil {
+		return nil, err
+	}
+	return NewModelConfigFromClientConfig(clientConfig)
 }
 
 // NewClient creates a new client based on the model config. The type of client is determined by the type of model config.

@@ -1,4 +1,4 @@
-package anyi
+package flow
 
 import (
 	"errors"
@@ -14,28 +14,37 @@ const (
 type Flow struct {
 	Name string
 
-	Steps []FlowStep
+	Steps []Step
 	// The default clientImpl for the flow
 	clientImpl llm.Client
 }
 
-func NewFlow(client llm.Client, name string, steps ...FlowStep) *Flow {
-	return &Flow{Steps: steps, Name: name, clientImpl: client}
+func NewFlow(client llm.Client, name string, steps ...Step) (*Flow, error) {
+
+	if name == "" {
+		return nil, errors.New("flow name cannot be empty")
+	}
+
+	flow := &Flow{Steps: steps, Name: name, clientImpl: client}
+
+	return flow, nil
 }
 
-type StepExecutor func(context FlowContext, Step *FlowStep) (*FlowContext, error)
+type StepValidator interface {
+	Validate(stepOutput string, Step *Step) bool
+}
 
-type StepValidator func(stepOutput string, Step *FlowStep) bool
+type StepExecutor interface {
+	Run(context FlowContext, Step *Step) (*FlowContext, error)
+}
 
-type FlowStep struct {
+type Step struct {
 	clientImpl         llm.Client
 	validateClientImpl llm.Client
 
-	StepConfig any
+	Executor StepExecutor
 
-	Run StepExecutor
-
-	Validate      StepValidator
+	Validator     StepValidator
 	runTimes      int
 	MaxRetryTimes int
 }
@@ -49,8 +58,8 @@ type FlowContext struct {
 	flow    *Flow
 }
 
-func NewStep(stepConfig any, executor StepExecutor, validator StepValidator, client llm.Client) *FlowStep {
-	return &FlowStep{StepConfig: stepConfig, Run: executor, Validate: validator, clientImpl: client}
+func NewStep(executor StepExecutor, validator StepValidator, client llm.Client) *Step {
+	return &Step{Executor: executor, Validator: validator, clientImpl: client}
 }
 
 // Create a new flow step with executor and validator.
@@ -61,11 +70,10 @@ func NewStep(stepConfig any, executor StepExecutor, validator StepValidator, cli
 //   - validator: the validator of the step. Set this parameter to nil if you don't want to validate the step output. See [StepValidator] for more details.
 //   - client: the default client of the step. If set to nil, the default client of the flow will be used.
 //   - validateClient: the client used to validate the step output. If set to nil, the default client of the step will be used. If the step doesn't have a default client, the default client of the flow will be used.
-func NewStepWithValidator(stepConfig any, executor StepExecutor, validator StepValidator, client llm.Client, validateClient llm.Client) *FlowStep {
-	return &FlowStep{
-		StepConfig:         stepConfig,
-		Run:                executor,
-		Validate:           validator,
+func NewStepWithValidator(stepConfig any, executor StepExecutor, validator StepValidator, client llm.Client, validateClient llm.Client) *Step {
+	return &Step{
+		Executor:           executor,
+		Validator:          validator,
 		runTimes:           0,
 		MaxRetryTimes:      DefaultMaxRetryTimes,
 		clientImpl:         client,
@@ -73,11 +81,11 @@ func NewStepWithValidator(stepConfig any, executor StepExecutor, validator StepV
 	}
 }
 
-func tryStep(step *FlowStep, context FlowContext) (*FlowContext, error) {
+func tryStep(step *Step, context FlowContext) (*FlowContext, error) {
 	var err error
 
 	// Run the step and get the updated context
-	result, err := step.Run(context, step)
+	result, err := step.Executor.Run(context, step)
 	step.runTimes++
 	if err != nil {
 		return result, err
@@ -85,9 +93,9 @@ func tryStep(step *FlowStep, context FlowContext) (*FlowContext, error) {
 	if step.runTimes > step.MaxRetryTimes+1 {
 		return result, errors.New("step retry times exceeded")
 	}
-	if step.Validate != nil {
+	if step.Validator != nil {
 		// Validate the step output
-		if step.Validate(result.Context, step) {
+		if step.Validator.Validate(result.Context, step) {
 			// If the step output is valid, update context and continue to the next step
 			return result, nil
 		} else {
@@ -122,21 +130,14 @@ func (flow *Flow) Run(initialContext FlowContext) (*FlowContext, error) {
 	return context, nil
 }
 
-type LLMFlowStepConfig struct {
-	TemplateFormatter        *message.PromptyTemplateFormatter
-	SystemMessage            string
-	ValidatorPromptFormatter *message.PromptyTemplateFormatter
-	ValidatorSystemMessage   string
+type LLMStepExecutor struct {
+	TemplateFormatter *message.PromptyTemplateFormatter
+	SystemMessage     string
 }
 
-func LLMStepExecutor(context FlowContext, step *FlowStep) (*FlowContext, error) {
+func (executor LLMStepExecutor) Run(context FlowContext, step *Step) (*FlowContext, error) {
 	if step == nil {
 		return nil, errors.New("no step provided")
-	}
-
-	llmStepConfig, ok := step.StepConfig.(LLMFlowStepConfig)
-	if !ok {
-		return nil, errors.New("invalid step config type")
 	}
 
 	if step.clientImpl == nil {
@@ -147,9 +148,9 @@ func LLMStepExecutor(context FlowContext, step *FlowStep) (*FlowContext, error) 
 	}
 
 	var input string
-	if llmStepConfig.TemplateFormatter != nil {
+	if executor.TemplateFormatter != nil {
 		var err error
-		input, err = llmStepConfig.TemplateFormatter.Format(context)
+		input, err = executor.TemplateFormatter.Format(context)
 		if err != nil {
 			return nil, err
 		}
@@ -158,8 +159,8 @@ func LLMStepExecutor(context FlowContext, step *FlowStep) (*FlowContext, error) 
 	}
 
 	messages := make([]message.Message, 0, 2)
-	if llmStepConfig.SystemMessage != "" {
-		messages = append(messages, message.NewSystemMessage(llmStepConfig.SystemMessage))
+	if executor.SystemMessage != "" {
+		messages = append(messages, message.NewSystemMessage(executor.SystemMessage))
 	}
 	messages = append(messages, message.NewUserMessage(input))
 
@@ -172,37 +173,31 @@ func LLMStepExecutor(context FlowContext, step *FlowStep) (*FlowContext, error) 
 	return &context, nil
 }
 
-func NewLLMStepWithTemplateFile(templateFilePath string, systemMessage string, client llm.Client) (*FlowStep, error) {
+func NewLLMStepWithTemplateFile(templateFilePath string, systemMessage string, client llm.Client) (*Step, error) {
 
 	// Create a new formatter with the template
 	formatter, err := message.NewPromptTemplateFormatterFromFile(templateFilePath)
 	if err != nil {
 		return nil, err
 	}
-
-	// Return the step config
-	stepConfig := LLMFlowStepConfig{
+	step := NewStep(LLMStepExecutor{
 		TemplateFormatter: formatter,
 		SystemMessage:     systemMessage,
-	}
-
-	step := NewStep(stepConfig, LLMStepExecutor, nil, client)
+	}, nil, client)
 
 	return step, nil
 }
 
-func NewLLMStepWithTemplate(tmplate string, systemMessage string, client llm.Client) (*FlowStep, error) {
+func NewLLMStepWithTemplate(tmplate string, systemMessage string, client llm.Client) (*Step, error) {
 	// Create a new formatter with the template
 	formatter, err := message.NewPromptTemplateFormatter(tmplate)
 	if err != nil {
 		return nil, err
 	}
 
-	// Return the step config
-	stepConfig := LLMFlowStepConfig{
+	step := NewStep(LLMStepExecutor{
 		TemplateFormatter: formatter,
 		SystemMessage:     systemMessage,
-	}
-	step := NewStep(stepConfig, LLMStepExecutor, nil, client)
+	}, nil, client)
 	return step, nil
 }

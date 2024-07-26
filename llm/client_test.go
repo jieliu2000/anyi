@@ -9,6 +9,7 @@ import (
 	"github.com/jieliu2000/anyi/llm/azureopenai"
 	"github.com/jieliu2000/anyi/llm/dashscope"
 	"github.com/jieliu2000/anyi/llm/openai"
+	"github.com/jieliu2000/anyi/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -20,7 +21,7 @@ func TestReadConfigFile(t *testing.T) {
 	assert.NotNil(t, currentDir)
 
 	configFilePath := filepath.Join(currentDir, "openai_test.toml")
-	openaiClientConfig, err := readConfigFile(configFilePath)
+	openaiClientConfig, err := utils.UnmarshallConfig(configFilePath, &ClientConfig{})
 
 	assert.Nil(t, err)
 	assert.NotNil(t, openaiClientConfig)
