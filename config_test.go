@@ -3,17 +3,34 @@ package anyi
 import (
 	"testing"
 
+	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/internal/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
+type MockExecutor struct {
+}
+
+func (m *MockExecutor) Run(context flow.FlowContext, Step *flow.Step) (*flow.FlowContext, error) {
+
+	return &context, nil
+}
+
+type MockValidator struct {
+}
+
+func (m *MockValidator) Validate(stepOutput string, Step *flow.Step) bool {
+
+	return true
+}
+
 func TestNewFlowFromConfig_Success(t *testing.T) {
 	// Setup
 
 	RegisterClient("test-client", &test.MockClient{})
-	RegisterExecutor("test-executor", &test.MockExecutor{})
-	RegisterValidator("test-validator", &test.MockValidator{})
+	RegisterExecutor("test-executor", &MockExecutor{})
+	RegisterValidator("test-validator", &MockValidator{})
 
 	flowConfig := &FlowConfig{
 		ClientName: "test-client",
@@ -66,8 +83,8 @@ func TestNewFlowFromConfig_WithInvalidClientName(t *testing.T) {
 func TestNewFlowFromConfig_WithInvalidStepConfig(t *testing.T) {
 	// Setup
 	RegisterClient("test-client", &test.MockClient{})
-	RegisterExecutor("test-executor", &test.MockExecutor{})
-	RegisterValidator("test-validator", &test.MockValidator{})
+	RegisterExecutor("test-executor", &MockExecutor{})
+	RegisterValidator("test-validator", &MockValidator{})
 
 	flowConfig := &FlowConfig{
 		ClientName: "test-client",
@@ -90,8 +107,8 @@ func TestNewFlowFromConfig_WithInvalidStepConfig(t *testing.T) {
 func TestNewFlowFromConfig_WithEmptyStepExecutor(t *testing.T) {
 	// Setup
 	RegisterClient("test-client", &test.MockClient{})
-	RegisterExecutor("test-executor", &test.MockExecutor{})
-	RegisterValidator("test-validator", &test.MockValidator{})
+	RegisterExecutor("test-executor", &MockExecutor{})
+	RegisterValidator("test-validator", &MockValidator{})
 
 	flowConfig := &FlowConfig{
 		ClientName: "test-client",

@@ -1,7 +1,6 @@
 package test
 
 import (
-	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/message"
 )
 
@@ -27,20 +26,4 @@ func (m *MockClient) Chat(messages []message.Message) (*message.Message, error) 
 
 func NewMockClient() *MockClient {
 	return &MockClient{}
-}
-
-type MockExecutor struct {
-}
-
-func (m *MockExecutor) Run(context flow.FlowContext, Step *flow.Step) (*flow.FlowContext, error) {
-
-	return &context, nil
-}
-
-type MockValidator struct {
-}
-
-func (m *MockValidator) Validate(stepOutput string, Step *flow.Step) bool {
-
-	return true
 }
