@@ -1,6 +1,9 @@
 package anyi
 
 import (
+	"errors"
+	"fmt"
+
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/llm"
 	"github.com/jieliu2000/anyi/utils"
@@ -23,11 +26,18 @@ type StepConfig struct {
 	// The client name which will be used to validate the step output. If not set, validator will use the default client of the step (which is identified by the ClientName field). If the step doesn't have a default client, the validator will use the default client of the flow.
 	ValidatorClientName string
 	MaxRetryTimes       int
-	Validator           string
-	Executor            string
+
+	Validator string
+
+	// This is a required field. The executor name which will be used to execute the step.
+	Executor string
 }
 
 func NewStepFromConfig(stepConfig *StepConfig) (*flow.Step, error) {
+
+	if stepConfig == nil {
+		return nil, errors.New("step config is nil")
+	}
 
 	var validator flow.StepValidator
 	var err error
@@ -43,13 +53,21 @@ func NewStepFromConfig(stepConfig *StepConfig) (*flow.Step, error) {
 		if err != nil {
 			return nil, err
 		}
+		if executor == nil {
+			return nil, fmt.Errorf("step executor %s is not found", stepConfig.Executor)
+		}
+	} else {
+		return nil, errors.New("step executor is not set")
 	}
 	clientName := stepConfig.ClientName
 
-	client, err := GetClient(clientName)
+	var client llm.Client = nil
+	if clientName != "" {
+		client, err = GetClient(clientName)
 
-	if err != nil {
-		return nil, err
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	step := flow.NewStep(executor, validator, client)
@@ -58,10 +76,18 @@ func NewStepFromConfig(stepConfig *StepConfig) (*flow.Step, error) {
 }
 
 func NewFlowFromConfig(flowConfig *FlowConfig) (*flow.Flow, error) {
-	client, err := GetClient(flowConfig.ClientName)
 
-	if err != nil {
-		return nil, err
+	if flowConfig == nil {
+		return nil, errors.New("flow config is nil")
+	}
+
+	var client llm.Client = nil
+	var err error
+	if flowConfig.ClientName != "" {
+		client, err = GetClient(flowConfig.ClientName)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	steps := make([]flow.Step, len(flowConfig.Steps))

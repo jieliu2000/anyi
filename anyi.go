@@ -180,6 +180,14 @@ func SetExecutor(name string, executor flow.StepExecutor) error {
 	return nil
 }
 
+func RegisterValidator(name string, validator flow.StepValidator) error {
+	if name == "" {
+		return errors.New("name cannot be empty")
+	}
+	GlobalData.Validators[name] = validator
+	return nil
+}
+
 func NewLLMStepExecutorWithFormatter(name string, formatter *message.PromptyTemplateFormatter, systemMessage string, client llm.Client) *flow.LLMStepExecutor {
 
 	stepExecutor := flow.LLMStepExecutor{
