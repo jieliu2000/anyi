@@ -1,7 +1,4 @@
-// Use the openai compatible interface to access the DashScope service.
-// See [Dashscope Document] for details.
-// [Dashscope Document]: https://help.aliyun.com/zh/dashscope/developer-reference/compatibility-of-openai-with-dashscope/?spm=a2c4g.11186623.0.0.17504ad0abpnzJ for details
-package dashscope
+package ollama
 
 import (
 	"context"
@@ -14,64 +11,65 @@ import (
 )
 
 const (
-	DefaultBaseUrl = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+	DefaultOllamaUrl = "'http://localhost:11434/v1/'"
 )
 
-type DashScopeModelConfig struct {
-	APIKey  string `json:"api_key"`
-	BaseUrl string `json:"base_url"`
-	Model   string `json:"model"`
+type OllamaModelConfig struct {
+	OllamaUrl string `json:"base_url"`
+
+	//The model name used by ollama. See [Ollama's documentation] for more information on the available models.
+	//
+	//[Ollama's documentation]: https://github.com/ollama/ollama/blob/main/README.md#quickstart
+	Model string `json:"model"`
 }
 
-type DashScopeClient struct {
-	Config     *DashScopeModelConfig
+type OllamaClient struct {
+	Config     *OllamaModelConfig
 	clientImpl *impl.Client
 }
 
-// Creats a default DashScope model config.
-func DefaultConfig(apiKey string, model string) *DashScopeModelConfig {
-	return &DashScopeModelConfig{
-		APIKey:  apiKey,
-		Model:   model,
-		BaseUrl: DefaultBaseUrl,
+// Creats a default Ollama model config.
+func DefaultConfig(model string) *OllamaModelConfig {
+	return &OllamaModelConfig{
+		Model:     model,
+		OllamaUrl: DefaultOllamaUrl,
 	}
 }
 
-func NewConfig(apiKey string, model string, baseUrl string) *DashScopeModelConfig {
-	if len(baseUrl) == 0 {
-		baseUrl = DefaultBaseUrl
+func NewConfig(apiKey string, model string, ollamaUrl string) *OllamaModelConfig {
+	if len(ollamaUrl) == 0 {
+		ollamaUrl = DefaultOllamaUrl
 	}
-	return &DashScopeModelConfig{
-		APIKey:  apiKey,
-		Model:   model,
-		BaseUrl: baseUrl,
+	return &OllamaModelConfig{
+		Model:     model,
+		OllamaUrl: ollamaUrl,
 	}
 }
 
-func NewClient(config *DashScopeModelConfig) (*DashScopeClient, error) {
+func NewClient(config *OllamaModelConfig) (*OllamaClient, error) {
 
 	// Check if the config is nil to prevent panic or unexpected behavior
 	if config == nil {
 		return nil, errors.New("config cannot be nil")
 	}
 
-	// Create a new default configuration implementation using the provided API key
-	configImpl := impl.DefaultConfig(config.APIKey)
+	// Ollama's openAI compatible API use "ollama" as the API key
+	configImpl := impl.DefaultConfig("ollama")
 
 	// Set the BaseURL from the provided config
-	configImpl.BaseURL = config.BaseUrl
+	configImpl.BaseURL = config.OllamaUrl
 
-	// Create a new DashScopeClient using the provided config and the configured client implementation
-	client := &DashScopeClient{
+	// Create a new OllamaClient using the provided config and the configured client implementation
+	client := &OllamaClient{
 		Config:     config,
 		clientImpl: impl.NewClientWithConfig(configImpl),
 	}
 
-	// Return the newly created DashScopeClient and nil error
+	// Return the newly created OllamaClient and nil error
 	return client, nil
 }
 
-func (c *DashScopeClient) Chat(messages []message.Message) (*message.Message, error) {
+func (c *OllamaClient) Chat(messages []message.Message) (*message.Message, error) {
 
 	// Check if the client implementation is initialized
 	client := c.clientImpl

@@ -10,8 +10,29 @@ import (
 )
 
 type AnyiConfig struct {
-	Clients []llm.ClientConfig
-	Flows   []FlowConfig
+	Clients    []llm.ClientConfig
+	Flows      []FlowConfig
+	Formatters []FormatterConfig
+	Executors  []ExecutorConfig
+	Validators []ValidatorConfig
+}
+
+type ValidatorConfig struct {
+	Name   string
+	Type   string
+	Config map[string]interface{}
+}
+
+type ExecutorConfig struct {
+	Name   string
+	Type   string
+	Config map[string]interface{}
+}
+
+type FormatterConfig struct {
+	Name   string
+	Type   string
+	Config map[string]interface{}
 }
 
 type FlowConfig struct {
@@ -31,6 +52,15 @@ type StepConfig struct {
 
 	// This is a required field. The executor name which will be used to execute the step.
 	Executor string
+}
+
+func NewClientFromConfig(config *llm.ClientConfig) (llm.Client, error) {
+	model, err := llm.NewModelConfigFromClientConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewClient(config.Name, model)
 }
 
 func NewStepFromConfig(stepConfig *StepConfig) (*flow.Step, error) {

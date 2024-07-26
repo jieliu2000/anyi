@@ -2,16 +2,15 @@ package llm_test
 
 import (
 	"log"
-	"os"
 
 	"github.com/jieliu2000/anyi/llm"
-	"github.com/jieliu2000/anyi/llm/dashscope"
+	"github.com/jieliu2000/anyi/llm/ollama"
 	"github.com/jieliu2000/anyi/message"
 )
 
-func Example_dashscope() {
-	// Make sure you set DASHSCOPE_API_KEY environment variable to your Dashscope API key.
-	config := dashscope.DefaultConfig(os.Getenv("DASHSCOPE_API_KEY"), "qwen-turbo")
+func Example_ollama() {
+	// Make sure you start ollama and pulled your target model first.
+	config := ollama.DefaultConfig("mistral")
 	client, err := llm.NewClient(config)
 
 	if err != nil {
@@ -29,5 +28,6 @@ func Example_dashscope() {
 	}
 
 	log.Printf("Response: %s", message.Content)
+	// Output: Response: 6
 
 }

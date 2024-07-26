@@ -40,15 +40,6 @@ func NewClient(name string, model llm.ModelConfig) (llm.Client, error) {
 	return client, nil
 }
 
-func NewClientFromConfig(config *llm.ClientConfig) (llm.Client, error) {
-	model, err := llm.NewModelConfigFromClientConfig(config)
-	if err != nil {
-		return nil, err
-	}
-
-	return NewClient(config.Name, model)
-}
-
 func RegisterFlow(name string, flow *flow.Flow) error {
 	if name == "" {
 		return errors.New("name cannot be empty")
