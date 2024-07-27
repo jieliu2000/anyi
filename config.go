@@ -50,6 +50,9 @@ type StepConfig struct {
 
 	Validator string
 
+	Type   string
+	Config map[string]interface{}
+
 	// This is a required field. The executor name which will be used to execute the step.
 	Executor string
 }
