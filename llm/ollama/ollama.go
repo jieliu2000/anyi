@@ -38,13 +38,19 @@ func DefaultConfig(model string) *OllamaModelConfig {
 	}
 }
 
-func NewConfig(apiKey string, model string, ollamaUrl string) *OllamaModelConfig {
-	if len(ollamaUrl) == 0 {
-		ollamaUrl = DefaultOllamaUrl
+// NewConfig creates and returns a pointer to OllamaModelConfig.
+// Parameters:
+// - model string: The model name used by ollama. See [Ollama's documentation] for more information on the available models.
+// - ollamaApiURL string: The Ollama API URL. Leaving this blank will use the default Ollama API URL. See [DefaultOllamaUrl]. Note that don't add "/chat" to the end of this url. In [Chat] function it will be added automatically.
+//
+// [Ollama's documentation]: https://github.com/ollama/ollama/blob/main/README.md
+func NewConfig(model string, ollamaApiURL string) *OllamaModelConfig {
+	if len(ollamaApiURL) == 0 {
+		ollamaApiURL = DefaultOllamaUrl
 	}
 	return &OllamaModelConfig{
 		Model:        model,
-		OllamaApiURL: ollamaUrl,
+		OllamaApiURL: ollamaApiURL,
 	}
 }
 
@@ -57,6 +63,10 @@ func NewClient(config *OllamaModelConfig) (*OllamaClient, error) {
 
 	if config.OllamaApiURL == "" {
 		config.OllamaApiURL = DefaultOllamaUrl
+	}
+
+	if config.Model == "" {
+		return nil, errors.New("model cannot be empty")
 	}
 
 	// Create a new OllamaClient using the provided config and the configured client implementation
@@ -87,6 +97,10 @@ type OllamaResponse struct {
 func (c *OllamaClient) Chat(messages []message.Message) (*message.Message, error) {
 
 	httpClient := c.clientImpl
+
+	if httpClient == nil {
+		return nil, errors.New("http client cannot be nil, maybe you didn't initiatialize the client. Considering using NewClient function")
+	}
 
 	requestJson, err := json.Marshal(OllamaRequest{
 		Model:    c.Config.Model,

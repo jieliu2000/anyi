@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestChatWithNoClient(t *testing.T) {
+func TestChatWithNoClientImplmentation(t *testing.T) {
 	client := OpenAIClient{}
 	_, err := client.Chat(nil)
 	if err == nil {
