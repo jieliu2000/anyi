@@ -21,18 +21,18 @@ type ClientConfig struct {
 
 	// The name of the client. This property is only used when you want anyi to have multiple client configurations and allows workflows/steps to configure clients via the name.
 	// If you don't need to use multiple clients, you can ignore this property.
-	Name string
+	Name string `mapstructure:"name" json:"name,omitempty"`
 
-	// The model to use. Currently, it supports these values:
+	// The type to use. Currently, it supports these values:
 	//	* "openai" - OpenAI model
 	//	* "azureopenai" - Azure OpenAI model
 	//	* "dashscope" - DashScope model
-	Model string
+	Type string `mapstructure:"type" json:"type"`
 
 	// The model config. The type of this field depends on the model. We define this property as map[string]interface{} for extensibility.
 	// You can refer to the ModelConfig type of your model to see what properties you need to define hee.
 	// For example, for openai, you need to define properties based on openai.OpenAIModelConfig struct.
-	Config map[string]interface{}
+	Config map[string]interface{} `mapstructure:"config" json:"config"`
 }
 
 type ModelConfig interface {
@@ -53,7 +53,7 @@ func NewModelConfigFromClientConfig(clientConfig *ClientConfig) (ModelConfig, er
 		return nil, errors.New("client config is null")
 	}
 	var modelConfig ModelConfig
-	switch clientConfig.Model {
+	switch clientConfig.Type {
 	case "openai":
 		modelConfig = &openai.OpenAIModelConfig{}
 	case "azureopenai":

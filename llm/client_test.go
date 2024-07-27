@@ -25,7 +25,7 @@ func TestReadConfigFile(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.NotNil(t, openaiClientConfig)
-	assert.Equal(t, "openai", openaiClientConfig.Model)
+	assert.Equal(t, "openai", openaiClientConfig.Type)
 
 	configMap := openaiClientConfig.Config
 	assert.Equal(t, "key", configMap["apikey"])

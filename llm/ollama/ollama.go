@@ -55,6 +55,10 @@ func NewClient(config *OllamaModelConfig) (*OllamaClient, error) {
 		return nil, errors.New("config cannot be nil")
 	}
 
+	if config.OllamaApiURL == "" {
+		config.OllamaApiURL = DefaultOllamaUrl
+	}
+
 	// Create a new OllamaClient using the provided config and the configured client implementation
 	client := &OllamaClient{
 		Config: config,
