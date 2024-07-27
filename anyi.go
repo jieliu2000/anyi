@@ -8,7 +8,7 @@ import (
 	"github.com/jieliu2000/anyi/message"
 )
 
-type anyiData struct {
+type anyiRegistry struct {
 	Clients    map[string]llm.Client
 	Flows      map[string]*flow.Flow
 	Validators map[string]flow.StepValidator
@@ -16,7 +16,7 @@ type anyiData struct {
 	Formatters map[string]message.PromptFormatter
 }
 
-var GlobalData *anyiData = &anyiData{
+var GlobalRegistry *anyiRegistry = &anyiRegistry{
 	Clients:    make(map[string]llm.Client),
 	Flows:      make(map[string]*flow.Flow),
 	Validators: make(map[string]flow.StepValidator),
@@ -35,7 +35,7 @@ func NewClient(name string, model llm.ModelConfig) (llm.Client, error) {
 	}
 	// If name is not empty, Set the client to Anyi.Clients
 	if name != "" {
-		GlobalData.Clients[name] = client
+		GlobalRegistry.Clients[name] = client
 	}
 	return client, nil
 }
@@ -44,7 +44,7 @@ func RegisterFlow(name string, flow *flow.Flow) error {
 	if name == "" {
 		return errors.New("name cannot be empty")
 	}
-	GlobalData.Flows[name] = flow
+	GlobalRegistry.Flows[name] = flow
 	return nil
 }
 
@@ -57,7 +57,7 @@ func RegisterClient(name string, client llm.Client) error {
 	if name == "" {
 		return errors.New("name cannot be empty")
 	}
-	GlobalData.Clients[name] = client
+	GlobalRegistry.Clients[name] = client
 	return nil
 }
 
@@ -65,21 +65,21 @@ func GetValidator(name string) (flow.StepValidator, error) {
 	if name == "" {
 		return nil, errors.New("name cannot be empty")
 	}
-	return GlobalData.Validators[name], nil
+	return GlobalRegistry.Validators[name], nil
 }
 
 func GetExecutor(name string) (flow.StepExecutor, error) {
 	if name == "" {
 		return nil, errors.New("name cannot be empty")
 	}
-	return GlobalData.Executors[name], nil
+	return GlobalRegistry.Executors[name], nil
 }
 
 func GetClient(name string) (llm.Client, error) {
 	if name == "" {
 		return nil, errors.New("name cannot be empty")
 	}
-	client, ok := GlobalData.Clients[name]
+	client, ok := GlobalRegistry.Clients[name]
 	if !ok {
 		return nil, errors.New("no client found with the given name: " + name)
 	}
@@ -100,7 +100,7 @@ func NewClientFromConfigFile(name string, configFile string) (llm.Client, error)
 	}
 	// If name is not empty, Set the client to Anyi.Clients
 	if name != "" {
-		GlobalData.Clients[name] = client
+		GlobalRegistry.Clients[name] = client
 	}
 	return client, nil
 }
@@ -113,14 +113,14 @@ func NewMessage(role string, content string) message.Message {
 }
 
 func GetFormatter(name string) message.PromptFormatter {
-	return GlobalData.Formatters[name]
+	return GlobalRegistry.Formatters[name]
 }
 
 func RegisterFormatter(name string, formatter message.PromptFormatter) error {
 	if name == "" {
 		return errors.New("name cannot be empty")
 	}
-	GlobalData.Formatters[name] = formatter
+	GlobalRegistry.Formatters[name] = formatter
 	return nil
 }
 
@@ -159,7 +159,7 @@ func NewFlow(name string, client llm.Client, steps ...flow.Step) (*flow.Flow, er
 		return nil, err
 	}
 
-	GlobalData.Flows[name] = f
+	GlobalRegistry.Flows[name] = f
 	return f, nil
 }
 
@@ -167,7 +167,7 @@ func RegisterExecutor(name string, executor flow.StepExecutor) error {
 	if name == "" {
 		return errors.New("name cannot be empty")
 	}
-	GlobalData.Executors[name] = executor
+	GlobalRegistry.Executors[name] = executor
 	return nil
 }
 
@@ -175,7 +175,7 @@ func RegisterValidator(name string, validator flow.StepValidator) error {
 	if name == "" {
 		return errors.New("name cannot be empty")
 	}
-	GlobalData.Validators[name] = validator
+	GlobalRegistry.Validators[name] = validator
 	return nil
 }
 

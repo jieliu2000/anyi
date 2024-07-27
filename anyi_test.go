@@ -40,7 +40,7 @@ func TestSetClient(t *testing.T) {
 		name := "test_client"
 		err := RegisterClient(name, client)
 		assert.Nil(t, err)
-		assert.Equal(t, client, GlobalData.Clients[name])
+		assert.Equal(t, client, GlobalRegistry.Clients[name])
 
 		client1, err := GetClient(name)
 		assert.NoError(t, err)
