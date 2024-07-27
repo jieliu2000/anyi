@@ -1,17 +1,18 @@
 package ollama
 
 import (
-	"context"
+	"bytes"
+	"encoding/json"
 	"errors"
+	"io"
+	"net/http"
+	"time"
 
-	"github.com/jieliu2000/anyi/llm/openai"
 	"github.com/jieliu2000/anyi/message"
-
-	impl "github.com/sashabaranov/go-openai"
 )
 
 const (
-	DefaultOllamaUrl = "'http://localhost:11434/v1/'"
+	DefaultOllamaUrl = "http://localhost:11434/api"
 )
 
 type OllamaModelConfig struct {
@@ -25,7 +26,7 @@ type OllamaModelConfig struct {
 
 type OllamaClient struct {
 	Config     *OllamaModelConfig
-	clientImpl *impl.Client
+	clientImpl *http.Client
 }
 
 // Creats a default Ollama model config.
@@ -53,58 +54,60 @@ func NewClient(config *OllamaModelConfig) (*OllamaClient, error) {
 		return nil, errors.New("config cannot be nil")
 	}
 
-	// Ollama's openAI compatible API use "ollama" as the API key
-	configImpl := impl.DefaultConfig("ollama")
-
-	// Set the BaseURL from the provided config
-	configImpl.BaseURL = config.OllamaUrl
-
 	// Create a new OllamaClient using the provided config and the configured client implementation
 	client := &OllamaClient{
-		Config:     config,
-		clientImpl: impl.NewClientWithConfig(configImpl),
+		Config: config,
 	}
+
+	client.clientImpl = &http.Client{}
 
 	// Return the newly created OllamaClient and nil error
 	return client, nil
 }
 
+type OllamaRequest struct {
+	Model    string            `json:"model"`
+	Messages []message.Message `json:"messages"`
+	Stream   bool              `json:"stream"`
+}
+
+type OllamaResponse struct {
+	Message       message.Message `json:"message"`
+	CreatedAt     time.Time       `json:"created_at"`
+	Done          bool            `json:"done"`
+	TotalDuration int             `json:"total_duration"`
+	LoadDuration  int             `json:"load_duration"`
+}
+
 func (c *OllamaClient) Chat(messages []message.Message) (*message.Message, error) {
 
-	// Check if the client implementation is initialized
-	client := c.clientImpl
-	if client == nil {
-		return nil, errors.New("client not initialized")
-	}
+	httpClient := c.clientImpl
 
-	// Convert the messages to OpenAI ChatMessages format
-	messagesInput := openai.ConvertToOpenAIChatMessages(messages)
+	requestJson, err := json.Marshal(OllamaRequest{
+		Model:    c.Config.Model,
+		Messages: messages,
+	})
 
-	// Create a ChatCompletion request using the client and the converted messages
-	resp, err := client.CreateChatCompletion(
-		context.Background(),
-		impl.ChatCompletionRequest{
-			Model:    c.Config.Model,
-			Messages: messagesInput,
-		},
-	)
-
-	// Check if there was an error in creating the ChatCompletion
 	if err != nil {
 		return nil, err
 	}
 
-	// Check if there are no choices in the response
-	if len(resp.Choices) == 0 {
-		return nil, errors.New("no choices found in the response")
+	response, err := httpClient.Post(c.Config.OllamaUrl+"/chat", "application/json", bytes.NewBuffer(requestJson))
+
+	if err != nil {
+		return nil, err
+	}
+	responseBody, err := io.ReadAll(response.Body)
+
+	if err != nil {
+		return nil, err
 	}
 
-	// Extract the first choice from the response and create a new message object
-	result := message.Message{
-		Content: resp.Choices[0].Message.Content,
-		Role:    resp.Choices[0].Message.Role,
+	ollamaResponse := OllamaResponse{}
+	err = json.Unmarshal(responseBody, &ollamaResponse)
+	if err != nil {
+		return nil, err
 	}
 
-	// Return the new message object and nil error
-	return &result, nil
+	return &ollamaResponse.Message, nil
 }

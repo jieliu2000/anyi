@@ -28,6 +28,4 @@ func Example_ollama() {
 	}
 
 	log.Printf("Response: %s", message.Content)
-	// Output: Response: 6
-
 }

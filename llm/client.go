@@ -5,6 +5,7 @@ import (
 
 	"github.com/jieliu2000/anyi/llm/azureopenai"
 	"github.com/jieliu2000/anyi/llm/dashscope"
+	"github.com/jieliu2000/anyi/llm/ollama"
 	"github.com/jieliu2000/anyi/llm/openai"
 	"github.com/jieliu2000/anyi/message"
 	"github.com/jieliu2000/anyi/utils"
@@ -59,6 +60,8 @@ func NewModelConfigFromClientConfig(clientConfig *ClientConfig) (ModelConfig, er
 		modelConfig = &azureopenai.AzureOpenAIModelConfig{}
 	case "dashscope":
 		modelConfig = &dashscope.DashScopeModelConfig{}
+	case "ollama":
+		modelConfig = &ollama.OllamaModelConfig{}
 	default:
 		return nil, errors.New("unknown model")
 	}
@@ -96,6 +99,8 @@ func NewClient(config ModelConfig) (Client, error) {
 	case *dashscope.DashScopeModelConfig:
 		return dashscope.NewClient(config.(*dashscope.DashScopeModelConfig))
 
+	case *ollama.OllamaModelConfig:
+		return ollama.NewClient(config.(*ollama.OllamaModelConfig))
 	}
 	return nil, errors.New("unknown model config")
 }
