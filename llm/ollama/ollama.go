@@ -16,7 +16,8 @@ const (
 )
 
 type OllamaModelConfig struct {
-	OllamaUrl string `json:"base_url"`
+	//The url of the ollama server. Note that don't add "/chat" to the end of this url. In [Chat] function it will be added automatically.
+	OllamaApiURL string `json:"ollama_api_url"`
 
 	//The model name used by ollama. See [Ollama's documentation] for more information on the available models.
 	//
@@ -32,8 +33,8 @@ type OllamaClient struct {
 // Creats a default Ollama model config.
 func DefaultConfig(model string) *OllamaModelConfig {
 	return &OllamaModelConfig{
-		Model:     model,
-		OllamaUrl: DefaultOllamaUrl,
+		Model:        model,
+		OllamaApiURL: DefaultOllamaUrl,
 	}
 }
 
@@ -42,8 +43,8 @@ func NewConfig(apiKey string, model string, ollamaUrl string) *OllamaModelConfig
 		ollamaUrl = DefaultOllamaUrl
 	}
 	return &OllamaModelConfig{
-		Model:     model,
-		OllamaUrl: ollamaUrl,
+		Model:        model,
+		OllamaApiURL: ollamaUrl,
 	}
 }
 
@@ -92,7 +93,7 @@ func (c *OllamaClient) Chat(messages []message.Message) (*message.Message, error
 		return nil, err
 	}
 
-	response, err := httpClient.Post(c.Config.OllamaUrl+"/chat", "application/json", bytes.NewBuffer(requestJson))
+	response, err := httpClient.Post(c.Config.OllamaApiURL+"/chat", "application/json", bytes.NewBuffer(requestJson))
 
 	if err != nil {
 		return nil, err
