@@ -1,8 +1,13 @@
 package ollama
 
 import (
+	"encoding/json"
+	"io"
+	"net/http"
 	"testing"
 
+	"github.com/jieliu2000/anyi/internal/test"
+	"github.com/jieliu2000/anyi/message"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -64,4 +69,67 @@ func TestNewClient(t *testing.T) {
 		assert.NotNil(t, client.clientImpl)
 		assert.Equal(t, config, client.Config)
 	})
+}
+
+func TestChat(t *testing.T) {
+	mockServer := test.NewTestServer()
+
+	mockServer.RequestHandler = func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "POST", r.Method, "Expected POST method")
+		assert.Equal(t, "/chat", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		assert.NoError(t, err)
+
+		requestMap := make(map[string]interface{})
+		err = json.Unmarshal(body, &requestMap)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "test-model", requestMap["model"])
+
+		messages := requestMap["messages"].([]interface{})
+		assert.Equal(t, 2, len(messages))
+
+		assert.Equal(t, "system", messages[0].(map[string]interface{})["role"])
+		assert.Equal(t, "You are an assisstant", messages[0].(map[string]interface{})["content"])
+		assert.Equal(t, "user", messages[1].(map[string]interface{})["role"])
+		assert.Equal(t, "Hello", messages[1].(map[string]interface{})["content"])
+
+		io.WriteString(w, `{
+    "model": "mistral",
+    "created_at": "2024-07-27T00:21:55.1718475Z",
+    "message": {
+        "role": "assistant",
+        "content": "Reply to your input"
+    },
+    "done_reason": "stop",
+    "done": true,
+    "total_duration": 8369719900,
+    "load_duration": 5773330000,
+    "prompt_eval_count": 11,
+    "prompt_eval_duration": 32476000,
+    "eval_count": 134,
+    "eval_duration": 2548614000
+}`)
+	}
+
+	defer mockServer.Close()
+	mockServer.Start()
+
+	config := NewConfig("test-model", mockServer.URL())
+
+	client, err := NewClient(config)
+	assert.NoError(t, err)
+
+	messages := []message.Message{
+		{Role: "system", Content: "You are an assisstant"},
+		{Role: "user", Content: "Hello"},
+	}
+
+	response, err := client.Chat(messages)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, response)
+
+	assert.Equal(t, "Reply to your input", response.Content)
 }

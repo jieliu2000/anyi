@@ -54,6 +54,9 @@ func NewConfig(model string, ollamaApiURL string) *OllamaModelConfig {
 	}
 }
 
+// NewClient creates a new OllamaClient instance based on the provided OllamaModelConfig.
+// If the config is nil, it will return an error. If the model in the config is empty, it will return an error as well because ollama chat cannot be called without a model.
+// the OllamaApiURL in the config can be left blank. The default Ollama API URL will be used in that case.
 func NewClient(config *OllamaModelConfig) (*OllamaClient, error) {
 
 	// Check if the config is nil to prevent panic or unexpected behavior
