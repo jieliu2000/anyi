@@ -131,6 +131,8 @@ func (flow *Flow) Run(initialContext FlowContext) (*FlowContext, error) {
 }
 
 type LLMStepExecutor struct {
+	Template          string
+	TemplateFile      string
 	TemplateFormatter *message.PromptyTemplateFormatter
 	SystemMessage     string
 }
@@ -145,6 +147,22 @@ func (executor LLMStepExecutor) Run(context FlowContext, step *Step) (*FlowConte
 	}
 	if step.clientImpl == nil {
 		return nil, errors.New("no client set for flow step")
+	}
+
+	if executor.TemplateFormatter == nil && executor.Template != "" {
+		var err error
+		executor.TemplateFormatter, err = message.NewPromptTemplateFormatter(executor.Template)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if executor.TemplateFormatter == nil && executor.TemplateFile != "" {
+		var err error
+		executor.TemplateFormatter, err = message.NewPromptTemplateFormatterFromFile(executor.TemplateFile)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var input string

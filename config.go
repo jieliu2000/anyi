@@ -49,10 +49,6 @@ type StepConfig struct {
 	MaxRetryTimes       int
 
 	Validator string
-
-	Type   string
-	Config map[string]interface{}
-
 	// This is a required field. The executor name which will be used to execute the step.
 	Executor string
 }
@@ -135,7 +131,23 @@ func NewFlowFromConfig(flowConfig *FlowConfig) (*flow.Flow, error) {
 	return flow.NewFlow(client, flowConfig.Name, steps...)
 
 }
-func InitFromConfig(config *AnyiConfig) error {
+
+func NewExecutorFromConfig(executorConfig *ExecutorConfig) (flow.StepExecutor, error) {
+	if executorConfig == nil {
+		return nil, errors.New("executor config is nil")
+	}
+
+	executor, err := GetExecutor(executorConfig.Name)
+	if err != nil {
+		return nil, err
+	}
+	if executor == nil {
+		return nil, fmt.Errorf("executor %s is not found", executorConfig.Name)
+	}
+	return executor, nil
+}
+
+func Config(config *AnyiConfig) error {
 
 	// Init clients
 	for _, clientConfig := range config.Clients {
@@ -145,6 +157,14 @@ func InitFromConfig(config *AnyiConfig) error {
 				return err
 			}
 
+		}
+	}
+
+	// Init executors
+	for _, executorConfig := range config.Executors {
+		_, err := NewExecutorFromConfig(&executorConfig)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -160,12 +180,12 @@ func InitFromConfig(config *AnyiConfig) error {
 
 }
 
-func InitFromConfigFile(configFile string) error {
+func ConfigFromFile(configFile string) error {
 
 	anyiConfig, err := utils.UnmarshallConfig(configFile, &AnyiConfig{})
 
 	if err != nil {
 		return err
 	}
-	return InitFromConfig(anyiConfig)
+	return Config(anyiConfig)
 }
