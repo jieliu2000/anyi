@@ -31,6 +31,7 @@ func NewFlow(client llm.Client, name string, steps ...Step) (*Flow, error) {
 }
 
 type StepValidator interface {
+	Init(step *Step) error
 	Validate(stepOutput string, Step *Step) bool
 }
 
@@ -135,6 +136,24 @@ type LLMStepExecutor struct {
 	TemplateFile      string
 	TemplateFormatter *message.PromptyTemplateFormatter
 	SystemMessage     string
+}
+
+type LLMStepValidator struct {
+	Template          string
+	TemplateFile      string
+	TemplateFormatter *message.PromptyTemplateFormatter
+	SystemMessage     string
+}
+
+func (executor LLMStepExecutor) Init(step *Step) error {
+	if executor.TemplateFormatter == nil && executor.Template != "" {
+		formatter, err := message.NewPromptTemplateFormatter(executor.Template)
+		if err != nil {
+			return err
+		}
+		executor.TemplateFormatter = formatter
+	}
+	return nil
 }
 
 func (executor LLMStepExecutor) Run(context FlowContext, step *Step) (*FlowContext, error) {

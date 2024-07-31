@@ -138,6 +138,14 @@ func NewExecutorFromConfig(executorConfig *ExecutorConfig) (flow.StepExecutor, e
 		return nil, errors.New("executor config is nil")
 	}
 
+	if executorConfig.Type == "" {
+		return nil, errors.New("executor type is not set")
+	}
+
+	if executorConfig.Name == "" {
+		return nil, errors.New("executor name is not set")
+	}
+
 	executor := GetExecutorType(executorConfig.Type)
 
 	if executor == nil {
@@ -146,11 +154,13 @@ func NewExecutorFromConfig(executorConfig *ExecutorConfig) (flow.StepExecutor, e
 
 	mapstructure.Decode(executorConfig.Config, executor)
 
+	RegisterExecutor(executorConfig.Name, executor)
 	return executor, nil
 }
 
 func Config(config *AnyiConfig) error {
 
+	Init()
 	// Init clients
 	for _, clientConfig := range config.Clients {
 		if clientConfig.Name != "" {
@@ -161,7 +171,6 @@ func Config(config *AnyiConfig) error {
 
 		}
 	}
-
 	// Init executors
 	for _, executorConfig := range config.Executors {
 		_, err := NewExecutorFromConfig(&executorConfig)

@@ -208,3 +208,7 @@ func NewLLMStepExecutorWithFormatter(name string, formatter *message.PromptyTemp
 func NewLLMStep(tmplate string, systemMessage string, client llm.Client) (*flow.Step, error) {
 	return flow.NewLLMStepWithTemplate(tmplate, systemMessage, client)
 }
+
+func Init() {
+	DefineExecutorType("llm", &flow.LLMStepExecutor{})
+}

@@ -88,6 +88,14 @@ func (m MockExecutor) Run(context FlowContext, step *Step) (*FlowContext, error)
 	return m.Mock(context, step)
 }
 
+func (m MockExecutor) Init(step *Step) error {
+	return nil
+}
+
+func (m MockValidator) Init(step *Step) error {
+	return nil
+}
+
 func (m MockValidator) Validate(output string, step *Step) bool {
 	if m.Mock == nil {
 		return true
