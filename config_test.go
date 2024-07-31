@@ -29,7 +29,7 @@ func TestNewFlowFromConfig_Success(t *testing.T) {
 	// Setup
 
 	RegisterClient("test-client", &test.MockClient{})
-	RegisterExecutor("test-executor", &MockExecutor{})
+	RegisterExecutorType("test-executor", &MockExecutor{})
 	RegisterValidator("test-validator", &MockValidator{})
 
 	flowConfig := &FlowConfig{
@@ -83,7 +83,7 @@ func TestNewFlowFromConfig_WithInvalidClientName(t *testing.T) {
 func TestNewFlowFromConfig_WithInvalidStepConfig(t *testing.T) {
 	// Setup
 	RegisterClient("test-client", &test.MockClient{})
-	RegisterExecutor("test-executor", &MockExecutor{})
+	RegisterExecutorType("test-executor", &MockExecutor{})
 	RegisterValidator("test-validator", &MockValidator{})
 
 	flowConfig := &FlowConfig{
@@ -107,7 +107,7 @@ func TestNewFlowFromConfig_WithInvalidStepConfig(t *testing.T) {
 func TestNewFlowFromConfig_WithEmptyStepExecutor(t *testing.T) {
 	// Setup
 	RegisterClient("test-client", &test.MockClient{})
-	RegisterExecutor("test-executor", &MockExecutor{})
+	RegisterExecutorType("test-executor", &MockExecutor{})
 	RegisterValidator("test-validator", &MockValidator{})
 
 	flowConfig := &FlowConfig{

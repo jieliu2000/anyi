@@ -137,13 +137,12 @@ func NewExecutorFromConfig(executorConfig *ExecutorConfig) (flow.StepExecutor, e
 		return nil, errors.New("executor config is nil")
 	}
 
-	executor, err := GetExecutor(executorConfig.Name)
-	if err != nil {
-		return nil, err
-	}
+	executor := GetExecutorType(executorConfig.Type)
+
 	if executor == nil {
-		return nil, fmt.Errorf("executor %s is not found", executorConfig.Name)
+		return nil, fmt.Errorf("executor type %s is not found", executorConfig.Type)
 	}
+
 	return executor, nil
 }
 
