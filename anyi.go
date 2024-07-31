@@ -19,11 +19,12 @@ type anyiRegistry struct {
 }
 
 var GlobalRegistry *anyiRegistry = &anyiRegistry{
-	Clients:    make(map[string]llm.Client),
-	Flows:      make(map[string]*flow.Flow),
-	Validators: make(map[string]flow.StepValidator),
-	Executors:  make(map[string]flow.StepExecutor),
-	Formatters: make(map[string]message.PromptFormatter),
+	Clients:       make(map[string]llm.Client),
+	Flows:         make(map[string]*flow.Flow),
+	Validators:    make(map[string]flow.StepValidator),
+	Executors:     make(map[string]flow.StepExecutor),
+	Formatters:    make(map[string]message.PromptFormatter),
+	executorTypes: make(map[string]flow.StepExecutor),
 }
 
 // The function creates a new client based on the given configuration and, if a non-empty name is provided, Set that client to the global Anyi instance.
@@ -177,7 +178,7 @@ func GetExecutorType(typeName string) flow.StepExecutor {
 	return GlobalRegistry.executorTypes[typeName]
 }
 
-func RegisterExecutorType(name string, executor flow.StepExecutor) error {
+func RegisterExecutor(name string, executor flow.StepExecutor) error {
 	if name == "" {
 		return errors.New("name cannot be empty")
 	}
@@ -200,7 +201,7 @@ func NewLLMStepExecutorWithFormatter(name string, formatter *message.PromptyTemp
 		SystemMessage:     systemMessage,
 	}
 
-	RegisterExecutorType(name, &stepExecutor)
+	RegisterExecutor(name, &stepExecutor)
 	return &stepExecutor
 }
 

@@ -10,6 +10,8 @@ import (
 )
 
 type MockExecutor struct {
+	Param1 string
+	Param2 int
 }
 
 func (m *MockExecutor) Run(context flow.FlowContext, Step *flow.Step) (*flow.FlowContext, error) {
@@ -29,7 +31,7 @@ func TestNewFlowFromConfig_Success(t *testing.T) {
 	// Setup
 
 	RegisterClient("test-client", &test.MockClient{})
-	RegisterExecutorType("test-executor", &MockExecutor{})
+	RegisterExecutor("test-executor", &MockExecutor{})
 	RegisterValidator("test-validator", &MockValidator{})
 
 	flowConfig := &FlowConfig{
@@ -83,7 +85,7 @@ func TestNewFlowFromConfig_WithInvalidClientName(t *testing.T) {
 func TestNewFlowFromConfig_WithInvalidStepConfig(t *testing.T) {
 	// Setup
 	RegisterClient("test-client", &test.MockClient{})
-	RegisterExecutorType("test-executor", &MockExecutor{})
+	RegisterExecutor("test-executor", &MockExecutor{})
 	RegisterValidator("test-validator", &MockValidator{})
 
 	flowConfig := &FlowConfig{
@@ -107,7 +109,7 @@ func TestNewFlowFromConfig_WithInvalidStepConfig(t *testing.T) {
 func TestNewFlowFromConfig_WithEmptyStepExecutor(t *testing.T) {
 	// Setup
 	RegisterClient("test-client", &test.MockClient{})
-	RegisterExecutorType("test-executor", &MockExecutor{})
+	RegisterExecutor("test-executor", &MockExecutor{})
 	RegisterValidator("test-validator", &MockValidator{})
 
 	flowConfig := &FlowConfig{
@@ -126,4 +128,44 @@ func TestNewFlowFromConfig_WithEmptyStepExecutor(t *testing.T) {
 	// Verify
 	assert.Error(t, err)
 	assert.Nil(t, flowInstance)
+}
+
+func TestNewExecutorFromConfig(t *testing.T) {
+
+	t.Run("Invalid type", func(t *testing.T) {
+
+		executorConfig := &ExecutorConfig{
+			Type: "invalid-executor",
+		}
+
+		executor, err := NewExecutorFromConfig(executorConfig)
+
+		assert.Error(t, err)
+		assert.Nil(t, executor)
+	})
+
+	t.Run("Success path with param", func(t *testing.T) {
+
+		executor1 := &MockExecutor{}
+		DefineExecutorType("valid-executor", executor1)
+
+		executorConfig := &ExecutorConfig{
+			Type: "valid-executor",
+			Name: "executor1",
+			Config: map[string]interface{}{
+				"param1": "value1",
+				"param2": 10,
+			},
+		}
+
+		executor, err := NewExecutorFromConfig(executorConfig)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, executor)
+
+		assert.Equal(t, executor1.Param1, "value1")
+		assert.Equal(t, executor1.Param2, 10)
+
+	})
+
 }

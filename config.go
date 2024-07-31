@@ -7,6 +7,7 @@ import (
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/llm"
 	"github.com/jieliu2000/anyi/utils"
+	"github.com/mitchellh/mapstructure"
 )
 
 type AnyiConfig struct {
@@ -142,6 +143,8 @@ func NewExecutorFromConfig(executorConfig *ExecutorConfig) (flow.StepExecutor, e
 	if executor == nil {
 		return nil, fmt.Errorf("executor type %s is not found", executorConfig.Type)
 	}
+
+	mapstructure.Decode(executorConfig.Config, executor)
 
 	return executor, nil
 }
