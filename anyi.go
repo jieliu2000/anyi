@@ -51,6 +51,17 @@ func RegisterFlow(name string, flow *flow.Flow) error {
 	return nil
 }
 
+func GetFlow(name string) (*flow.Flow, error) {
+	if name == "" {
+		return nil, errors.New("name cannot be empty")
+	}
+	f, ok := GlobalRegistry.Flows[name]
+	if !ok {
+		return nil, errors.New("no flow found with the given name: " + name)
+	}
+	return f, nil
+}
+
 // The function Sets a client to the global Anyi instance.
 // If the client or name is nil, an error will be returned.
 func RegisterClient(name string, client llm.Client) error {
@@ -113,6 +124,14 @@ func NewMessage(role string, content string) message.Message {
 		Role:    role,
 		Content: content,
 	}
+}
+
+func NewContext(input string) *flow.FlowContext {
+	context := flow.FlowContext{
+		Context: input,
+	}
+
+	return &context
 }
 
 func GetFormatter(name string) message.PromptFormatter {

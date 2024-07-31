@@ -19,15 +19,20 @@ func (m *MockExecutor) Run(context flow.FlowContext, Step *flow.Step) (*flow.Flo
 	return &context, nil
 }
 
-type MockValidator struct {
-}
-
-func (m *MockValidator) Init(Step *flow.Step) error {
+func (m *MockExecutor) Init() error {
 
 	return nil
 }
 
-func (m *MockValidator) Validate(stepOutput string, Step *flow.Step) bool {
+type MockValidator struct {
+}
+
+func (m MockValidator) Init() error {
+
+	return nil
+}
+
+func (m MockValidator) Validate(stepOutput string, Step *flow.Step) bool {
 
 	return true
 }

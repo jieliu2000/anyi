@@ -31,11 +31,13 @@ func NewFlow(client llm.Client, name string, steps ...Step) (*Flow, error) {
 }
 
 type StepValidator interface {
-	Init(step *Step) error
+	Init() error
 	Validate(stepOutput string, Step *Step) bool
 }
 
 type StepExecutor interface {
+	Init() error
+
 	Run(context FlowContext, Step *Step) (*FlowContext, error)
 }
 
@@ -108,6 +110,15 @@ func tryStep(step *Step, context FlowContext) (*FlowContext, error) {
 	return result, nil
 }
 
+func (flow *Flow) RunWithInput(input string) (*FlowContext, error) {
+	// Create a new context with the input
+	context := FlowContext{
+		Context: input,
+	}
+
+	return flow.Run(context)
+}
+
 func (flow *Flow) Run(initialContext FlowContext) (*FlowContext, error) {
 
 	context := &initialContext
@@ -145,7 +156,7 @@ type LLMStepValidator struct {
 	SystemMessage     string
 }
 
-func (executor LLMStepExecutor) Init(step *Step) error {
+func (executor LLMStepExecutor) Init() error {
 	if executor.TemplateFormatter == nil && executor.Template != "" {
 		formatter, err := message.NewPromptTemplateFormatter(executor.Template)
 		if err != nil {

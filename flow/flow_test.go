@@ -88,11 +88,11 @@ func (m MockExecutor) Run(context FlowContext, step *Step) (*FlowContext, error)
 	return m.Mock(context, step)
 }
 
-func (m MockExecutor) Init(step *Step) error {
+func (m MockExecutor) Init() error {
 	return nil
 }
 
-func (m MockValidator) Init(step *Step) error {
+func (m MockValidator) Init() error {
 	return nil
 }
 
