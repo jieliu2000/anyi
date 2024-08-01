@@ -27,6 +27,18 @@ var GlobalRegistry *anyiRegistry = &anyiRegistry{
 	executorTypes: make(map[string]flow.StepExecutor),
 }
 
+func RegisterDefaultClient(client llm.Client) {
+	GlobalRegistry.Clients["default"] = client
+}
+
+func GetDefaultClient() (llm.Client, error) {
+	client, ok := GlobalRegistry.Clients["default"]
+	if !ok {
+		return nil, errors.New("no default client found")
+	}
+	return client, nil
+}
+
 // The function creates a new client based on the given configuration and, if a non-empty name is provided, Set that client to the global Anyi instance.
 // The name is used to identify the client in Anyi. After a client is Seted to Anyi with a name, you can access it by calling [GetClient].
 // Please note that if the name is empty but the config is valid, the client will still be created but it won't be Seted to Anyi. No error will be returned in this case.

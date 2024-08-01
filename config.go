@@ -118,6 +118,8 @@ func NewFlowFromConfig(flowConfig *FlowConfig) (*flow.Flow, error) {
 		if err != nil {
 			return nil, err
 		}
+	} else if defaultClient, err := GetDefaultClient(); err == nil && defaultClient != nil {
+		client = defaultClient
 	}
 
 	steps := make([]flow.Step, len(flowConfig.Steps))
