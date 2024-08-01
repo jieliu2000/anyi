@@ -51,8 +51,8 @@ type PromptFormatter interface {
 //
 // [Golang's text/template package]: https://pkg.go.dev/text/template
 type PromptyTemplateFormatter struct {
-	TemplateName   string `json:"template_name,omitempty" yaml:"template_name,omitempty" mapstructure:"template_name,omitempty"`
-	TemplateString string `json:"template_string,omitempty" yaml:"template_string,omitempty" mapstructure:"template_string"`
+	TemplateName   string `json:"templateName,omitempty" yaml:"templateName,omitempty" mapstructure:"templateName,omitempty"`
+	TemplateString string `json:"templateString,omitempty" yaml:"templateString,omitempty" mapstructure:"templateString"`
 	File           string `json:"file,omitempty" yaml:"file,omitempty" mapstructure:"file"`
 	theTemplate    *template.Template
 }

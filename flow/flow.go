@@ -143,17 +143,17 @@ func (flow *Flow) Run(initialContext FlowContext) (*FlowContext, error) {
 }
 
 type LLMStepExecutor struct {
-	Template          string
-	TemplateFile      string
+	Template          string `json:"template" yaml:"template" mapstructure:"template"`
+	TemplateFile      string `json:"templateFile" yaml:"templateFile" mapstructure:"templateFile"`
 	TemplateFormatter *message.PromptyTemplateFormatter
-	SystemMessage     string
+	SystemMessage     string `json:"systemMessage" yaml:"systemMessage" mapstructure:"systemMessage"`
 }
 
 type LLMStepValidator struct {
-	Template          string
-	TemplateFile      string
+	Template          string `json:"template" yaml:"template" mapstructure:"template"`
+	TemplateFile      string `json:"templateFile" yaml:"templateFile" mapstructure:"templateFile"`
 	TemplateFormatter *message.PromptyTemplateFormatter
-	SystemMessage     string
+	SystemMessage     string `json:"systemMessage" yaml:"systemMessage" mapstructure:"systemMessage"`
 }
 
 func (executor *LLMStepExecutor) Init() error {

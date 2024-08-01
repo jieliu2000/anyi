@@ -37,17 +37,17 @@ type FormatterConfig struct {
 }
 
 type FlowConfig struct {
-	ClientName   string           `mapstructure:"client_name" json:"client_name" yaml:"client_name"`
-	ClientConfig llm.ClientConfig `mapstructure:"client_config" json:"client_config" yaml:"client_config"`
+	ClientName   string           `mapstructure:"clientName" json:"clientName" yaml:"clientName"`
+	ClientConfig llm.ClientConfig `mapstructure:"clientConfig" json:"clientConfig" yaml:"clientConfig"`
 	Name         string           `mapstructure:"name" json:"name" yaml:"name"`
 	Steps        []StepConfig     `mapstructure:"steps" json:"steps" yaml:"steps"`
 }
 
 type StepConfig struct {
-	ClientName string `mapstructure:"client_name" json:"client_name" yaml:"client_name"`
+	ClientName string `mapstructure:"clientName" json:"clientName" yaml:"clientName"`
 	// The client name which will be used to validate the step output. If not set, validator will use the default client of the step (which is identified by the ClientName field). If the step doesn't have a default client, the validator will use the default client of the flow.
-	ValidatorClientName string `mapstructure:"validator_client_name" json:"validator_client_name" yaml:"validator_client_name"`
-	MaxRetryTimes       int    `mapstructure:"max_retry_times" json:"max_retry_times" yaml:"max_retry_times"`
+	ValidatorClientName string `mapstructure:"validatorClientName" json:"validatorClientName" yaml:"validatorClientName"`
+	MaxRetryTimes       int    `mapstructure:"maxRetryTimes" json:"maxRetryTimes" yaml:"maxRetryTimes"`
 
 	Validator string `mapstructure:"validator" json:"validator" yaml:"validator"`
 	// This is a required field. The executor name which will be used to execute the step.
