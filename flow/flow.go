@@ -61,6 +61,14 @@ type FlowContext struct {
 	flow    *Flow
 }
 
+func NewContext(context string, data any) *FlowContext {
+	return &FlowContext{Context: context, Data: data}
+}
+
+func (flow *Flow) NewContext(context string, data any) *FlowContext {
+	return &FlowContext{Context: context, Data: data, flow: flow}
+}
+
 func NewStep(executor StepExecutor, validator StepValidator, client llm.Client) *Step {
 	return &Step{Executor: executor, Validator: validator, clientImpl: client}
 }
