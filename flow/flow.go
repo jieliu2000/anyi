@@ -164,6 +164,13 @@ func (executor *LLMStepExecutor) Init() error {
 		}
 		executor.TemplateFormatter = formatter
 	}
+	if executor.TemplateFormatter == nil && executor.TemplateFile != "" {
+		formatter, err := message.NewPromptTemplateFormatterFromFile(executor.TemplateFile)
+		if err != nil {
+			return err
+		}
+		executor.TemplateFormatter = formatter
+	}
 	return nil
 }
 
