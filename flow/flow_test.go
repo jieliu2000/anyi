@@ -30,7 +30,7 @@ func TestNewLLMStepWithTemplateFile(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, step)
 
-	executor := step.Executor.(LLMStepExecutor)
+	executor := step.Executor.(*LLMStepExecutor)
 	assert.Equal(t, "system_message", executor.SystemMessage)
 
 	formatter := executor.TemplateFormatter
@@ -61,7 +61,7 @@ func TestNewLLMStepWithTemplateString(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, step)
 
-	executor := step.Executor.(LLMStepExecutor)
+	executor := step.Executor.(*LLMStepExecutor)
 
 	assert.Equal(t, "system_message", executor.SystemMessage)
 
@@ -315,7 +315,7 @@ func TestRunForLLMStep(t *testing.T) {
 				clientImpl: &test.MockClient{},
 			},
 		}
-		_, err := LLMStepExecutor{}.Run(ctx, nil)
+		_, err := (&LLMStepExecutor{}).Run(ctx, nil)
 		assert.Error(t, err, "no step provided")
 	})
 
@@ -328,7 +328,7 @@ func TestRunForLLMStep(t *testing.T) {
 				clientImpl: nil,
 			},
 		}
-		_, err := LLMStepExecutor{}.Run(ctx, &step)
+		_, err := (&LLMStepExecutor{}).Run(ctx, &step)
 		assert.Error(t, err, "no client set for flow step")
 	})
 	t.Run("client chat error", func(t *testing.T) {
@@ -339,7 +339,7 @@ func TestRunForLLMStep(t *testing.T) {
 			},
 		}
 		ctx := FlowContext{}
-		_, err := LLMStepExecutor{}.Run(ctx, &step)
+		_, err := (&LLMStepExecutor{}).Run(ctx, &step)
 		assert.Error(t, err, "client chat error")
 	})
 	t.Run("success", func(t *testing.T) {
@@ -350,7 +350,7 @@ func TestRunForLLMStep(t *testing.T) {
 			},
 		}
 		ctx := FlowContext{}
-		newCtx, err := LLMStepExecutor{}.Run(ctx, &step)
+		newCtx, err := (&LLMStepExecutor{}).Run(ctx, &step)
 		assert.Nil(t, err)
 		assert.Equal(t, "output", newCtx.Context)
 	})
@@ -367,9 +367,10 @@ func TestRunForLLMStep(t *testing.T) {
 				clientImpl: &test.MockClient{},
 			},
 		}
-		output, err := LLMStepExecutor{
+		executor := &LLMStepExecutor{
 			TemplateFormatter: templateFromatter,
-		}.Run(ctx, &step)
+		}
+		output, err := executor.Run(ctx, &step)
 
 		assert.NoError(t, err)
 		assert.Equal(t, "Hello, world", output.Context)
@@ -385,9 +386,10 @@ func TestRunForLLMStep(t *testing.T) {
 				clientImpl: &test.MockClient{},
 			},
 		}
-		output, err := LLMStepExecutor{
+		executor := &LLMStepExecutor{
 			TemplateFormatter: templateFromatter,
-		}.Run(ctx, &step)
+		}
+		output, err := executor.Run(ctx, &step)
 		assert.Error(t, err)
 		assert.Nil(t, output)
 

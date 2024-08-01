@@ -156,7 +156,7 @@ type LLMStepValidator struct {
 	SystemMessage     string
 }
 
-func (executor LLMStepExecutor) Init() error {
+func (executor *LLMStepExecutor) Init() error {
 	if executor.TemplateFormatter == nil && executor.Template != "" {
 		formatter, err := message.NewPromptTemplateFormatter(executor.Template)
 		if err != nil {
@@ -167,7 +167,7 @@ func (executor LLMStepExecutor) Init() error {
 	return nil
 }
 
-func (executor LLMStepExecutor) Run(context FlowContext, step *Step) (*FlowContext, error) {
+func (executor *LLMStepExecutor) Run(context FlowContext, step *Step) (*FlowContext, error) {
 	if step == nil {
 		return nil, errors.New("no step provided")
 	}
@@ -228,10 +228,11 @@ func NewLLMStepWithTemplateFile(templateFilePath string, systemMessage string, c
 	if err != nil {
 		return nil, err
 	}
-	step := NewStep(LLMStepExecutor{
+	executor := &LLMStepExecutor{
 		TemplateFormatter: formatter,
 		SystemMessage:     systemMessage,
-	}, nil, client)
+	}
+	step := NewStep(executor, nil, client)
 
 	return step, nil
 }
@@ -243,9 +244,10 @@ func NewLLMStepWithTemplate(tmplate string, systemMessage string, client llm.Cli
 		return nil, err
 	}
 
-	step := NewStep(LLMStepExecutor{
+	executor := &LLMStepExecutor{
 		TemplateFormatter: formatter,
 		SystemMessage:     systemMessage,
-	}, nil, client)
+	}
+	step := NewStep(executor, nil, client)
 	return step, nil
 }

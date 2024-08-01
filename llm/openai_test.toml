@@ -1,4 +1,4 @@
-model = "openai"
+type = "openai"
 
 [config]
 apiKey = "key"

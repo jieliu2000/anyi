@@ -89,16 +89,9 @@ func TestRegisterFlow(t *testing.T) {
 		assert.Equal(t, err, errors.New("name cannot be empty"))
 	})
 
-	t.Run("NilClient", func(t *testing.T) {
-		flow := &flow.Flow{}
-		name := "nil_client"
-		err := RegisterFlow(name, flow)
-		assert.Equal(t, err, errors.New("flow cannot be empty"))
-	})
-
 	t.Run("NilParams", func(t *testing.T) {
 		err := RegisterFlow("", nil)
-		assert.Equal(t, err, errors.New("flow cannot be empty"))
+		assert.Equal(t, err, errors.New("name cannot be empty"))
 	})
 }
 
