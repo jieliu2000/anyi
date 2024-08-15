@@ -1,8 +1,13 @@
 package azureopenai
 
 import (
+	"encoding/json"
+	"io"
+	"net/http"
 	"testing"
 
+	"github.com/jieliu2000/anyi/internal/test"
+	"github.com/jieliu2000/anyi/message"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -66,7 +71,6 @@ func TestNewClient_EmptyEndpoint(t *testing.T) {
 	assert.Nil(t, client)
 }
 
-/*
 func TestChat(t *testing.T) {
 	mockServer := test.NewTestServer()
 	mockServer.RequestHandler = func(w http.ResponseWriter, r *http.Request) {
@@ -117,6 +121,7 @@ func TestChat(t *testing.T) {
 	mockServer.Start()
 
 	config := NewConfig("test-api-key", "test-deploy", mockServer.URL())
+	config.AllowInsecureHttp = true
 
 	client, err := NewClient(config)
 	assert.NoError(t, err)
@@ -133,4 +138,3 @@ func TestChat(t *testing.T) {
 
 	assert.Equal(t, "Reply to your input", response.Content)
 }
-*/

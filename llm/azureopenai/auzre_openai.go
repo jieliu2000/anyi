@@ -14,6 +14,7 @@ type AzureOpenAIModelConfig struct {
 	APIKey            string `json:"api_key"`
 	ModelDeploymentId string `json:"model_deployment_id"`
 	Endpoint          string `json:"endpoint"`
+	AllowInsecureHttp bool   `json:"allowInsecureHttp" yaml:"allowInsecureHttp" mapstructure:"allowInsecureHttp"`
 }
 
 type AzureOpenAIClient struct {
@@ -42,9 +43,12 @@ func NewClient(config *AzureOpenAIModelConfig) (*AzureOpenAIClient, error) {
 
 	keyCredential := azcore.NewKeyCredential(config.APIKey)
 
+	options := &azopenai.ClientOptions{}
+	options.InsecureAllowCredentialWithHTTP = config.AllowInsecureHttp
+
 	// In Azure OpenAI you must deploy a model before you can use it in your client. For more information
 	// see here: https://learn.microsoft.com/azure/cognitive-services/openai/how-to/create-resource
-	clientImpl, err := azopenai.NewClientWithKeyCredential(config.Endpoint, keyCredential, nil)
+	clientImpl, err := azopenai.NewClientWithKeyCredential(config.Endpoint, keyCredential, options)
 
 	if err != nil {
 		return nil, err
