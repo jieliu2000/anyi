@@ -12,9 +12,9 @@ import (
 )
 
 type Message struct {
-	Content    string      `json:"content"`
+	Content    string      `json:"content,omitempty"`
 	Role       string      `json:"role"`
-	MultiParts []MultiPart `json:"multiParts"`
+	MultiParts []MultiPart `json:"multiParts,omitempty"`
 }
 
 func (m *Message) ToJSON() string {
