@@ -218,7 +218,7 @@ func TestNewImageMessage(t *testing.T) {
 		content := "image.jpg"
 		filePath := "../internal/test/number_six.png"
 
-		message := NewImageMessage(role, content, filePath)
+		message := NewImageMessageFromFile(role, content, filePath)
 
 		assert.Equal(t, role, message.Role, "Expected role to be %s, but got %s", role, message.Role)
 
@@ -233,7 +233,7 @@ func TestNewImageMessage(t *testing.T) {
 		role := "user"
 		content := "content"
 
-		message := NewImageMessage("user", content, "")
+		message := NewImageMessageFromFile("user", content, "")
 
 		assert.Equal(t, role, message.Role, "Expected role to be %s, but got %s", role, message.Role)
 		assert.Equal(t, "", message.Content)
@@ -244,7 +244,7 @@ func TestNewImageMessage(t *testing.T) {
 		role := "user"
 		content := "image.jpg"
 		filePath := "../internal/test/invalid_file.png"
-		message := NewImageMessage(role, content, filePath)
+		message := NewImageMessageFromFile(role, content, filePath)
 		assert.Equal(t, role, message.Role, "Expected role to be %s, but got %s", role, message.Role)
 		assert.Equal(t, "", message.Content)
 		assert.Equal(t, 0, len(message.MultiParts), "Expected image contents to have 0 element, but got %d", len(message.MultiParts))

@@ -33,7 +33,23 @@ func NewEmptyMessage(role string) Message {
 }
 
 // Creates a new image message with the given role, content and image.
-func NewImageMessage(role, content string, filePath string) Message {
+func NewImageMessageFromUrl(role, content string, imageUrl string) Message {
+	if imageUrl == "" {
+		return Message{Role: role}
+	}
+	textPart := NewTextPart(content)
+	imageContent, err := NewImagePartFromUrl(imageUrl, "")
+
+	if err != nil {
+		// In this case because the image content is invalid, we will return an empty message with the given role. Obviously it will cause an error when the message is sent.
+		return Message{Role: role}
+	}
+
+	return Message{Role: role, MultiParts: []MultiPart{*textPart, *imageContent}}
+}
+
+// Creates a new image message with the given role, content and image.
+func NewImageMessageFromFile(role, content string, filePath string) Message {
 	if filePath == "" {
 		return Message{Role: role}
 	}

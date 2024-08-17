@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"time"
@@ -84,9 +85,9 @@ func NewClient(config *OllamaModelConfig) (*OllamaClient, error) {
 }
 
 type OllamaRequest struct {
-	Model    string            `json:"model"`
-	Messages []message.Message `json:"messages"`
-	Stream   bool              `json:"stream"`
+	Model    string          `json:"model"`
+	Messages []OllamaMessage `json:"messages"`
+	Stream   bool            `json:"stream"`
 }
 
 type OllamaResponse struct {
@@ -105,9 +106,13 @@ func (c *OllamaClient) Chat(messages []message.Message) (*message.Message, error
 		return nil, errors.New("http client cannot be nil, maybe you didn't initiatialize the client. Considering using NewClient function")
 	}
 
+	ollamaMessages, err := ConvertToOllamaMessages(messages)
+	if err != nil {
+		return nil, err
+	}
 	requestJson, err := json.Marshal(OllamaRequest{
 		Model:    c.Config.Model,
-		Messages: messages,
+		Messages: ollamaMessages,
 	})
 
 	if err != nil {
@@ -119,6 +124,13 @@ func (c *OllamaClient) Chat(messages []message.Message) (*message.Message, error
 	if err != nil {
 		return nil, err
 	}
+
+	if response.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("error response status from ollama chat api: %d", response.StatusCode)
+	}
+
+	defer response.Body.Close()
+
 	responseBody, err := io.ReadAll(response.Body)
 
 	if err != nil {

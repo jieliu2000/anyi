@@ -19,7 +19,7 @@ func Example_azureOpenAIWithImage() {
 	}
 
 	messages := []message.Message{
-		message.NewImageMessage("user", "What number is in the image?", "../internal/test/number_six.png"),
+		message.NewImageMessageFromFile("user", "What number is in the image?", "../internal/test/number_six.png"),
 	}
 	message, _ := client.Chat(messages)
 
