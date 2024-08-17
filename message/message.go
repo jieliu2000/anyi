@@ -12,8 +12,9 @@ import (
 )
 
 type Message struct {
-	Content string `json:"content"`
-	Role    string `json:"role"`
+	Content    string      `json:"content"`
+	Role       string      `json:"role"`
+	MultiParts []MultiPart `json:"multiParts"`
 }
 
 func (m *Message) ToJSON() string {
@@ -25,6 +26,42 @@ func (m *Message) ToJSON() string {
 // Creates a new message with the given role and content.
 func NewMessage(role, content string) Message {
 	return Message{Content: content, Role: role}
+}
+
+func NewEmptyMessage(role string) Message {
+	return Message{Role: role}
+}
+
+// Creates a new image message with the given role, content and image.
+func NewImageMessageFromUrl(role, content string, imageUrl string) Message {
+	if imageUrl == "" {
+		return Message{Role: role}
+	}
+	textPart := NewTextPart(content)
+	imageContent, err := NewImagePartFromUrl(imageUrl, "")
+
+	if err != nil {
+		// In this case because the image content is invalid, we will return an empty message with the given role. Obviously it will cause an error when the message is sent.
+		return Message{Role: role}
+	}
+
+	return Message{Role: role, MultiParts: []MultiPart{*textPart, *imageContent}}
+}
+
+// Creates a new image message with the given role, content and image.
+func NewImageMessageFromFile(role, content string, filePath string) Message {
+	if filePath == "" {
+		return Message{Role: role}
+	}
+	textPart := NewTextPart(content)
+	imageContent, err := NewImagePartFromFile(filePath, "")
+
+	if err != nil {
+		// In this case because the image content is invalid, we will return an empty message with the given role. Obviously it will cause an error when the message is sent.
+		return Message{Role: role}
+	}
+
+	return Message{Role: role, MultiParts: []MultiPart{*textPart, *imageContent}}
 }
 
 // Creates a new system message with the given content.
