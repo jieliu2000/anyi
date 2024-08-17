@@ -1,6 +1,7 @@
 package message
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/jieliu2000/anyi/llm/tools"
@@ -52,7 +53,7 @@ func TestNewAssistantMessage(t *testing.T) {
 }
 
 func TestNewPromptTemplateFormatterFromFile(t *testing.T) {
-	var tmplFile = "test_prompt1.tmpl"
+	var tmplFile = "../internal/test/test_prompt1.tmpl"
 	formatter, err := NewPromptTemplateFormatterFromFile(tmplFile)
 
 	if err != nil {
@@ -209,4 +210,44 @@ func TestAddFunctionDirectivesToPrompt(t *testing.T) {
 			assert.Equal(t, tc.wantResult, result)
 		}
 	}
+}
+
+func TestNewImageMessage(t *testing.T) {
+	t.Run("With valid image", func(t *testing.T) {
+		role := "user"
+		content := "image.jpg"
+		filePath := "../internal/test/number_six.png"
+
+		message := NewImageMessage(role, content, filePath)
+
+		assert.Equal(t, role, message.Role, "Expected role to be %s, but got %s", role, message.Role)
+
+		assert.Equal(t, 2, len(message.MultiParts), "Expected image contents to have one element, but got %d", len(message.MultiParts))
+		textPart := message.MultiParts[0]
+		assert.Equal(t, content, textPart.Text)
+		imagePart := message.MultiParts[1]
+		assert.True(t, strings.HasPrefix(imagePart.ImageUrl, "data:image/png"), "Expected image url to start with data:image, but got %s", textPart.ImageUrl)
+	})
+
+	t.Run("With empty filePath", func(t *testing.T) {
+		role := "user"
+		content := "content"
+
+		message := NewImageMessage("user", content, "")
+
+		assert.Equal(t, role, message.Role, "Expected role to be %s, but got %s", role, message.Role)
+		assert.Equal(t, "", message.Content)
+		assert.Equal(t, 0, len(message.MultiParts), "Expected image contents to have 0 element, but got %d", len(message.MultiParts))
+	})
+
+	t.Run("With invalid path", func(t *testing.T) {
+		role := "user"
+		content := "image.jpg"
+		filePath := "../internal/test/invalid_file.png"
+		message := NewImageMessage(role, content, filePath)
+		assert.Equal(t, role, message.Role, "Expected role to be %s, but got %s", role, message.Role)
+		assert.Equal(t, "", message.Content)
+		assert.Equal(t, 0, len(message.MultiParts), "Expected image contents to have 0 element, but got %d", len(message.MultiParts))
+	})
+
 }
