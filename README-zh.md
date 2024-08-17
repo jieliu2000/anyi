@@ -1,6 +1,6 @@
 # Anyi(安易) - 开源的 AI 智能体(AI Agent)框架
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/jieliu2000/Anyi.svg)](https://pkg.go.dev/github.com/jieliu2000/Anyi)
+[![Go Reference](https://pkg.go.dev/badge/github.com/jieliu2000/anyi.svg)](https://pkg.go.dev/github.com/jieliu2000/anyi)
 
 | [English](README.md) | [中文](README-zh.md) |
 
@@ -34,7 +34,7 @@ Anyi 作为一个 Go 语言的编程框架，提供以下特性：
 ### 安装
 
 ```bash
-go get github.com/jieliu2000/Anyi
+go get github.com/jieliu2000/anyi
 ```
 
 ### 使用 Anyi 访问大模型
@@ -47,9 +47,9 @@ package main
 import (
 	"os"
 	"log"
-	"github.com/jieliu2000/Anyi/llm"
-	"github.com/jieliu2000/Anyi/llm/openai"
-	"github.com/jieliu2000/Anyi/message"
+	"github.com/jieliu2000/anyi/llm"
+	"github.com/jieliu2000/anyi/llm/openai"
+	"github.com/jieliu2000/anyi/message"
 )
 
 func main() {

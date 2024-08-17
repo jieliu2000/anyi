@@ -2,7 +2,7 @@
 
 | [English](README.md) | [中文](README-zh.md) |
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/jieliu2000/Anyi.svg)](https://pkg.go.dev/github.com/jieliu2000/Anyi)
+[![Go Reference](https://pkg.go.dev/badge/github.com/jieliu2000/anyi.svg)](https://pkg.go.dev/github.com/jieliu2000/anyi)
 
 
 ## Introduction
@@ -33,7 +33,7 @@ More features are in development, so stay tuned.
 ### Installation
 
 ```bash
-go get github.com/jieliu2000/Anyi
+go get github.com/jieliu2000/anyi
 ```
 
 ### Accessing LLMs with Anyi
@@ -46,9 +46,9 @@ package main
 import (
 	"os"
 	"log"
-	"github.com/jieliu2000/Anyi/llm"
-	"github.com/jieliu2000/Anyi/llm/openai"
-	"github.com/jieliu2000/Anyi/message"
+	"github.com/jieliu2000/anyi/llm"
+	"github.com/jieliu2000/anyi/llm/openai"
+	"github.com/jieliu2000/anyi/message"
 )
 
 func main() {
