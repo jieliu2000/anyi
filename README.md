@@ -1,4 +1,4 @@
-# Anyi - Open Source Autonomouse AI Agent Framework
+# anyi - Open Source Autonomouse AI Agent Framework
 
 | [English](README.md) | [中文](README-zh.md) |
 
@@ -13,7 +13,18 @@ Anyi is an open source AI Agent framework designed to help you build AI Agents t
 
 Anyi is a Go language programming framework that provides the following features:
 
-- Access to big models, allowing different big models to be accessed through the same interface with different configurations.
+- Access to large models: with anyi you can access various large models through a common interface with different configurations. At present anyi supports these interfaces:
+	- OpenAI
+	- Azure OpenAI
+	- Dashscope
+	- Ollama
+
+- For these large models, in addition to supporting regular text chat, anyi also supports sending images to multimodal models.
+- Support for generating prompts based on Go language templates.
+- Workflow support: Allows chaining multiple dialogue tasks to form a workflow.
+- Workflow step validation: If the output of a step does not meet expectations, it will be executed repeatedly until the output meets expectations. If the number of executions exceeds a defined limit, an error is returned.
+- Different steps within a workflow can use different large model clients.
+- Multiple workflows can be defined and accessed by their workflow names.
 
 More features are in development, so stay tuned.
 
