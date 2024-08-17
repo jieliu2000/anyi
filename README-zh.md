@@ -6,7 +6,7 @@
 
 ## 介绍
 
-Anyi(安易)是一个开源的 AI 智能体(AI Agent)框架，旨在帮助你构建可以和实际工作相结合的 AI 智能体。我们也提供对大模型访问的 API。
+anyi(安易)是一个开源的 AI 智能体(AI Agent)框架，旨在帮助你构建可以和实际工作相结合的 AI 智能体。我们也提供对大模型访问的 API。
 
 
 ## 特性
@@ -73,4 +73,4 @@ func main() {
 在上面的示例中，首先通过`openai.DefaultConfig` 创建一个 OpenAI 的 anyi 配置，然后将该配置传递给 `llm.NewClient` 创建一个 OpenAI 客户端，最后通过 `client.Chat` 发送一个聊天请求。
 
 ## 许可证
-Anyi 遵循 [Apache License 2.0](LICENSE)。
+anyi 遵循 [Apache License 2.0](LICENSE)。

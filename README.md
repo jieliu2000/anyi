@@ -7,11 +7,11 @@
 
 ## Introduction
 
-Anyi is an open source AI Agent framework designed to help you build AI Agents that can be integrated with real-world work. We also provide APIs for accessing large models.
+anyi is an open source AI Agent framework designed to help you build AI Agents that can be integrated with real-world work. We also provide APIs for accessing large models.
 
 ## Features
 
-Anyi is a Go language programming framework that provides the following features:
+anyi is a Go language programming framework that provides the following features:
 
 - Access to large models: with anyi you can access various large models through a common interface with different configurations. At present anyi supports these interfaces:
 	- OpenAI
@@ -74,4 +74,4 @@ In the above example, an OpenAI anyi configuration is created via `openai.Defaul
 
 ## License
 
-Anyi is licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for the full license text.
+anyi is licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for the full license text.
