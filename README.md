@@ -3,7 +3,7 @@
 | [English](README.md) | [中文](README-zh.md) |
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/jieliu2000/anyi.svg)](https://pkg.go.dev/github.com/jieliu2000/anyi)
-
+[![Go Report Card](https://goreportcard.com/badge/github.com/jieliu2000/anyi)](https://goreportcard.com/report/github.com/jieliu2000/anyi)
 
 ## Introduction
 
