@@ -1,25 +1,25 @@
-# anyi - Open Source Autonomouse AI Agent Framework
+# Anyi - Open Source Autonomouse AI Agent Framework
 
 | [English](README.md) | [中文](README-zh.md) |
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/jieliu2000/anyi.svg)](https://pkg.go.dev/github.com/jieliu2000/anyi)
+[![Go Reference](https://pkg.go.dev/badge/github.com/jieliu2000/Anyi.svg)](https://pkg.go.dev/github.com/jieliu2000/Anyi)
 
 
 ## Introduction
 
-anyi is an open source AI Agent framework designed to help you build AI Agents that can be integrated with real-world work. We also provide APIs for accessing large models.
+Anyi is an open source AI Agent framework designed to help you build AI Agents that can be integrated with real-world work. We also provide APIs for accessing large models.
 
 ## Features
 
-anyi is a Go language programming framework that provides the following features:
+Anyi is a Go language programming framework that provides the following features:
 
-- Access to large models: with anyi you can access various large models through a common interface with different configurations. At present anyi supports these interfaces:
+- Access to large models: with Anyi you can access various large models through a common interface with different configurations. At present Anyi supports these interfaces:
 	- OpenAI
 	- Azure OpenAI
 	- Dashscope
 	- Ollama
 
-- For these large models, in addition to supporting regular text chat, anyi also supports sending images to multimodal models.
+- For these large models, in addition to supporting regular text chat, Anyi also supports sending images to multimodal models.
 - Support for generating prompts based on Go language templates.
 - Workflow support: Allows chaining multiple dialogue tasks to form a workflow.
 - Workflow step validation: If the output of a step does not meet expectations, it will be executed repeatedly until the output meets expectations. If the number of executions exceeds a defined limit, an error is returned.
@@ -33,12 +33,12 @@ More features are in development, so stay tuned.
 ### Installation
 
 ```bash
-go get github.com/jieliu2000/anyi
+go get github.com/jieliu2000/Anyi
 ```
 
-### Accessing LLMs with anyi
+### Accessing LLMs with Anyi
 
-Here is a simple example of using anyi to access OpenAI:
+Here is a simple example of using Anyi to access OpenAI:
 
 ```go
 package main
@@ -46,9 +46,9 @@ package main
 import (
 	"os"
 	"log"
-	"github.com/jieliu2000/anyi/llm"
-	"github.com/jieliu2000/anyi/llm/openai"
-	"github.com/jieliu2000/anyi/message"
+	"github.com/jieliu2000/Anyi/llm"
+	"github.com/jieliu2000/Anyi/llm/openai"
+	"github.com/jieliu2000/Anyi/message"
 )
 
 func main() {
@@ -70,8 +70,8 @@ func main() {
 
 ```
 
-In the above example, an OpenAI anyi configuration is created via `openai.DefaultConfig`. Then this config instance is passed to `llm.NewClient` to create an OpenAI client, and finally a chat request is sent via `client.Chat`.
+In the above example, an OpenAI Anyi configuration is created via `openai.DefaultConfig`. Then this config instance is passed to `llm.NewClient` to create an OpenAI client, and finally a chat request is sent via `client.Chat`.
 
 ## License
 
-anyi is licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for the full license text.
+Anyi is licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for the full license text.
