@@ -3,7 +3,7 @@
 ## Installation
 
 ```bash
-go get github.com/jieliu2000/anyi
+go get -u  github.com/jieliu2000/anyi  
 ```
 
 ## Accessing Large Language Models

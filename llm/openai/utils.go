@@ -22,9 +22,9 @@ func convertToOpenAIChatMessage(msg message.Message) impl.ChatCompletionMessage 
 		result.Content = msg.Content
 		return result
 	}
-	if len(msg.MultiParts) > 0 {
+	if len(msg.ContentParts) > 0 {
 		messageParts := []impl.ChatMessagePart{}
-		for _, img := range msg.MultiParts {
+		for _, img := range msg.ContentParts {
 
 			if img.Text != "" {
 				textPart := impl.ChatMessagePart{

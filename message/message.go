@@ -12,9 +12,9 @@ import (
 )
 
 type Message struct {
-	Content    string      `json:"content,omitempty"`
-	Role       string      `json:"role"`
-	MultiParts []MultiPart `json:"multiParts,omitempty"`
+	Content      string        `json:"content,omitempty"`
+	Role         string        `json:"role"`
+	ContentParts []ContentPart `json:"contentParts,omitempty"`
 }
 
 func (m *Message) ToJSON() string {
@@ -45,7 +45,7 @@ func NewImageMessageFromUrl(role, content string, imageUrl string) Message {
 		return Message{Role: role}
 	}
 
-	return Message{Role: role, MultiParts: []MultiPart{*textPart, *imageContent}}
+	return Message{Role: role, ContentParts: []ContentPart{*textPart, *imageContent}}
 }
 
 // Creates a new image message with the given role, content and image.
@@ -61,7 +61,7 @@ func NewImageMessageFromFile(role, content string, filePath string) Message {
 		return Message{Role: role}
 	}
 
-	return Message{Role: role, MultiParts: []MultiPart{*textPart, *imageContent}}
+	return Message{Role: role, ContentParts: []ContentPart{*textPart, *imageContent}}
 }
 
 // Creates a new system message with the given content.

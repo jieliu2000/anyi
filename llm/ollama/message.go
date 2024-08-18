@@ -34,8 +34,8 @@ func ConvertToOllamaMessage(message message.Message) (ollamaMessage *OllamaMessa
 		Role:    message.Role,
 		Content: message.Content,
 	}
-	if len(message.MultiParts) > 0 {
-		for _, part := range message.MultiParts {
+	if len(message.ContentParts) > 0 {
+		for _, part := range message.ContentParts {
 			if ollamaMessage.Content == "" && part.Text != "" {
 				ollamaMessage.Content = part.Text
 			}

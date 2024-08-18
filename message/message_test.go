@@ -222,10 +222,10 @@ func TestNewImageMessage(t *testing.T) {
 
 		assert.Equal(t, role, message.Role, "Expected role to be %s, but got %s", role, message.Role)
 
-		assert.Equal(t, 2, len(message.MultiParts), "Expected image contents to have one element, but got %d", len(message.MultiParts))
-		textPart := message.MultiParts[0]
+		assert.Equal(t, 2, len(message.ContentParts), "Expected image contents to have one element, but got %d", len(message.ContentParts))
+		textPart := message.ContentParts[0]
 		assert.Equal(t, content, textPart.Text)
-		imagePart := message.MultiParts[1]
+		imagePart := message.ContentParts[1]
 		assert.True(t, strings.HasPrefix(imagePart.ImageUrl, "data:image/png"), "Expected image url to start with data:image, but got %s", textPart.ImageUrl)
 	})
 
@@ -237,7 +237,7 @@ func TestNewImageMessage(t *testing.T) {
 
 		assert.Equal(t, role, message.Role, "Expected role to be %s, but got %s", role, message.Role)
 		assert.Equal(t, "", message.Content)
-		assert.Equal(t, 0, len(message.MultiParts), "Expected image contents to have 0 element, but got %d", len(message.MultiParts))
+		assert.Equal(t, 0, len(message.ContentParts), "Expected image contents to have 0 element, but got %d", len(message.ContentParts))
 	})
 
 	t.Run("With invalid path", func(t *testing.T) {
@@ -247,7 +247,7 @@ func TestNewImageMessage(t *testing.T) {
 		message := NewImageMessageFromFile(role, content, filePath)
 		assert.Equal(t, role, message.Role, "Expected role to be %s, but got %s", role, message.Role)
 		assert.Equal(t, "", message.Content)
-		assert.Equal(t, 0, len(message.MultiParts), "Expected image contents to have 0 element, but got %d", len(message.MultiParts))
+		assert.Equal(t, 0, len(message.ContentParts), "Expected image contents to have 0 element, but got %d", len(message.ContentParts))
 	})
 
 }
