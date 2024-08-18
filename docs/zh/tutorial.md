@@ -42,7 +42,7 @@ func main() {
 	messages := []chat.Message{
 		{Role: "user", Content: "5+1=?"},
 	}
-	message, _ := client.Chat(messages)
+	message, _ := client.Chat(messages, nil)
 
 	log.Printf("Response: %s\n", message.Content)
 }
@@ -213,7 +213,7 @@ type Message struct {
 messages := []chat.Message{
 	{Role: "user", Content: "5+1=?"},
 }
-message, err := client.Chat(messages)
+message, err := client.Chat(messages, nil)
 ```
 
 以下代码为使用`chat.NewMessage()`函数创建一个user消息并调用大模型聊天的例子：
@@ -222,7 +222,7 @@ message, err := client.Chat(messages)
 messages := []chat.Message{
 	 chat.NewMessage("user", "Hello, world!"),
 }
-message, err := client.Chat(messages)
+message, err := client.Chat(messages, nil)
 ```
 
 #### 大模型调用返回值
@@ -266,7 +266,7 @@ func main() {
 	messages := []chat.Message{
 		chat.NewImageMessageFromUrl("user", "这是什么？", "https://dashscope.oss-cn-beijing.aliyuncs.com/images/dog_and_girl.jpeg"),
 	}
-	message, err := client.Chat(messages)
+	message, err := client.Chat(messages, nil)
 
 	if err != nil {
 		log.Fatalf("Failed to chat: %v", err)

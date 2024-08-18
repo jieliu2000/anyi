@@ -21,7 +21,7 @@ func Example_dashscopeWithImage() {
 	messages := []chat.Message{
 		chat.NewImageMessageFromUrl("user", "What's this?", "https://dashscope.oss-cn-beijing.aliyuncs.com/images/dog_and_girl.jpeg"),
 	}
-	message, err := client.Chat(messages)
+	message, err := client.Chat(messages, nil)
 
 	if err != nil {
 		log.Fatalf("Failed to chat: %v", err)

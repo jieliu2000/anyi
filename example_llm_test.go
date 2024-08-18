@@ -22,7 +22,7 @@ func Example_lLMClient() {
 	messages := []chat.Message{
 		{Role: "user", Content: "5+1=?"},
 	}
-	message, _ := client.Chat(messages)
+	message, _ := client.Chat(messages, nil)
 
 	log.Printf("Response: %s\n", message.Content)
 }

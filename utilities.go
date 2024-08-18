@@ -17,7 +17,7 @@ func SimpleChat(input string) (string, error) {
 
 	result, err := client.Chat([]chat.Message{
 		chat.NewUserMessage(input),
-	})
+	}, nil)
 
 	if err != nil {
 		return "", err

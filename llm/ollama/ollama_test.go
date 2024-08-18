@@ -13,7 +13,7 @@ import (
 
 func TestChatWithNoClientImplmentation(t *testing.T) {
 	client := OllamaClient{}
-	_, err := client.Chat(nil)
+	_, err := client.Chat(nil, nil)
 
 	assert.Error(t, err, "Chat should fail with no client implementation")
 }
@@ -126,7 +126,7 @@ func TestChat(t *testing.T) {
 		{Role: "user", Content: "Hello"},
 	}
 
-	response, err := client.Chat(messages)
+	response, err := client.Chat(messages, nil)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, response)

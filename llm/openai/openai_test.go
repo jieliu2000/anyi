@@ -14,7 +14,7 @@ import (
 
 func TestChatWithNoClientImplmentation(t *testing.T) {
 	client := OpenAIClient{}
-	_, err := client.Chat(nil)
+	_, err := client.Chat(nil, nil)
 	if err == nil {
 		t.Error("Expected error when no client is set")
 	}
@@ -140,7 +140,7 @@ func TestChat(t *testing.T) {
 		{Role: "user", Content: "Hello"},
 	}
 
-	response, err := client.Chat(messages)
+	response, err := client.Chat(messages, nil)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, response)

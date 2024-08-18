@@ -52,7 +52,7 @@ func NewClient(config *AzureOpenAIModelConfig) (*AzureOpenAIClient, error) {
 	return client, nil
 }
 
-func (c *AzureOpenAIClient) Chat(messages []chat.Message) (*chat.Message, error) {
+func (c *AzureOpenAIClient) Chat(messages []chat.Message, options chat.ChatOptions) (*chat.Message, error) {
 
 	client := c.clientImpl
 	if client == nil {

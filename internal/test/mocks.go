@@ -7,7 +7,7 @@ type MockClient struct {
 	Err        error
 }
 
-func (m *MockClient) Chat(messages []chat.Message) (*chat.Message, error) {
+func (m *MockClient) Chat(messages []chat.Message, options chat.ChatOptions) (*chat.Message, error) {
 	if m.Err != nil {
 		return nil, m.Err
 	}

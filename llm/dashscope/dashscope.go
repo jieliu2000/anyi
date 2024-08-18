@@ -71,7 +71,7 @@ func NewClient(config *DashScopeModelConfig) (*DashScopeClient, error) {
 	return client, nil
 }
 
-func (c *DashScopeClient) Chat(messages []chat.Message) (*chat.Message, error) {
+func (c *DashScopeClient) Chat(messages []chat.Message, options chat.ChatOptions) (*chat.Message, error) {
 
 	// Check if the client implementation is initialized
 	client := c.clientImpl

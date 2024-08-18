@@ -98,7 +98,7 @@ type OllamaResponse struct {
 	LoadDuration  int          `json:"load_duration"`
 }
 
-func (c *OllamaClient) Chat(messages []chat.Message) (*chat.Message, error) {
+func (c *OllamaClient) Chat(messages []chat.Message, options chat.ChatOptions) (*chat.Message, error) {
 
 	httpClient := c.clientImpl
 

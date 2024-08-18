@@ -98,7 +98,7 @@ func NewClient(config *OpenAIModelConfig) (*OpenAIClient, error) {
 	return client, nil
 }
 
-func (c *OpenAIClient) Chat(messages []chat.Message) (*chat.Message, error) {
+func (c *OpenAIClient) Chat(messages []chat.Message, options chat.ChatOptions) (*chat.Message, error) {
 	if c.clientImpl == nil {
 		return nil, errors.New("client not initialized")
 	}
