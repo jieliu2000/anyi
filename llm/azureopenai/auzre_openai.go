@@ -44,19 +44,6 @@ func NewClient(config *AzureOpenAIModelConfig) (*AzureOpenAIClient, error) {
 	configImpl := impl.DefaultAzureConfig(config.APIKey, config.Endpoint)
 	configImpl.AzureModelMapperFunc = func(modelId string) string { return modelId }
 
-<<<<<<< HEAD
-	options := &azopenai.ClientOptions{}
-	options.InsecureAllowCredentialWithHTTP = config.AllowInsecureHttp
-
-	// In Azure OpenAI you must deploy a model before you can use it in your client. For more information
-	// see here: https://learn.microsoft.com/azure/cognitive-services/openai/how-to/create-resource
-	clientImpl, err := azopenai.NewClientWithKeyCredential(config.Endpoint, keyCredential, options)
-
-	if err != nil {
-		return nil, err
-	}
-=======
->>>>>>> parent of 3ff6f8b (use azureopenai api)
 	client := &AzureOpenAIClient{
 		Config:     config,
 		clientImpl: impl.NewClientWithConfig(configImpl),
