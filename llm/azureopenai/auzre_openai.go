@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 
+	"github.com/jieliu2000/anyi/llm/openai"
 	"github.com/jieliu2000/anyi/message"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/ai/azopenai"
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
+	impl "github.com/sashabaranov/go-openai"
 )
 
 type AzureOpenAIModelConfig struct {
@@ -19,7 +19,7 @@ type AzureOpenAIModelConfig struct {
 
 type AzureOpenAIClient struct {
 	Config     *AzureOpenAIModelConfig
-	clientImpl *azopenai.Client
+	clientImpl *impl.Client
 }
 
 func NewConfig(apiKey string, modelDeploymentId string, endpoint string) *AzureOpenAIModelConfig {
@@ -41,8 +41,10 @@ func NewClient(config *AzureOpenAIModelConfig) (*AzureOpenAIClient, error) {
 		return nil, errors.New("endpoint is required")
 	}
 
-	keyCredential := azcore.NewKeyCredential(config.APIKey)
+	configImpl := impl.DefaultAzureConfig(config.APIKey, config.Endpoint)
+	configImpl.AzureModelMapperFunc = func(modelId string) string { return modelId }
 
+<<<<<<< HEAD
 	options := &azopenai.ClientOptions{}
 	options.InsecureAllowCredentialWithHTTP = config.AllowInsecureHttp
 
@@ -53,9 +55,11 @@ func NewClient(config *AzureOpenAIModelConfig) (*AzureOpenAIClient, error) {
 	if err != nil {
 		return nil, err
 	}
+=======
+>>>>>>> parent of 3ff6f8b (use azureopenai api)
 	client := &AzureOpenAIClient{
 		Config:     config,
-		clientImpl: clientImpl,
+		clientImpl: impl.NewClientWithConfig(configImpl),
 	}
 
 	return client, nil
@@ -68,21 +72,22 @@ func (c *AzureOpenAIClient) Chat(messages []message.Message) (*message.Message, 
 		return nil, errors.New("client not initialized")
 	}
 
-	messagesInput := ConvertToAzureOpenAIMessageCompletions(messages)
+	messagesInput := openai.ConvertToOpenAIChatMessages(messages)
 
-	resp, err := client.GetChatCompletions(
+	resp, err := client.CreateChatCompletion(
 		context.Background(),
-		azopenai.ChatCompletionsOptions{
-			DeploymentName: &c.Config.ModelDeploymentId,
-			Messages:       messagesInput,
-		}, nil)
+		impl.ChatCompletionRequest{
+			Model:    c.Config.ModelDeploymentId,
+			Messages: messagesInput,
+		},
+	)
 
 	if err != nil {
 		return nil, err
 	}
 	result := message.Message{
-		Content: *resp.Choices[0].Message.Content,
-		Role:    string(*resp.Choices[0].Message.Role),
+		Content: resp.Choices[0].Message.Content,
+		Role:    resp.Choices[0].Message.Role,
 	}
 	return &result, nil
 }
