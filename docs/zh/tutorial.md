@@ -185,7 +185,7 @@ client, err := llm.NewClient(config)
 
 ### 大模型聊天调用
 
-在Anyi中，大模型聊天调用的入口是`client.Chat()`函数。这个函数使用一个`[]chat.Message`类型的参数，表示大模型接收的聊天消息。其中`message`模块为`"github.com/jieliu2000/anyi/chat"`。可以通过以下代码导入：
+在Anyi中，大模型聊天调用的入口是`client.Chat()`函数。这个函数使用一个`[]chat.Message`类型的参数，表示大模型接收的聊天消息。其中`chat`模块为`"github.com/jieliu2000/anyi/chat"`。可以通过以下代码导入：
 
 ```go
 import "github.com/jieliu2000/anyi/chat"
@@ -235,7 +235,7 @@ message, err := client.Chat(messages)
 
 #### 最简单的多模态大模型调用
 
-在`message`模块中，我们提供了两个简易函数用于创建多模态大模型调用所需的`chat.Message`结构体。分别是
+在`chat`模块中，我们提供了两个简易函数用于创建多模态大模型调用所需的`chat.Message`结构体。分别是
 
 * `chat.NewImageMessageFromUrl()` 用于创建从网络图片URL传递给大模型的`chat.Message`结构体。
 * `chat.NewImageMessageFromFile()` 用于创建从本地图片文件传递给大模型的`chat.Message`结构体。
@@ -281,7 +281,7 @@ func main() {
 需要说明的是，在以上代码中，最后被创建的`chat.Message`结构体中的`ContentParts`属性为一个长度为2的数组，数组中的第一个元素一个文本类型的`ContentPart`结构体，其文本内容为`"这是什么？"`；第二个元素是一个图片类型的`ContentPart`结构体，其图片URL为`https://dashscope.oss-cn-beijing.aliyuncs.com/`。而`chat.Message`结构体的`Content`属性为空字符串。也就是说`chat.NewImageMessageFromUrl()`参数中的文本消息是以`ContentParts`属性体现，而不是`Content`属性体现的。这也是Anyi中多模态大模型调用和单模态大模型调用的显著不同之处。
 
 
-#### 通过`message.ContentParts`属性传递图片给大模型
+#### 通过`chat.ContentParts`属性传递图片给大模型
 
 在多模态大模型中，`ContentParts`属性是一个数组，数组中的每个元素都是一个`ContentPart`结构体。`ContentPart`结构体定义如下：
 
