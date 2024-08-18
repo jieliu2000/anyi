@@ -5,10 +5,10 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/jieliu2000/anyi/chat"
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/internal/test"
 	"github.com/jieliu2000/anyi/llm"
+	"github.com/jieliu2000/anyi/llm/chat"
 	"github.com/jieliu2000/anyi/llm/openai"
 	"github.com/stretchr/testify/assert"
 )

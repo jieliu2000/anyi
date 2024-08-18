@@ -3,7 +3,7 @@ package azureopenai
 import (
 	"github.com/Azure/azure-sdk-for-go/sdk/ai/azopenai"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
-	"github.com/jieliu2000/anyi/chat"
+	"github.com/jieliu2000/anyi/llm/chat"
 )
 
 func ConvertToAzureOpenAIMessageCompletions(messages []chat.Message) []azopenai.ChatRequestMessageClassification {

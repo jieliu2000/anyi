@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/jieliu2000/anyi/chat"
+	"github.com/jieliu2000/anyi/llm/chat"
 )
 
 type OllamaMessage struct {

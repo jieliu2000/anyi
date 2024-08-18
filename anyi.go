@@ -3,9 +3,9 @@ package anyi
 import (
 	"errors"
 
-	"github.com/jieliu2000/anyi/chat"
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/llm"
+	"github.com/jieliu2000/anyi/llm/chat"
 )
 
 type anyiRegistry struct {

@@ -7,7 +7,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/jieliu2000/anyi/chat"
+	"github.com/jieliu2000/anyi/llm/chat"
 	"github.com/jieliu2000/anyi/llm/openai"
 
 	impl "github.com/sashabaranov/go-openai"

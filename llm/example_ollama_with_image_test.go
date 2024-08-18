@@ -3,8 +3,8 @@ package llm_test
 import (
 	"log"
 
-	"github.com/jieliu2000/anyi/chat"
 	"github.com/jieliu2000/anyi/llm"
+	"github.com/jieliu2000/anyi/llm/chat"
 	"github.com/jieliu2000/anyi/llm/ollama"
 )
 

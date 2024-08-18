@@ -6,10 +6,10 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/jieliu2000/anyi/internal/utils"
 	"github.com/jieliu2000/anyi/llm/azureopenai"
 	"github.com/jieliu2000/anyi/llm/dashscope"
 	"github.com/jieliu2000/anyi/llm/openai"
-	"github.com/jieliu2000/anyi/utils"
 	"github.com/stretchr/testify/assert"
 )
 

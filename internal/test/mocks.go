@@ -1,6 +1,6 @@
 package test
 
-import "github.com/jieliu2000/anyi/chat"
+import "github.com/jieliu2000/anyi/llm/chat"
 
 type MockClient struct {
 	ChatOutput string

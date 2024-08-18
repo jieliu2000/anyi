@@ -26,7 +26,7 @@ import (
 
 	"github.com/jieliu2000/anyi"
 	"github.com/jieliu2000/anyi/llm/openai"
-	"github.com/jieliu2000/anyi/chat"
+	"github.com/jieliu2000/anyi/llm/chat"
 )
 
 func main() {

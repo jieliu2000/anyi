@@ -26,7 +26,7 @@ import (
 
 	"github.com/jieliu2000/anyi"
 	"github.com/jieliu2000/anyi/llm/openai"
-	"github.com/jieliu2000/anyi/chat"
+	"github.com/jieliu2000/anyi/llm/chat"
 )
 
 func main() {
@@ -185,10 +185,10 @@ client, err := llm.NewClient(config)
 
 ### 大模型聊天调用
 
-在Anyi中，大模型聊天调用的入口是`client.Chat()`函数。这个函数使用一个`[]chat.Message`类型的参数，表示大模型接收的聊天消息。其中`chat`模块为`"github.com/jieliu2000/anyi/chat"`。可以通过以下代码导入：
+在Anyi中，大模型聊天调用的入口是`client.Chat()`函数。这个函数使用一个`[]chat.Message`类型的参数，表示大模型接收的聊天消息。其中`chat`模块为`"github.com/jieliu2000/anyi/llm/chat"`。可以通过以下代码导入：
 
 ```go
-import "github.com/jieliu2000/anyi/chat"
+import "github.com/jieliu2000/anyi/llm/chat"
 ```
 
 #### `chat.Message`结构体
@@ -251,7 +251,7 @@ import (
 
 	"github.com/jieliu2000/anyi"
 	"github.com/jieliu2000/anyi/llm/dashscope"
-	"github.com/jieliu2000/anyi/chat"
+	"github.com/jieliu2000/anyi/llm/chat"
 )
 
 func main() {

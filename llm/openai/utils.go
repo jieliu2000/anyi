@@ -1,7 +1,7 @@
 package openai
 
 import (
-	"github.com/jieliu2000/anyi/chat"
+	"github.com/jieliu2000/anyi/llm/chat"
 	impl "github.com/sashabaranov/go-openai"
 )
 

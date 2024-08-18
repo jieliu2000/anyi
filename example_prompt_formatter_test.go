@@ -8,7 +8,7 @@ import (
 
 func Example_promptTemplateFormatter() {
 
-	// See documentation of github.com/jieliu2000/anyi/chat for more information and examples on how to use the prompt formatter
+	// See documentation of github.com/jieliu2000/anyi/llm/chat for more information and examples on how to use the prompt formatter
 	// See https://pkg.go.dev/text/template about how to write templates
 	template := `Write a guide on how to install and run {{.Application}} on {{.OS}}`
 	formatter, err := anyi.NewPromptTemplateFormatter("template1", template)

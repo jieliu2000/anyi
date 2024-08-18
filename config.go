@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/jieliu2000/anyi/flow"
+	"github.com/jieliu2000/anyi/internal/utils"
 	"github.com/jieliu2000/anyi/llm"
-	"github.com/jieliu2000/anyi/utils"
 	"github.com/mitchellh/mapstructure"
 )
 

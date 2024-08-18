@@ -3,12 +3,12 @@ package llm
 import (
 	"errors"
 
-	"github.com/jieliu2000/anyi/chat"
+	"github.com/jieliu2000/anyi/internal/utils"
 	"github.com/jieliu2000/anyi/llm/azureopenai"
+	"github.com/jieliu2000/anyi/llm/chat"
 	"github.com/jieliu2000/anyi/llm/dashscope"
 	"github.com/jieliu2000/anyi/llm/ollama"
 	"github.com/jieliu2000/anyi/llm/openai"
-	"github.com/jieliu2000/anyi/utils"
 	"github.com/mitchellh/mapstructure"
 )
 

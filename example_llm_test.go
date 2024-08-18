@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/jieliu2000/anyi"
-	"github.com/jieliu2000/anyi/chat"
+	"github.com/jieliu2000/anyi/llm/chat"
 	"github.com/jieliu2000/anyi/llm/openai"
 )
 

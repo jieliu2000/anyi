@@ -5,9 +5,9 @@ import (
 	"log"
 	"testing"
 
-	"github.com/jieliu2000/anyi/chat"
 	"github.com/jieliu2000/anyi/internal/test"
 	"github.com/jieliu2000/anyi/llm"
+	"github.com/jieliu2000/anyi/llm/chat"
 	"github.com/stretchr/testify/assert"
 )
 

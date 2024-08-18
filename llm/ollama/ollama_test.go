@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/jieliu2000/anyi/chat"
 	"github.com/jieliu2000/anyi/internal/test"
+	"github.com/jieliu2000/anyi/llm/chat"
 	"github.com/stretchr/testify/assert"
 )
 

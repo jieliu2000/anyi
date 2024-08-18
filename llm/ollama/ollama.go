@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/jieliu2000/anyi/chat"
+	"github.com/jieliu2000/anyi/llm/chat"
 )
 
 const (
