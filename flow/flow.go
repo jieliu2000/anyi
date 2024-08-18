@@ -3,8 +3,9 @@ package flow
 import (
 	"errors"
 
+	"github.com/jieliu2000/anyi/chat"
+
 	"github.com/jieliu2000/anyi/llm"
-	"github.com/jieliu2000/anyi/message"
 )
 
 const (
@@ -153,27 +154,27 @@ func (flow *Flow) Run(initialContext FlowContext) (*FlowContext, error) {
 type LLMStepExecutor struct {
 	Template          string `json:"template" yaml:"template" mapstructure:"template"`
 	TemplateFile      string `json:"templateFile" yaml:"templateFile" mapstructure:"templateFile"`
-	TemplateFormatter *message.PromptyTemplateFormatter
+	TemplateFormatter *chat.PromptyTemplateFormatter
 	SystemMessage     string `json:"systemMessage" yaml:"systemMessage" mapstructure:"systemMessage"`
 }
 
 type LLMStepValidator struct {
 	Template          string `json:"template" yaml:"template" mapstructure:"template"`
 	TemplateFile      string `json:"templateFile" yaml:"templateFile" mapstructure:"templateFile"`
-	TemplateFormatter *message.PromptyTemplateFormatter
+	TemplateFormatter *chat.PromptyTemplateFormatter
 	SystemMessage     string `json:"systemMessage" yaml:"systemMessage" mapstructure:"systemMessage"`
 }
 
 func (executor *LLMStepExecutor) Init() error {
 	if executor.TemplateFormatter == nil && executor.Template != "" {
-		formatter, err := message.NewPromptTemplateFormatter(executor.Template)
+		formatter, err := chat.NewPromptTemplateFormatter(executor.Template)
 		if err != nil {
 			return err
 		}
 		executor.TemplateFormatter = formatter
 	}
 	if executor.TemplateFormatter == nil && executor.TemplateFile != "" {
-		formatter, err := message.NewPromptTemplateFormatterFromFile(executor.TemplateFile)
+		formatter, err := chat.NewPromptTemplateFormatterFromFile(executor.TemplateFile)
 		if err != nil {
 			return err
 		}
@@ -196,7 +197,7 @@ func (executor *LLMStepExecutor) Run(context FlowContext, step *Step) (*FlowCont
 
 	if executor.TemplateFormatter == nil && executor.Template != "" {
 		var err error
-		executor.TemplateFormatter, err = message.NewPromptTemplateFormatter(executor.Template)
+		executor.TemplateFormatter, err = chat.NewPromptTemplateFormatter(executor.Template)
 		if err != nil {
 			return nil, err
 		}
@@ -204,7 +205,7 @@ func (executor *LLMStepExecutor) Run(context FlowContext, step *Step) (*FlowCont
 
 	if executor.TemplateFormatter == nil && executor.TemplateFile != "" {
 		var err error
-		executor.TemplateFormatter, err = message.NewPromptTemplateFormatterFromFile(executor.TemplateFile)
+		executor.TemplateFormatter, err = chat.NewPromptTemplateFormatterFromFile(executor.TemplateFile)
 		if err != nil {
 			return nil, err
 		}
@@ -221,11 +222,11 @@ func (executor *LLMStepExecutor) Run(context FlowContext, step *Step) (*FlowCont
 		input = context.Context
 	}
 
-	messages := make([]message.Message, 0, 2)
+	messages := make([]chat.Message, 0, 2)
 	if executor.SystemMessage != "" {
-		messages = append(messages, message.NewSystemMessage(executor.SystemMessage))
+		messages = append(messages, chat.NewSystemMessage(executor.SystemMessage))
 	}
-	messages = append(messages, message.NewUserMessage(input))
+	messages = append(messages, chat.NewUserMessage(input))
 
 	output, err := step.clientImpl.Chat(messages)
 	if err != nil {
@@ -239,7 +240,7 @@ func (executor *LLMStepExecutor) Run(context FlowContext, step *Step) (*FlowCont
 func NewLLMStepWithTemplateFile(templateFilePath string, systemMessage string, client llm.Client) (*Step, error) {
 
 	// Create a new formatter with the template
-	formatter, err := message.NewPromptTemplateFormatterFromFile(templateFilePath)
+	formatter, err := chat.NewPromptTemplateFormatterFromFile(templateFilePath)
 	if err != nil {
 		return nil, err
 	}
@@ -254,7 +255,7 @@ func NewLLMStepWithTemplateFile(templateFilePath string, systemMessage string, c
 
 func NewLLMStepWithTemplate(tmplate string, systemMessage string, client llm.Client) (*Step, error) {
 	// Create a new formatter with the template
-	formatter, err := message.NewPromptTemplateFormatter(tmplate)
+	formatter, err := chat.NewPromptTemplateFormatter(tmplate)
 	if err != nil {
 		return nil, err
 	}

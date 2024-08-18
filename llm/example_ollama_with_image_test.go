@@ -3,9 +3,9 @@ package llm_test
 import (
 	"log"
 
+	"github.com/jieliu2000/anyi/chat"
 	"github.com/jieliu2000/anyi/llm"
 	"github.com/jieliu2000/anyi/llm/ollama"
-	"github.com/jieliu2000/anyi/message"
 )
 
 func Example_ollamaWithImage() {
@@ -17,8 +17,8 @@ func Example_ollamaWithImage() {
 		log.Fatalf("Failed to create client: %v", err)
 	}
 
-	messages := []message.Message{
-		message.NewImageMessageFromFile("user", "What number is in the image?", "../internal/test/number_six.png"),
+	messages := []chat.Message{
+		chat.NewImageMessageFromFile("user", "What number is in the image?", "../internal/test/number_six.png"),
 	}
 	message, err := client.Chat(messages)
 

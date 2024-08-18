@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/jieliu2000/anyi/message"
+	"github.com/jieliu2000/anyi/chat"
 	impl "github.com/sashabaranov/go-openai"
 )
 
@@ -98,7 +98,7 @@ func NewClient(config *OpenAIModelConfig) (*OpenAIClient, error) {
 	return client, nil
 }
 
-func (c *OpenAIClient) Chat(messages []message.Message) (*message.Message, error) {
+func (c *OpenAIClient) Chat(messages []chat.Message) (*chat.Message, error) {
 	if c.clientImpl == nil {
 		return nil, errors.New("client not initialized")
 	}
@@ -120,7 +120,7 @@ func (c *OpenAIClient) Chat(messages []message.Message) (*message.Message, error
 		return nil, errors.New("no chat completion choices returned")
 	}
 
-	return &message.Message{
+	return &chat.Message{
 		Content: resp.Choices[0].Message.Content,
 		Role:    resp.Choices[0].Message.Role,
 	}, nil

@@ -1,24 +1,22 @@
 package test
 
-import (
-	"github.com/jieliu2000/anyi/message"
-)
+import "github.com/jieliu2000/anyi/chat"
 
 type MockClient struct {
 	ChatOutput string
 	Err        error
 }
 
-func (m *MockClient) Chat(messages []message.Message) (*message.Message, error) {
+func (m *MockClient) Chat(messages []chat.Message) (*chat.Message, error) {
 	if m.Err != nil {
 		return nil, m.Err
 	}
 	if m.ChatOutput != "" {
-		m := message.NewAssistantMessage(m.ChatOutput)
+		m := chat.NewAssistantMessage(m.ChatOutput)
 		return &m, nil
 	}
 	if len(messages) > 0 {
-		m := message.NewAssistantMessage(messages[0].Content)
+		m := chat.NewAssistantMessage(messages[0].Content)
 		return &m, nil
 	}
 	return nil, nil

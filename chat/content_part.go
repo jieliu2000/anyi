@@ -1,4 +1,4 @@
-package message
+package chat
 
 import (
 	"encoding/base64"
@@ -36,7 +36,7 @@ func (i *Message) AddImagePartFromUrl(imageUrl string, detail string) error {
 	return nil
 }
 
-// The AddTextPart function adds a text part to the message.
+// The AddTextPart function adds a text part to the chat.
 // Parameters:
 // - text string: The text content to be added.
 // return value:

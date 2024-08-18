@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/jieliu2000/anyi/message"
+	"github.com/jieliu2000/anyi/chat"
 )
 
 type OllamaMessage struct {
@@ -17,7 +17,7 @@ type OllamaMessage struct {
 	Images  []string `json:"images"`
 }
 
-func ConvertToOllamaMessages(messages []message.Message) (ollamaMessages []OllamaMessage, err error) {
+func ConvertToOllamaMessages(messages []chat.Message) (ollamaMessages []OllamaMessage, err error) {
 	for _, message := range messages {
 		ollamaMessage, err := ConvertToOllamaMessage(message)
 		if err != nil {
@@ -28,7 +28,7 @@ func ConvertToOllamaMessages(messages []message.Message) (ollamaMessages []Ollam
 	return ollamaMessages, nil
 }
 
-func ConvertToOllamaMessage(message message.Message) (ollamaMessage *OllamaMessage, err error) {
+func ConvertToOllamaMessage(message chat.Message) (ollamaMessage *OllamaMessage, err error) {
 
 	ollamaMessage = &OllamaMessage{
 		Role:    message.Role,

@@ -5,11 +5,11 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/jieliu2000/anyi/chat"
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/internal/test"
 	"github.com/jieliu2000/anyi/llm"
 	"github.com/jieliu2000/anyi/llm/openai"
-	"github.com/jieliu2000/anyi/message"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -141,7 +141,7 @@ func TestNewPromptTemplateFormatter(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, formatter)
 
-		formatter, ok := (GetFormatter("template1")).(*message.PromptyTemplateFormatter)
+		formatter, ok := (GetFormatter("template1")).(*chat.PromptyTemplateFormatter)
 		assert.True(t, ok)
 		assert.Equal(t, template, formatter.TemplateString)
 	})

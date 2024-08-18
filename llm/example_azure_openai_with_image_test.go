@@ -4,9 +4,9 @@ import (
 	"log"
 	"os"
 
+	"github.com/jieliu2000/anyi/chat"
 	"github.com/jieliu2000/anyi/llm"
 	"github.com/jieliu2000/anyi/llm/azureopenai"
-	"github.com/jieliu2000/anyi/message"
 )
 
 func Example_azureOpenAIWithImage() {
@@ -18,8 +18,8 @@ func Example_azureOpenAIWithImage() {
 		log.Fatalf("Failed to create client: %v", err)
 	}
 
-	messages := []message.Message{
-		message.NewImageMessageFromFile("user", "What number is in the image?", "../internal/test/number_six.png"),
+	messages := []chat.Message{
+		chat.NewImageMessageFromFile("user", "What number is in the image?", "../internal/test/number_six.png"),
 	}
 	message, _ := client.Chat(messages)
 

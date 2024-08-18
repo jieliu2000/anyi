@@ -3,9 +3,9 @@ package anyi
 import (
 	"errors"
 
+	"github.com/jieliu2000/anyi/chat"
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/llm"
-	"github.com/jieliu2000/anyi/message"
 )
 
 type anyiRegistry struct {
@@ -13,7 +13,7 @@ type anyiRegistry struct {
 	Flows      map[string]*flow.Flow
 	Validators map[string]flow.StepValidator
 	Executors  map[string]flow.StepExecutor
-	Formatters map[string]message.PromptFormatter
+	Formatters map[string]chat.PromptFormatter
 
 	executorTypes map[string]flow.StepExecutor
 }
@@ -23,7 +23,7 @@ var GlobalRegistry *anyiRegistry = &anyiRegistry{
 	Flows:         make(map[string]*flow.Flow),
 	Validators:    make(map[string]flow.StepValidator),
 	Executors:     make(map[string]flow.StepExecutor),
-	Formatters:    make(map[string]message.PromptFormatter),
+	Formatters:    make(map[string]chat.PromptFormatter),
 	executorTypes: make(map[string]flow.StepExecutor),
 }
 
@@ -131,8 +131,8 @@ func NewClientFromConfigFile(name string, configFile string) (llm.Client, error)
 	return client, nil
 }
 
-func NewMessage(role string, content string) message.Message {
-	return message.Message{
+func NewMessage(role string, content string) chat.Message {
+	return chat.Message{
 		Role:    role,
 		Content: content,
 	}
@@ -146,11 +146,11 @@ func NewContext(input string) *flow.FlowContext {
 	return &context
 }
 
-func GetFormatter(name string) message.PromptFormatter {
+func GetFormatter(name string) chat.PromptFormatter {
 	return GlobalRegistry.Formatters[name]
 }
 
-func RegisterFormatter(name string, formatter message.PromptFormatter) error {
+func RegisterFormatter(name string, formatter chat.PromptFormatter) error {
 	if name == "" {
 		return errors.New("name cannot be empty")
 	}
@@ -158,11 +158,11 @@ func RegisterFormatter(name string, formatter message.PromptFormatter) error {
 	return nil
 }
 
-func NewPromptTemplateFormatterFromFile(name string, templateFile string) (*message.PromptyTemplateFormatter, error) {
+func NewPromptTemplateFormatterFromFile(name string, templateFile string) (*chat.PromptyTemplateFormatter, error) {
 	if name == "" {
 		return nil, errors.New("name cannot be empty")
 	}
-	formatter, err := message.NewPromptTemplateFormatterFromFile(templateFile)
+	formatter, err := chat.NewPromptTemplateFormatterFromFile(templateFile)
 
 	if err != nil {
 		return nil, err
@@ -171,11 +171,11 @@ func NewPromptTemplateFormatterFromFile(name string, templateFile string) (*mess
 	return formatter, err
 }
 
-func NewPromptTemplateFormatter(name string, template string) (*message.PromptyTemplateFormatter, error) {
+func NewPromptTemplateFormatter(name string, template string) (*chat.PromptyTemplateFormatter, error) {
 	if name == "" {
 		return nil, errors.New("name cannot be empty")
 	}
-	formatter, err := message.NewPromptTemplateFormatter(template)
+	formatter, err := chat.NewPromptTemplateFormatter(template)
 	if err != nil {
 		return nil, err
 	}
@@ -225,7 +225,7 @@ func RegisterValidator(name string, validator flow.StepValidator) error {
 	return nil
 }
 
-func NewLLMStepExecutorWithFormatter(name string, formatter *message.PromptyTemplateFormatter, systemMessage string, client llm.Client) *flow.LLMStepExecutor {
+func NewLLMStepExecutorWithFormatter(name string, formatter *chat.PromptyTemplateFormatter, systemMessage string, client llm.Client) *flow.LLMStepExecutor {
 
 	stepExecutor := flow.LLMStepExecutor{
 		TemplateFormatter: formatter,

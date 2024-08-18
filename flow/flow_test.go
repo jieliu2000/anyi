@@ -5,9 +5,9 @@ import (
 	"log"
 	"testing"
 
+	"github.com/jieliu2000/anyi/chat"
 	"github.com/jieliu2000/anyi/internal/test"
 	"github.com/jieliu2000/anyi/llm"
-	"github.com/jieliu2000/anyi/message"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -356,7 +356,7 @@ func TestRunForLLMStep(t *testing.T) {
 	})
 
 	t.Run("template formatter success", func(t *testing.T) {
-		templateFromatter, _ := message.NewPromptTemplateFormatter("Hello, {{.Data}}")
+		templateFromatter, _ := chat.NewPromptTemplateFormatter("Hello, {{.Data}}")
 		step := Step{
 
 			clientImpl: &test.MockClient{},
@@ -377,7 +377,7 @@ func TestRunForLLMStep(t *testing.T) {
 	})
 
 	t.Run("template formatter error", func(t *testing.T) {
-		templateFromatter, _ := message.NewPromptTemplateFormatter("Hello, {{.None}}")
+		templateFromatter, _ := chat.NewPromptTemplateFormatter("Hello, {{.None}}")
 		step := Step{
 			clientImpl: &test.MockClient{},
 		}

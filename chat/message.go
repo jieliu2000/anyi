@@ -1,5 +1,5 @@
 // message package contains the Message and Prompt related structs and their related functions.
-package message
+package chat
 
 import (
 	"bytes"

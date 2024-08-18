@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/jieliu2000/anyi/message"
+	"github.com/jieliu2000/anyi/chat"
 )
 
 const (
@@ -91,14 +91,14 @@ type OllamaRequest struct {
 }
 
 type OllamaResponse struct {
-	Message       message.Message `json:"message"`
-	CreatedAt     time.Time       `json:"created_at"`
-	Done          bool            `json:"done"`
-	TotalDuration int             `json:"total_duration"`
-	LoadDuration  int             `json:"load_duration"`
+	Message       chat.Message `json:"message"`
+	CreatedAt     time.Time    `json:"created_at"`
+	Done          bool         `json:"done"`
+	TotalDuration int          `json:"total_duration"`
+	LoadDuration  int          `json:"load_duration"`
 }
 
-func (c *OllamaClient) Chat(messages []message.Message) (*message.Message, error) {
+func (c *OllamaClient) Chat(messages []chat.Message) (*chat.Message, error) {
 
 	httpClient := c.clientImpl
 

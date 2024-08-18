@@ -3,9 +3,9 @@ package llm_test
 import (
 	"log"
 
+	"github.com/jieliu2000/anyi/chat"
 	"github.com/jieliu2000/anyi/llm"
 	"github.com/jieliu2000/anyi/llm/ollama"
-	"github.com/jieliu2000/anyi/message"
 )
 
 func Example_ollama() {
@@ -17,7 +17,7 @@ func Example_ollama() {
 		log.Fatalf("Failed to create client: %v", err)
 	}
 
-	messages := []message.Message{
+	messages := []chat.Message{
 		{Role: "user", Content: "5+1=?"},
 	}
 	message, err := client.Chat(messages)

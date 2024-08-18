@@ -1,11 +1,11 @@
 package openai
 
 import (
-	"github.com/jieliu2000/anyi/message"
+	"github.com/jieliu2000/anyi/chat"
 	impl "github.com/sashabaranov/go-openai"
 )
 
-func ConvertToOpenAIChatMessages(messages []message.Message) []impl.ChatCompletionMessage {
+func ConvertToOpenAIChatMessages(messages []chat.Message) []impl.ChatCompletionMessage {
 	result := []impl.ChatCompletionMessage{}
 	for _, msg := range messages {
 		openaiMessage := convertToOpenAIChatMessage(msg)
@@ -14,7 +14,7 @@ func ConvertToOpenAIChatMessages(messages []message.Message) []impl.ChatCompleti
 	return result
 }
 
-func convertToOpenAIChatMessage(msg message.Message) impl.ChatCompletionMessage {
+func convertToOpenAIChatMessage(msg chat.Message) impl.ChatCompletionMessage {
 	result := impl.ChatCompletionMessage{
 		Role: msg.Role,
 	}

@@ -4,9 +4,9 @@ import (
 	"log"
 	"os"
 
+	"github.com/jieliu2000/anyi/chat"
 	"github.com/jieliu2000/anyi/llm"
 	"github.com/jieliu2000/anyi/llm/dashscope"
-	"github.com/jieliu2000/anyi/message"
 )
 
 func Example_dashscopeWithImage() {
@@ -18,8 +18,8 @@ func Example_dashscopeWithImage() {
 		log.Fatalf("Failed to create client: %v", err)
 	}
 
-	messages := []message.Message{
-		message.NewImageMessageFromUrl("user", "What's this?", "https://dashscope.oss-cn-beijing.aliyuncs.com/images/dog_and_girl.jpeg"),
+	messages := []chat.Message{
+		chat.NewImageMessageFromUrl("user", "What's this?", "https://dashscope.oss-cn-beijing.aliyuncs.com/images/dog_and_girl.jpeg"),
 	}
 	message, err := client.Chat(messages)
 

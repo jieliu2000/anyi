@@ -3,7 +3,7 @@ package anyi
 import (
 	"errors"
 
-	"github.com/jieliu2000/anyi/message"
+	"github.com/jieliu2000/anyi/chat"
 )
 
 func SimpleChat(input string) (string, error) {
@@ -15,8 +15,8 @@ func SimpleChat(input string) (string, error) {
 		return "", err
 	}
 
-	result, err := client.Chat([]message.Message{
-		message.NewUserMessage(input),
+	result, err := client.Chat([]chat.Message{
+		chat.NewUserMessage(input),
 	})
 
 	if err != nil {

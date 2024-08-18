@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/jieliu2000/anyi/chat"
 	"github.com/jieliu2000/anyi/internal/test"
-	"github.com/jieliu2000/anyi/message"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -126,7 +126,7 @@ func TestChat(t *testing.T) {
 	client, err := NewClient(config)
 	assert.NoError(t, err)
 
-	messages := []message.Message{
+	messages := []chat.Message{
 		{Role: "system", Content: "You are an assisstant"},
 		{Role: "user", Content: "Hello"},
 	}

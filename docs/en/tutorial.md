@@ -26,7 +26,7 @@ import (
 
 	"github.com/jieliu2000/anyi"
 	"github.com/jieliu2000/anyi/llm/openai"
-	"github.com/jieliu2000/anyi/message"
+	"github.com/jieliu2000/anyi/chat"
 )
 
 func main() {
@@ -39,7 +39,7 @@ func main() {
 		log.Fatalf("Failed to create client: %v", err)
 	}
 
-	messages := []message.Message{
+	messages := []chat.Message{
 		{Role: "user", Content: "5+1=?"},
 	}
 	message, _ := client.Chat(messages)

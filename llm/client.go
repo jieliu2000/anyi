@@ -3,11 +3,11 @@ package llm
 import (
 	"errors"
 
+	"github.com/jieliu2000/anyi/chat"
 	"github.com/jieliu2000/anyi/llm/azureopenai"
 	"github.com/jieliu2000/anyi/llm/dashscope"
 	"github.com/jieliu2000/anyi/llm/ollama"
 	"github.com/jieliu2000/anyi/llm/openai"
-	"github.com/jieliu2000/anyi/message"
 	"github.com/jieliu2000/anyi/utils"
 	"github.com/mitchellh/mapstructure"
 )
@@ -39,7 +39,7 @@ type ModelConfig interface {
 }
 
 type Client interface {
-	Chat(messages []message.Message) (*message.Message, error)
+	Chat(messages []chat.Message) (*chat.Message, error)
 }
 
 // NewModelConfigFromClientConfig creates a new ModelConfig instance based on the provided ClientConfig.

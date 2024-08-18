@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/jieliu2000/anyi/chat"
 	"github.com/jieliu2000/anyi/internal/test"
-	"github.com/jieliu2000/anyi/message"
 	impl "github.com/sashabaranov/go-openai"
 	"github.com/stretchr/testify/assert"
 )
@@ -21,7 +21,7 @@ func TestChatWithNoClientImplmentation(t *testing.T) {
 }
 
 func TestConvertToOpenAIChatMessages(t *testing.T) {
-	messages := []message.Message{
+	messages := []chat.Message{
 		{Role: "system", Content: "You are an assisstant"},
 		{Role: "user", Content: "Hello"},
 	}
@@ -135,7 +135,7 @@ func TestChat(t *testing.T) {
 	client, err := NewClient(config)
 	assert.NoError(t, err)
 
-	messages := []message.Message{
+	messages := []chat.Message{
 		{Role: "system", Content: "You are an assisstant"},
 		{Role: "user", Content: "Hello"},
 	}

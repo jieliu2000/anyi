@@ -7,8 +7,8 @@ import (
 	"context"
 	"errors"
 
+	"github.com/jieliu2000/anyi/chat"
 	"github.com/jieliu2000/anyi/llm/openai"
-	"github.com/jieliu2000/anyi/message"
 
 	impl "github.com/sashabaranov/go-openai"
 )
@@ -71,7 +71,7 @@ func NewClient(config *DashScopeModelConfig) (*DashScopeClient, error) {
 	return client, nil
 }
 
-func (c *DashScopeClient) Chat(messages []message.Message) (*message.Message, error) {
+func (c *DashScopeClient) Chat(messages []chat.Message) (*chat.Message, error) {
 
 	// Check if the client implementation is initialized
 	client := c.clientImpl
@@ -102,7 +102,7 @@ func (c *DashScopeClient) Chat(messages []message.Message) (*message.Message, er
 	}
 
 	// Extract the first choice from the response and create a new message object
-	result := message.Message{
+	result := chat.Message{
 		Content: resp.Choices[0].Message.Content,
 		Role:    resp.Choices[0].Message.Role,
 	}

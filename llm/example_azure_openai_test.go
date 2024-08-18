@@ -4,9 +4,9 @@ import (
 	"log"
 	"os"
 
+	"github.com/jieliu2000/anyi/chat"
 	"github.com/jieliu2000/anyi/llm"
 	"github.com/jieliu2000/anyi/llm/azureopenai"
-	"github.com/jieliu2000/anyi/message"
 )
 
 func Example_azureOpenAI() {
@@ -18,7 +18,7 @@ func Example_azureOpenAI() {
 		log.Fatalf("Failed to create client: %v", err)
 	}
 
-	messages := []message.Message{
+	messages := []chat.Message{
 		{Role: "user", Content: "5+1=?"},
 	}
 	message, _ := client.Chat(messages)

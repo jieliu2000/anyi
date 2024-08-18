@@ -3,10 +3,10 @@ package azureopenai
 import (
 	"github.com/Azure/azure-sdk-for-go/sdk/ai/azopenai"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
-	"github.com/jieliu2000/anyi/message"
+	"github.com/jieliu2000/anyi/chat"
 )
 
-func ConvertToAzureOpenAIMessageCompletions(messages []message.Message) []azopenai.ChatRequestMessageClassification {
+func ConvertToAzureOpenAIMessageCompletions(messages []chat.Message) []azopenai.ChatRequestMessageClassification {
 	result := []azopenai.ChatRequestMessageClassification{}
 	for _, msg := range messages {
 		switch msg.Role {
