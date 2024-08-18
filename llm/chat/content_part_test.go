@@ -19,7 +19,7 @@ func TestNewImageContentFromFile_InvalidFile(t *testing.T) {
 
 func TestNewImageContentFromFile_ValidFile(t *testing.T) {
 	detail := "low"
-	imageFilePath := "../internal/test/number_six.png"
+	imageFilePath := "../../internal/test/number_six.png"
 
 	part, err := NewImagePartFromFile(imageFilePath, detail)
 

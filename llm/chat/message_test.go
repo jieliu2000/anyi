@@ -53,7 +53,7 @@ func TestNewAssistantMessage(t *testing.T) {
 }
 
 func TestNewPromptTemplateFormatterFromFile(t *testing.T) {
-	var tmplFile = "../internal/test/test_prompt1.tmpl"
+	var tmplFile = "../../internal/test/test_prompt1.tmpl"
 	formatter, err := NewPromptTemplateFormatterFromFile(tmplFile)
 
 	if err != nil {
@@ -216,7 +216,7 @@ func TestNewImageMessage(t *testing.T) {
 	t.Run("With valid image", func(t *testing.T) {
 		role := "user"
 		content := "image.jpg"
-		filePath := "../internal/test/number_six.png"
+		filePath := "../../internal/test/number_six.png"
 
 		message := NewImageMessageFromFile(role, content, filePath)
 
@@ -243,7 +243,7 @@ func TestNewImageMessage(t *testing.T) {
 	t.Run("With invalid path", func(t *testing.T) {
 		role := "user"
 		content := "image.jpg"
-		filePath := "../internal/test/invalid_file.png"
+		filePath := "../../internal/test/invalid_file.png"
 		message := NewImageMessageFromFile(role, content, filePath)
 		assert.Equal(t, role, message.Role, "Expected role to be %s, but got %s", role, message.Role)
 		assert.Equal(t, "", message.Content)
