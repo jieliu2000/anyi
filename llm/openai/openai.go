@@ -4,10 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/ai/azopenai"
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
-	"github.com/jieliu2000/anyi/llm/azureopenai"
 	"github.com/jieliu2000/anyi/message"
+	impl "github.com/sashabaranov/go-openai"
 )
 
 const (
@@ -16,15 +14,14 @@ const (
 )
 
 type OpenAIModelConfig struct {
-	APIKey            string `json:"apiKey" yaml:"apiKey" mapstructure:"apiKey"`
-	BaseURL           string `json:"baseUrl" yaml:"baseUrl" mapstructure:"baseUrl"`
-	Model             string `json:"model" yaml:"model" mapstructure:"model"`
-	AllowInsecureHttp bool   `json:"allowInsecureHttp" yaml:"allowInsecureHttp" mapstructure:"allowInsecureHttp"`
+	APIKey  string `json:"api_key"`
+	BaseURL string `json:"base_url"`
+	Model   string `json:"model"`
 }
 
 type OpenAIClient struct {
 	Config     *OpenAIModelConfig
-	clientImpl *azopenai.Client
+	clientImpl *impl.Client
 }
 
 func DefaultConfig(apiKey string) *OpenAIModelConfig {
@@ -53,52 +50,43 @@ func NewClient(config *OpenAIModelConfig) (*OpenAIClient, error) {
 		return nil, errors.New("config cannot be null")
 	}
 
-	// Create a new default configuration implementation using the provided API key
-	keyCredential := azcore.NewKeyCredential(config.APIKey)
-
-	options := &azopenai.ClientOptions{}
-	options.InsecureAllowCredentialWithHTTP = config.AllowInsecureHttp
-	// Set the BaseURL from the provided config
-	clientImpl, err := azopenai.NewClientForOpenAI(config.BaseURL, keyCredential, options)
-
-	if err != nil {
-		return nil, err
+	configImpl := impl.DefaultConfig(config.APIKey)
+	if config.BaseURL != "" {
+		configImpl.BaseURL = config.BaseURL
 	}
 
 	client := &OpenAIClient{
 		Config:     config,
-		clientImpl: clientImpl,
+		clientImpl: impl.NewClientWithConfig(configImpl),
 	}
 
 	return client, nil
 }
 
 func (c *OpenAIClient) Chat(messages []message.Message) (*message.Message, error) {
-	// Check if the client implementation is initialized
-	client := c.clientImpl
-	if client == nil {
+	if c.clientImpl == nil {
 		return nil, errors.New("client not initialized")
 	}
 
-	// Convert the messages to OpenAI ChatMessages format
-	messagesInput := azureopenai.ConvertToAzureOpenAIMessageCompletions(messages)
+	messagesInput := ConvertToOpenAIChatMessages(messages)
 
-	// Create a ChatCompletion request using the client and the converted messages
-
-	resp, err := client.GetChatCompletions(
+	resp, err := c.clientImpl.CreateChatCompletion(
 		context.Background(),
-		azopenai.ChatCompletionsOptions{
-			DeploymentName: &c.Config.Model,
-			Messages:       messagesInput,
-		}, nil)
-
+		impl.ChatCompletionRequest{
+			Model:    c.Config.Model,
+			Messages: messagesInput,
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
-	result := message.Message{
-		Content: *resp.Choices[0].Message.Content,
-		Role:    string(*resp.Choices[0].Message.Role),
+
+	if len(resp.Choices) == 0 {
+		return nil, errors.New("no chat completion choices returned")
 	}
-	// Return the new message object and nil error
-	return &result, nil
+
+	return &message.Message{
+		Content: resp.Choices[0].Message.Content,
+		Role:    resp.Choices[0].Message.Role,
+	}, nil
 }
