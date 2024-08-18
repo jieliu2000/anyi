@@ -278,7 +278,7 @@ func main() {
 ```
 在以上代码中，我们使用`chat.NewImageMessageFromUrl()`函数创建了一个从网络图片URL传递给大模型的`chat.Message`结构体。`chat.NewImageMessageFromUrl()`函数的第一个参数为消息角色，第二个参数为文本消息内容，第三个参数为图片URL。
 
-需要说明的是，在以上代码中，最后被创建的`chat.Message`结构体中的`ContentParts`属性为一个长度为2的数组，数组中的第一个元素一个文本类型的`ContentPart`结构体，其文本内容为`"这是什么？"`；第二个元素是一个图片类型的`ContentPart`结构体，其图片URL为`https://dashscope.oss-cn-beijing.aliyuncs.com/`。而`chat.Message`结构体的`Content`属性为空字符串。也就是说`chat.NewImageMessageFromUrl()`参数中的文本消息是以`ContentParts`属性体现，而不是`Content`属性体现的。这也是Anyi中多模态大模型调用和单模态大模型调用的显著不同之处。
+需要说明的是，在以上代码中，最后被创建的`chat.Message`结构体中的`ContentParts`属性为一个长度为2的数组，数组中的第一个元素是一个文本类型的`ContentPart`结构体，其文本内容为`"这是什么？"`；第二个元素是一个图片类型的`ContentPart`结构体，其图片URL为`https://dashscope.oss-cn-beijing.aliyuncs.com/`。而`chat.Message`结构体的`Content`属性为空字符串。也就是说`chat.NewImageMessageFromUrl()`参数中的文本消息是以`ContentParts`属性体现，而不是`Content`属性体现的。这也是Anyi中多模态大模型调用和单模态大模型调用的显著不同之处。
 
 
 #### 通过`chat.ContentParts`属性传递图片给大模型
