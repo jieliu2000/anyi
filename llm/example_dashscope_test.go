@@ -29,4 +29,5 @@ func Example_dashscope() {
 	}
 
 	log.Printf("Response: %s", message.Content)
+
 }

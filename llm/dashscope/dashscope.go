@@ -7,10 +7,10 @@ import (
 	"context"
 	"errors"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/ai/azopenai"
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
-	"github.com/jieliu2000/anyi/llm/azureopenai"
+	"github.com/jieliu2000/anyi/llm/openai"
 	"github.com/jieliu2000/anyi/message"
+
+	impl "github.com/sashabaranov/go-openai"
 )
 
 const (
@@ -25,7 +25,7 @@ type DashScopeModelConfig struct {
 
 type DashScopeClient struct {
 	Config     *DashScopeModelConfig
-	clientImpl *azopenai.Client
+	clientImpl *impl.Client
 }
 
 // Creats a default DashScope model config.
@@ -56,19 +56,15 @@ func NewClient(config *DashScopeModelConfig) (*DashScopeClient, error) {
 	}
 
 	// Create a new default configuration implementation using the provided API key
-	keyCredential := azcore.NewKeyCredential(config.APIKey)
+	configImpl := impl.DefaultConfig(config.APIKey)
 
 	// Set the BaseURL from the provided config
-	clientImpl, err := azopenai.NewClientForOpenAI(config.BaseUrl, keyCredential, nil)
-
-	if err != nil {
-		return nil, err
-	}
+	configImpl.BaseURL = config.BaseUrl
 
 	// Create a new DashScopeClient using the provided config and the configured client implementation
 	client := &DashScopeClient{
 		Config:     config,
-		clientImpl: clientImpl,
+		clientImpl: impl.NewClientWithConfig(configImpl),
 	}
 
 	// Return the newly created DashScopeClient and nil error
@@ -84,24 +80,33 @@ func (c *DashScopeClient) Chat(messages []message.Message) (*message.Message, er
 	}
 
 	// Convert the messages to OpenAI ChatMessages format
-	messagesInput := azureopenai.ConvertToAzureOpenAIMessageCompletions(messages)
+	messagesInput := openai.ConvertToOpenAIChatMessages(messages)
 
 	// Create a ChatCompletion request using the client and the converted messages
-
-	resp, err := client.GetChatCompletions(
+	resp, err := client.CreateChatCompletion(
 		context.Background(),
-		azopenai.ChatCompletionsOptions{
-			DeploymentName: &c.Config.Model,
-			Messages:       messagesInput,
-		}, nil)
+		impl.ChatCompletionRequest{
+			Model:    c.Config.Model,
+			Messages: messagesInput,
+		},
+	)
 
+	// Check if there was an error in creating the ChatCompletion
 	if err != nil {
 		return nil, err
 	}
-	result := message.Message{
-		Content: *resp.Choices[0].Message.Content,
-		Role:    string(*resp.Choices[0].Message.Role),
+
+	// Check if there are no choices in the response
+	if len(resp.Choices) == 0 {
+		return nil, errors.New("no choices found in the response")
 	}
+
+	// Extract the first choice from the response and create a new message object
+	result := message.Message{
+		Content: resp.Choices[0].Message.Content,
+		Role:    resp.Choices[0].Message.Role,
+	}
+
 	// Return the new message object and nil error
 	return &result, nil
 }
