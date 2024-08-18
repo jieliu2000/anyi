@@ -61,3 +61,20 @@ func TestNewImagePartFromUrl(t *testing.T) {
 		assert.Equal(t, imageUrl, contentPart.ImageUrl)
 	})
 }
+
+func TestAddImagePartFromUrl_Success(t *testing.T) {
+	message := Message{ContentParts: []ContentPart{}}
+	err := message.AddImagePartFromUrl("http://example.com/image.jpg", "A beautiful sunny day")
+	assert.Nil(t, err)
+	assert.Len(t, message.ContentParts, 1)
+	assert.Equal(t, "A beautiful sunny day", message.ContentParts[0].ImageDetail)
+	assert.Equal(t, "http://example.com/image.jpg", message.ContentParts[0].ImageUrl)
+}
+
+func TestAddImagePartFromUrl_EmptyUrl(t *testing.T) {
+	message := Message{ContentParts: []ContentPart{}}
+	err := message.AddImagePartFromUrl("", "A beautiful sunny day")
+	assert.NotNil(t, err)
+	assert.Equal(t, "image url is empty", err.Error())
+	assert.Len(t, message.ContentParts, 0)
+}

@@ -30,7 +30,11 @@ func (i *Message) AddImagePartFromFile(imageFilePath string, detail string) erro
 }
 
 func (i *Message) AddImagePartFromUrl(imageUrl string, detail string) error {
-	imagePart, _ := NewImagePartFromUrl(imageUrl, detail)
+	imagePart, err := NewImagePartFromUrl(imageUrl, detail)
+
+	if err != nil {
+		return err
+	}
 
 	i.ContentParts = append(i.ContentParts, *imagePart)
 	return nil
