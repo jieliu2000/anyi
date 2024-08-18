@@ -130,7 +130,7 @@ import "github.com/jieliu2000/anyi/llm/azureopenai"
 
 #### Dashscope
 
-Dashscope灵积是阿里云的大模型API服务，你可以通过 https://dashscope.aliyun.com/ 访问。目前版本中Anyi对Dashscope的访问是通过openai兼容API的方式，具体Dashscope文档可以参见 https://help.aliyun.com/zh/dashscope/developer-reference/compatibility-of-openai-with-dashscope。
+Dashscope灵积是阿里云的大模型API服务，你可以通过 https://dashscope.aliyun.com/ 访问。目前版本中Anyi对Dashscope的访问是通过openai兼容API的方式，具体Dashscope文档可以参见 https://help.aliyun.com/zh/dashscope/developer-reference/compatibility-of-openai-with-dashscope 。
 
 ##### 默认配置访问Dashscope
 

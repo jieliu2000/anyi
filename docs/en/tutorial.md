@@ -130,7 +130,7 @@ Since all configuration items in Azure OpenAI are required and there are no defa
 
 #### Dashscope
 
-Dashscope Lingji is a large model API service provided by Alibaba Cloud. You can access it at https://dashscope.aliyun.com/. Currently, Anyi accesses Dashscope via an OpenAI-compatible API. The specific Dashscope documentation can be found at https://help.aliyun.com/zh/dashscope/developer-reference/compatibility-of-openai-with-dashscope.
+Dashscope Lingji is a large model API service provided by Alibaba Cloud. You can access it at https://dashscope.aliyun.com/. Currently, Anyi accesses Dashscope via an OpenAI-compatible API. The specific Dashscope documentation can be found at https://help.aliyun.com/zh/dashscope/developer-reference/compatibility-of-openai-with-dashscope .
 
 ##### Accessing Dashscope with Default Configuration
 
