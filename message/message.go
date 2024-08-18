@@ -170,7 +170,7 @@ func (t *PromptyTemplateFormatter) Format(data any) (string, error) {
 
 func AddFunctionDirectivesToPrompt(objective string, functions []tools.FunctionConfig) (string, error) {
 
-	templateString := `Your task is to generate a task list in JSON array format to archieve this target: '''{{.Objective}}'''
+	templateString := `Your task is to generate a task list in JSON array format to achieve this target: '''{{.Objective}}'''
 	You can use the following functions in generating the task list:
 	{{range .Functions}}* {{.Name}}: {{.Description}}. {{if .Params}} Parameters:{{range .Params}}	- {{.Name}}(type: {{.Type}}): {{.Description}}, {{end}} {{end}}
 	{{end}}

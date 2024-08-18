@@ -78,7 +78,7 @@ func main() {
 
 ### 代码和示例
 
-
+请参照[Anyi使用向导和示例](/docs/zh/tutorial.md)
 
 ## 许可证
 Anyi 遵循 [Apache License 2.0](LICENSE)。

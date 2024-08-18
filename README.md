@@ -72,6 +72,10 @@ func main() {
 
 In the above example, an OpenAI Anyi configuration is created via `openai.DefaultConfig`. Then this config instance is passed to `llm.NewClient` to create an OpenAI client, and finally a chat request is sent via `client.Chat`.
 
+## Tutorials and Examples
+
+Please refer to the [Anyi Tutorials and Examples](/docs/en/tutorial.md)
+
 ## License
 
 Anyi is licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for the full license text.
