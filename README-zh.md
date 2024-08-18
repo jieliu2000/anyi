@@ -46,17 +46,19 @@ go get github.com/jieliu2000/anyi
 package main
 
 import (
-	"os"
 	"log"
-	"github.com/jieliu2000/anyi/llm"
+	"os"
+
+	"github.com/jieliu2000/anyi"
 	"github.com/jieliu2000/anyi/llm/openai"
 	"github.com/jieliu2000/anyi/message"
 )
 
 func main() {
-
+	// For more documentation and examples, see github.com/jieliu2000/anyi/llm package documentation.
+	// Make sure you set OPENAI_API_KEY environment variable to your OpenAI API key.
 	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
-	client, err := llm.NewClient(config)
+	client, err := anyi.NewClient("openai", config)
 
 	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)
@@ -70,10 +72,13 @@ func main() {
 	log.Printf("Response: %s\n", message.Content)
 }
 
-
 ```
 
-在上面的示例中，首先通过`openai.DefaultConfig` 创建一个 OpenAI 的 Anyi 配置，然后将该配置传递给 `llm.NewClient` 创建一个 OpenAI 客户端，最后通过 `client.Chat` 发送一个聊天请求。
+在上面的示例中，首先通过`openai.DefaultConfig` 创建一个 OpenAI 的 Anyi 配置，然后将该配置传递给 `anyi.NewClient` 创建一个 OpenAI 客户端，最后通过 `client.Chat` 发送一个聊天请求。
+
+### 代码和示例
+
+
 
 ## 许可证
 Anyi 遵循 [Apache License 2.0](LICENSE)。
