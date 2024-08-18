@@ -9,7 +9,7 @@
 
 Anyi is an open source AI Agent framework designed to help you build AI Agents that can be integrated with real-world work. We also provide APIs for accessing large language models.
 
-Anyi requires [Go](https://go.dev/) version [1.18](https://go.dev/doc/devel/release#go1.18) or higher.
+Anyi requires [Go](https://go.dev/) version [1.20](https://go.dev/doc/devel/release#go1.20) or higher.
 
 ## Features
 

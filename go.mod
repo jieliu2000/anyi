@@ -1,6 +1,6 @@
 module github.com/jieliu2000/anyi
 
-go 1.18
+go 1.20
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/ai/azopenai v0.6.1

@@ -9,7 +9,7 @@
 
 Anyi(安易)是一个开源的[Go语言](https://go.dev/)AI 智能体(AI Agent)框架，旨在帮助你构建可以和实际工作相结合的 AI 智能体。我们也提供对大模型访问的 API。
 
-Anyi需要Go语言[1.18](https://go.dev/doc/devel/release#go1.18)或更高版本。
+Anyi需要Go语言[1.20](https://go.dev/doc/devel/release#go1.20)或更高版本。
 
 ## 特性
 
