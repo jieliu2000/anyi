@@ -187,12 +187,6 @@ client, err := llm.NewClient(config)
 
 在Anyi中，普通大模型聊天调用的入口是`client.Chat()`函数。这个函数使用一个`[]chat.Message`类型的参数，表示大模型接收的聊天消息。
 
-`client.Chat()`函数有三个返回值：
-
-	- 第一个是`*chat.Message`类型的值，表示大模型返回的聊天消息。
-	- 第二个是`chat.ResponseInfo`类型的值，表示大模型的响应信息，例如Token数量等。
-	- 第三个是`error`类型的值，表示调用大模型时发生的错误。
-
 上面所提到的`chat`包为`"github.com/jieliu2000/anyi/llm/chat"`。可以通过以下代码导入：
 
 ```go
