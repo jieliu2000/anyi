@@ -27,6 +27,7 @@ type ClientConfig struct {
 	//	* "openai" - OpenAI model
 	//	* "azureopenai" - Azure OpenAI model
 	//	* "dashscope" - DashScope model
+	//	* "ollama" - Ollama model
 	Type string `mapstructure:"type" json:"type"`
 
 	// The model config. The type of this field depends on the model. We define this property as map[string]interface{} for extensibility.
@@ -39,7 +40,7 @@ type ModelConfig interface {
 }
 
 type Client interface {
-	Chat(messages []chat.Message, options chat.ChatOptions) (*chat.Message, error)
+	Chat(messages []chat.Message, options chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error)
 }
 
 // NewModelConfigFromClientConfig creates a new ModelConfig instance based on the provided ClientConfig.

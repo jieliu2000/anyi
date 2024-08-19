@@ -21,7 +21,7 @@ func Example_dashscope() {
 	messages := []chat.Message{
 		{Role: "user", Content: "5+1=?"},
 	}
-	message, err := client.Chat(messages, nil)
+	message, _, err := client.Chat(messages, nil)
 
 	if err != nil {
 		log.Fatalf("Failed to chat: %v", err)

@@ -91,24 +91,27 @@ type OllamaRequest struct {
 }
 
 type OllamaResponse struct {
-	Message       chat.Message `json:"message"`
-	CreatedAt     time.Time    `json:"created_at"`
-	Done          bool         `json:"done"`
-	TotalDuration int          `json:"total_duration"`
-	LoadDuration  int          `json:"load_duration"`
+	Message         chat.Message `json:"message"`
+	CreatedAt       time.Time    `json:"created_at"`
+	Done            bool         `json:"done"`
+	TotalDuration   int          `json:"total_duration"`
+	LoadDuration    int          `json:"load_duration"`
+	PromptEvalCount int          `json:"prompt_eval_count"`
+	EvalCount       int          `json:"eval_count"`
 }
 
-func (c *OllamaClient) Chat(messages []chat.Message, options chat.ChatOptions) (*chat.Message, error) {
+func (c *OllamaClient) Chat(messages []chat.Message, options chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
 
+	response := chat.ResponseInfo{}
 	httpClient := c.clientImpl
 
 	if httpClient == nil {
-		return nil, errors.New("http client cannot be nil, maybe you didn't initiatialize the client. Considering using NewClient function")
+		return nil, response, errors.New("http client cannot be nil, maybe you didn't initiatialize the client. Considering using NewClient function")
 	}
 
 	ollamaMessages, err := ConvertToOllamaMessages(messages)
 	if err != nil {
-		return nil, err
+		return nil, response, err
 	}
 	requestJson, err := json.Marshal(OllamaRequest{
 		Model:    c.Config.Model,
@@ -116,32 +119,35 @@ func (c *OllamaClient) Chat(messages []chat.Message, options chat.ChatOptions) (
 	})
 
 	if err != nil {
-		return nil, err
+		return nil, response, err
 	}
 
-	response, err := httpClient.Post(c.Config.OllamaApiURL+"/chat", "application/json", bytes.NewBuffer(requestJson))
+	res, err := httpClient.Post(c.Config.OllamaApiURL+"/chat", "application/json", bytes.NewBuffer(requestJson))
 
 	if err != nil {
-		return nil, err
+		return nil, response, err
 	}
 
-	if response.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("error response status from ollama chat api: %d", response.StatusCode)
+	if res.StatusCode != http.StatusOK {
+		return nil, response, fmt.Errorf("error response status from ollama chat api: %d", res.StatusCode)
 	}
 
-	defer response.Body.Close()
+	defer res.Body.Close()
 
-	responseBody, err := io.ReadAll(response.Body)
+	responseBody, err := io.ReadAll(res.Body)
 
 	if err != nil {
-		return nil, err
+		return nil, response, err
 	}
 
 	ollamaResponse := OllamaResponse{}
 	err = json.Unmarshal(responseBody, &ollamaResponse)
 	if err != nil {
-		return nil, err
+		return nil, response, err
 	}
 
-	return &ollamaResponse.Message, nil
+	response.PromptTokens = ollamaResponse.PromptEvalCount
+	response.CompletionTokens = ollamaResponse.EvalCount
+
+	return &ollamaResponse.Message, response, nil
 }

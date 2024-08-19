@@ -7,19 +7,21 @@ type MockClient struct {
 	Err        error
 }
 
-func (m *MockClient) Chat(messages []chat.Message, options chat.ChatOptions) (*chat.Message, error) {
+func (m *MockClient) Chat(messages []chat.Message, options chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
+	info := chat.ResponseInfo{}
+
 	if m.Err != nil {
-		return nil, m.Err
+		return nil, info, m.Err
 	}
 	if m.ChatOutput != "" {
 		m := chat.NewAssistantMessage(m.ChatOutput)
-		return &m, nil
+		return &m, info, nil
 	}
 	if len(messages) > 0 {
 		m := chat.NewAssistantMessage(messages[0].Content)
-		return &m, nil
+		return &m, info, nil
 	}
-	return nil, nil
+	return nil, info, nil
 }
 
 func NewMockClient() *MockClient {

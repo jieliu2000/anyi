@@ -20,7 +20,7 @@ func Example_ollamaWithImage() {
 	messages := []chat.Message{
 		chat.NewImageMessageFromFile("user", "What number is in the image?", "../internal/test/number_six.png"),
 	}
-	message, err := client.Chat(messages, nil)
+	message, _, err := client.Chat(messages, nil)
 
 	if err != nil {
 		log.Fatalf("Failed to chat: %v", err)

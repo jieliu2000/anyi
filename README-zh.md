@@ -69,7 +69,7 @@ func main() {
 	messages := []chat.Message{
 		{Role: "user", Content: "5+1=?"},
 	}
-	message, _ := client.Chat(messages, nil)
+	message, _, _:= client.Chat(messages, nil)
 
 	log.Printf("Response: %s\n", message.Content)
 }

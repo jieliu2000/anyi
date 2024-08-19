@@ -71,12 +71,13 @@ func NewClient(config *DashScopeModelConfig) (*DashScopeClient, error) {
 	return client, nil
 }
 
-func (c *DashScopeClient) Chat(messages []chat.Message, options chat.ChatOptions) (*chat.Message, error) {
+func (c *DashScopeClient) Chat(messages []chat.Message, options chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
 
+	info := chat.ResponseInfo{}
 	// Check if the client implementation is initialized
 	client := c.clientImpl
 	if client == nil {
-		return nil, errors.New("client not initialized")
+		return nil, info, errors.New("client not initialized")
 	}
 
 	// Convert the messages to OpenAI ChatMessages format
@@ -93,12 +94,12 @@ func (c *DashScopeClient) Chat(messages []chat.Message, options chat.ChatOptions
 
 	// Check if there was an error in creating the ChatCompletion
 	if err != nil {
-		return nil, err
+		return nil, info, err
 	}
 
 	// Check if there are no choices in the response
 	if len(resp.Choices) == 0 {
-		return nil, errors.New("no choices found in the response")
+		return nil, info, errors.New("no choices found in the response")
 	}
 
 	// Extract the first choice from the response and create a new message object
@@ -107,6 +108,9 @@ func (c *DashScopeClient) Chat(messages []chat.Message, options chat.ChatOptions
 		Role:    resp.Choices[0].Message.Role,
 	}
 
+	info.CompletionTokens = resp.Usage.CompletionTokens
+	info.PromptTokens = resp.Usage.PromptTokens
+
 	// Return the new message object and nil error
-	return &result, nil
+	return &result, info, nil
 }

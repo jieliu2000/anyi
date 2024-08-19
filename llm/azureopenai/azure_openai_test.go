@@ -131,7 +131,7 @@ func TestChat(t *testing.T) {
 		{Role: "user", Content: "Hello"},
 	}
 
-	response, err := client.Chat(messages, nil)
+	response, _, err := client.Chat(messages, nil)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, response)

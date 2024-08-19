@@ -52,11 +52,13 @@ func NewClient(config *AzureOpenAIModelConfig) (*AzureOpenAIClient, error) {
 	return client, nil
 }
 
-func (c *AzureOpenAIClient) Chat(messages []chat.Message, options chat.ChatOptions) (*chat.Message, error) {
+func (c *AzureOpenAIClient) Chat(messages []chat.Message, options chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
 
 	client := c.clientImpl
+	info := chat.ResponseInfo{}
+
 	if client == nil {
-		return nil, errors.New("client not initialized")
+		return nil, info, errors.New("client not initialized")
 	}
 
 	messagesInput := openai.ConvertToOpenAIChatMessages(messages)
@@ -70,11 +72,14 @@ func (c *AzureOpenAIClient) Chat(messages []chat.Message, options chat.ChatOptio
 	)
 
 	if err != nil {
-		return nil, err
+		return nil, info, err
 	}
 	result := chat.Message{
 		Content: resp.Choices[0].Message.Content,
 		Role:    resp.Choices[0].Message.Role,
 	}
-	return &result, nil
+	info.PromptTokens = resp.Usage.PromptTokens
+	info.CompletionTokens = resp.Usage.CompletionTokens
+
+	return &result, info, nil
 }

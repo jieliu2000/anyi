@@ -228,7 +228,7 @@ func (executor *LLMStepExecutor) Run(context FlowContext, step *Step) (*FlowCont
 	}
 	messages = append(messages, chat.NewUserMessage(input))
 
-	output, err := step.clientImpl.Chat(messages, nil)
+	output, _, err := step.clientImpl.Chat(messages, nil)
 	if err != nil {
 		return nil, err
 	}

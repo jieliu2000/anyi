@@ -98,9 +98,9 @@ func NewClient(config *OpenAIModelConfig) (*OpenAIClient, error) {
 	return client, nil
 }
 
-func (c *OpenAIClient) Chat(messages []chat.Message, options chat.ChatOptions) (*chat.Message, error) {
+func (c *OpenAIClient) Chat(messages []chat.Message, options chat.ChatOptions) (message *chat.Message, responseInfo chat.ResponseInfo, err error) {
 	if c.clientImpl == nil {
-		return nil, errors.New("client not initialized")
+		return nil, responseInfo, errors.New("client not initialized")
 	}
 
 	messagesInput := ConvertToOpenAIChatMessages(messages)
@@ -113,15 +113,18 @@ func (c *OpenAIClient) Chat(messages []chat.Message, options chat.ChatOptions) (
 		},
 	)
 	if err != nil {
-		return nil, err
+		return nil, responseInfo, err
 	}
 
 	if len(resp.Choices) == 0 {
-		return nil, errors.New("no chat completion choices returned")
+		return nil, responseInfo, errors.New("no chat completion choices returned")
 	}
+
+	responseInfo.CompletionTokens = resp.Usage.CompletionTokens
+	responseInfo.PromptTokens = resp.Usage.PromptTokens
 
 	return &chat.Message{
 		Content: resp.Choices[0].Message.Content,
 		Role:    resp.Choices[0].Message.Role,
-	}, nil
+	}, responseInfo, nil
 }

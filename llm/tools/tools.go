@@ -18,6 +18,10 @@ type FunctionConfig struct {
 	Params      []ParameterConfig `json:"params,omitempty" mapstructure:"params"`
 }
 
+type ToolsChatOutput struct {
+	Message string `json:"message" mapstructure:"message"`
+}
+
 // NewFunctionConfig returns a new FunctionConfig. Note that the name and description are required.
 // If the name or description are empty, then nil is returned.
 func NewFunctionConfig(name string, description string, params ...ParameterConfig) (*FunctionConfig, error) {
