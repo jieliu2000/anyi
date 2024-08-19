@@ -33,7 +33,7 @@ func TestNewImageContentFromFile_ValidFile(t *testing.T) {
 func TestNewImagePartFromUrl(t *testing.T) {
 	t.Run("Valid input", func(t *testing.T) {
 		imageUrl := "https://example.com/image.jpg"
-		detail := "This is an example image"
+		detail := "low"
 
 		contentPart, err := NewImagePartFromUrl(imageUrl, detail)
 		assert.Nil(t, err)
@@ -44,7 +44,7 @@ func TestNewImagePartFromUrl(t *testing.T) {
 
 	t.Run("Empty image URL", func(t *testing.T) {
 		imageUrl := ""
-		detail := "This is an example image"
+		detail := "high"
 
 		contentPart, err := NewImagePartFromUrl(imageUrl, detail)
 		assert.Nil(t, contentPart)
