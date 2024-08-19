@@ -234,7 +234,7 @@ message, responseInfo, err := client.Chat(messages, nil)
 
 `client.Chat()`函数有三个返回值：
 
-	- 第一个是`*chat.Message`类型的值，表示大模型返回的聊天消息。由于这是一个指针，因此如果调用大模型过程中发生了错误，那么程序会将这个返回值设置为nil。
+	- 第一个是`*chat.Message`类型的指针，表示大模型返回的聊天消息。由于这是一个指针，因此如果调用大模型过程中发生了错误，那么程序会将这个返回值设置为nil。
 	- 第二个是`chat.ResponseInfo`类型的值，表示大模型的响应信息，例如Token数量等。
 	- 第三个是`error`类型的值，表示调用大模型时发生的错误。
 
