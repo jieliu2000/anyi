@@ -23,6 +23,7 @@ Anyi, as a Go programming framework, offers the following features:
     - Ollama
 
 - **Multimodal Model Support**: In addition to supporting regular text-based conversations, Anyi also supports sending images to multimodal large models for processing.
+- **Multiple LLM Clients Support** Supports simultaneous access to multiple large language models from different sources. Different large model clients can be distinguished by their client names.
 - **Prompt Generation Based on Go Templates**: Supports generating prompts based on Go language templates.
 - **Workflow Support**: Allows chaining multiple conversation tasks into workflows.
 - **Step Validation in Workflows**: Repeats steps whose outputs do not meet expectations until the output is as expected. If the number of retries exceeds a predefined limit, an error is returned.
