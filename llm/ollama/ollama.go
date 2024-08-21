@@ -91,6 +91,7 @@ type OllamaRequest struct {
 	Messages []OllamaMessage          `json:"messages"`
 	Stream   bool                     `json:"stream"`
 	Tools    []map[string]interface{} `json:"tools,omitempty"`
+	Format   string                   `json:"format,omitempty"`
 }
 
 type OllamaParameterDetail struct {
