@@ -1,10 +1,19 @@
 package test
 
-import "github.com/jieliu2000/anyi/llm/chat"
+import (
+	"errors"
+
+	"github.com/jieliu2000/anyi/llm/chat"
+	"github.com/jieliu2000/anyi/llm/tools"
+)
 
 type MockClient struct {
 	ChatOutput string
 	Err        error
+}
+
+func (c *MockClient) ChatWithFunctions(messages []chat.Message, functions []tools.FunctionConfig, options chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
+	return nil, chat.ResponseInfo{}, errors.New("not implemented")
 }
 
 func (m *MockClient) Chat(messages []chat.Message, options chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {

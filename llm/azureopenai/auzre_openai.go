@@ -6,6 +6,7 @@ import (
 
 	"github.com/jieliu2000/anyi/llm/chat"
 	"github.com/jieliu2000/anyi/llm/openai"
+	"github.com/jieliu2000/anyi/llm/tools"
 
 	impl "github.com/sashabaranov/go-openai"
 )
@@ -50,6 +51,10 @@ func NewClient(config *AzureOpenAIModelConfig) (*AzureOpenAIClient, error) {
 	}
 
 	return client, nil
+}
+
+func (c *AzureOpenAIClient) ChatWithFunctions(messages []chat.Message, functions []tools.FunctionConfig, options chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
+	return nil, chat.ResponseInfo{}, errors.New("not implemented")
 }
 
 func (c *AzureOpenAIClient) Chat(messages []chat.Message, options chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {

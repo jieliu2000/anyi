@@ -9,6 +9,7 @@ import (
 	"github.com/jieliu2000/anyi/llm/dashscope"
 	"github.com/jieliu2000/anyi/llm/ollama"
 	"github.com/jieliu2000/anyi/llm/openai"
+	"github.com/jieliu2000/anyi/llm/tools"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -41,6 +42,7 @@ type ModelConfig interface {
 
 type Client interface {
 	Chat(messages []chat.Message, options chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error)
+	ChatWithFunctions(messages []chat.Message, functions []tools.FunctionConfig, options chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error)
 }
 
 // NewModelConfigFromClientConfig creates a new ModelConfig instance based on the provided ClientConfig.

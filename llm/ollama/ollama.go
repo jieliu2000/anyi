@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/jieliu2000/anyi/llm/chat"
+	"github.com/jieliu2000/anyi/llm/tools"
 )
 
 const (
@@ -85,9 +86,27 @@ func NewClient(config *OllamaModelConfig) (*OllamaClient, error) {
 }
 
 type OllamaRequest struct {
-	Model    string          `json:"model"`
-	Messages []OllamaMessage `json:"messages"`
-	Stream   bool            `json:"stream"`
+	Model    string                   `json:"model"`
+	Messages []OllamaMessage          `json:"messages"`
+	Stream   bool                     `json:"stream"`
+	Tools    []map[string]interface{} `json:"tools,omitempty"`
+}
+
+type OllamaParameterDetail struct {
+	Type        string   `json:"type"`
+	Description string   `json:"description,omitempty"`
+	Enum        []string `json:"enum,omitempty"`
+}
+
+type OllamaParameters struct {
+	Type       string                           `json:"type"`
+	Properties map[string]OllamaParameterDetail `json:"properties"`
+}
+
+type OllamaFunction struct {
+	Name        string           `json:"name"`
+	Description string           `json:"description,omitempty"`
+	Parameters  OllamaParameters `json:"parameters,omitempty"`
 }
 
 type OllamaResponse struct {
@@ -98,6 +117,72 @@ type OllamaResponse struct {
 	LoadDuration    int          `json:"load_duration"`
 	PromptEvalCount int          `json:"prompt_eval_count"`
 	EvalCount       int          `json:"eval_count"`
+}
+
+func convertToOllamaFunction(function tools.FunctionConfig) OllamaFunction {
+
+	properties := make(map[string]OllamaParameterDetail)
+
+	for _, param := range function.Params {
+		properties[param.Name] = OllamaParameterDetail{
+			Type:        param.Type,
+			Description: param.Description,
+			Enum:        param.Enum,
+		}
+	}
+
+	return OllamaFunction{
+		Name:        function.Name,
+		Description: function.Description,
+		Parameters: OllamaParameters{
+			Type:       "object",
+			Properties: properties,
+		},
+	}
+}
+
+func ConvertToOllamaTools(functions []tools.FunctionConfig) ([]map[string]interface{}, error) {
+	if len(functions) == 0 {
+		return nil, errors.New("no functions provided")
+	}
+
+	var ollamaFunctions []map[string]interface{}
+	for _, function := range functions {
+		ollamaFuncDesciption := make(map[string]interface{})
+		ollamaFuncDesciption["type"] = "function"
+
+		ollamaFuncDesciption["function"] = convertToOllamaFunction(function)
+	}
+
+	return ollamaFunctions, nil
+}
+
+func (c *OllamaClient) ChatWithFunctions(messages []chat.Message, functions []tools.FunctionConfig, options chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
+
+	response := chat.ResponseInfo{}
+	httpClient := c.clientImpl
+
+	if httpClient == nil {
+		return nil, response, errors.New("http client cannot be nil, maybe you didn't initiatialize the client. Considering using NewClient function")
+	}
+
+	ollamaMessages, err := ConvertToOllamaMessages(messages)
+	if err != nil {
+		return nil, response, err
+	}
+
+	tools, err := ConvertToOllamaTools(functions)
+
+	if err != nil {
+		return nil, response, err
+	}
+
+	request := OllamaRequest{
+		Model:    c.Config.Model,
+		Messages: ollamaMessages,
+		Tools:    tools,
+	}
+	return c.callOllamaAPI(&request, response, httpClient)
 }
 
 func (c *OllamaClient) Chat(messages []chat.Message, options chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
@@ -113,10 +198,16 @@ func (c *OllamaClient) Chat(messages []chat.Message, options chat.ChatOptions) (
 	if err != nil {
 		return nil, response, err
 	}
-	requestJson, err := json.Marshal(OllamaRequest{
+
+	request := OllamaRequest{
 		Model:    c.Config.Model,
 		Messages: ollamaMessages,
-	})
+	}
+	return c.callOllamaAPI(&request, response, httpClient)
+}
+
+func (c *OllamaClient) callOllamaAPI(request *OllamaRequest, response chat.ResponseInfo, httpClient *http.Client) (*chat.Message, chat.ResponseInfo, error) {
+	requestJson, err := json.Marshal(*request)
 
 	if err != nil {
 		return nil, response, err

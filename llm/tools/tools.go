@@ -6,10 +6,11 @@ import (
 )
 
 type ParameterConfig struct {
-	Name        string `json:"name" mapstructure:"name"`
-	Type        string `json:"type" mapstructure:"type"`
-	Description string `json:"description,omitempty" mapstructure:"description"`
-	Required    bool   `json:"required,omitempty" mapstructure:"required"`
+	Name        string   `json:"name" mapstructure:"name"`
+	Type        string   `json:"type" mapstructure:"type"`
+	Description string   `json:"description,omitempty" mapstructure:"description"`
+	Required    bool     `json:"required,omitempty" mapstructure:"required"`
+	Enum        []string `json:"enum,omitempty" mapstructure:"enum"`
 }
 
 type FunctionConfig struct {

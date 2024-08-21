@@ -9,6 +9,7 @@ import (
 
 	"github.com/jieliu2000/anyi/llm/chat"
 	"github.com/jieliu2000/anyi/llm/openai"
+	"github.com/jieliu2000/anyi/llm/tools"
 
 	impl "github.com/sashabaranov/go-openai"
 )
@@ -69,6 +70,10 @@ func NewClient(config *DashScopeModelConfig) (*DashScopeClient, error) {
 
 	// Return the newly created DashScopeClient and nil error
 	return client, nil
+}
+
+func (c *DashScopeClient) ChatWithFunctions(messages []chat.Message, functions []tools.FunctionConfig, options chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
+	return nil, chat.ResponseInfo{}, errors.New("not implemented")
 }
 
 func (c *DashScopeClient) Chat(messages []chat.Message, options chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
