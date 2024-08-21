@@ -5,18 +5,15 @@ import (
 	"errors"
 )
 
-type ChatOptions interface {
-}
-
-type GeneralChatOptions struct {
+type ChatOptions struct {
 	Format string `json:"format"`
 }
 
-func NewChatOptions(format string) GeneralChatOptions {
-	return GeneralChatOptions{Format: format}
+func NewChatOptions(format string) ChatOptions {
+	return ChatOptions{Format: format}
 }
 
-func SetChatOptions[T any](options ChatOptions, target *T) error {
+func SetChatOptions[T any](options *ChatOptions, target *T) error {
 	if options == nil {
 		return nil
 	}

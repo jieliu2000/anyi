@@ -12,11 +12,11 @@ type MockClient struct {
 	Err        error
 }
 
-func (c *MockClient) ChatWithFunctions(messages []chat.Message, functions []tools.FunctionConfig, options chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
+func (c *MockClient) ChatWithFunctions(messages []chat.Message, functions []tools.FunctionConfig, options *chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
 	return nil, chat.ResponseInfo{}, errors.New("not implemented")
 }
 
-func (m *MockClient) Chat(messages []chat.Message, options chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
+func (m *MockClient) Chat(messages []chat.Message, options *chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
 	info := chat.ResponseInfo{}
 
 	if m.Err != nil {

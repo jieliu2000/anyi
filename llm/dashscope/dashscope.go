@@ -72,11 +72,11 @@ func NewClient(config *DashScopeModelConfig) (*DashScopeClient, error) {
 	return client, nil
 }
 
-func (c *DashScopeClient) ChatWithFunctions(messages []chat.Message, functions []tools.FunctionConfig, options chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
+func (c *DashScopeClient) ChatWithFunctions(messages []chat.Message, functions []tools.FunctionConfig, options *chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
 	return nil, chat.ResponseInfo{}, errors.New("not implemented")
 }
 
-func (c *DashScopeClient) Chat(messages []chat.Message, options chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
+func (c *DashScopeClient) Chat(messages []chat.Message, options *chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
 
 	info := chat.ResponseInfo{}
 	// Check if the client implementation is initialized

@@ -99,11 +99,11 @@ func NewClient(config *OpenAIModelConfig) (*OpenAIClient, error) {
 	return client, nil
 }
 
-func (c *OpenAIClient) ChatWithFunctions(messages []chat.Message, functions []tools.FunctionConfig, options chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
+func (c *OpenAIClient) ChatWithFunctions(messages []chat.Message, functions []tools.FunctionConfig, options *chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
 	return nil, chat.ResponseInfo{}, errors.New("not implemented")
 }
 
-func (c *OpenAIClient) Chat(messages []chat.Message, options chat.ChatOptions) (message *chat.Message, responseInfo chat.ResponseInfo, err error) {
+func (c *OpenAIClient) Chat(messages []chat.Message, options *chat.ChatOptions) (message *chat.Message, responseInfo chat.ResponseInfo, err error) {
 	if c.clientImpl == nil {
 		return nil, responseInfo, errors.New("client not initialized")
 	}

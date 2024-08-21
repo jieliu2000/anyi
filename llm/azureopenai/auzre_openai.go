@@ -53,11 +53,11 @@ func NewClient(config *AzureOpenAIModelConfig) (*AzureOpenAIClient, error) {
 	return client, nil
 }
 
-func (c *AzureOpenAIClient) ChatWithFunctions(messages []chat.Message, functions []tools.FunctionConfig, options chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
+func (c *AzureOpenAIClient) ChatWithFunctions(messages []chat.Message, functions []tools.FunctionConfig, options *chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
 	return nil, chat.ResponseInfo{}, errors.New("not implemented")
 }
 
-func (c *AzureOpenAIClient) Chat(messages []chat.Message, options chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
+func (c *AzureOpenAIClient) Chat(messages []chat.Message, options *chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
 
 	client := c.clientImpl
 	info := chat.ResponseInfo{}

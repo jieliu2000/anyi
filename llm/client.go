@@ -41,8 +41,8 @@ type ModelConfig interface {
 }
 
 type Client interface {
-	Chat(messages []chat.Message, options chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error)
-	ChatWithFunctions(messages []chat.Message, functions []tools.FunctionConfig, options chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error)
+	Chat(messages []chat.Message, options *chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error)
+	ChatWithFunctions(messages []chat.Message, functions []tools.FunctionConfig, options *chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error)
 }
 
 // NewModelConfigFromClientConfig creates a new ModelConfig instance based on the provided ClientConfig.

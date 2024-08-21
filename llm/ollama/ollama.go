@@ -161,7 +161,7 @@ func ConvertToOllamaTools(functions []tools.FunctionConfig) ([]map[string]interf
 	return ollamaFunctions, nil
 }
 
-func (c *OllamaClient) ChatWithFunctions(messages []chat.Message, functions []tools.FunctionConfig, options chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
+func (c *OllamaClient) ChatWithFunctions(messages []chat.Message, functions []tools.FunctionConfig, options *chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
 
 	response := chat.ResponseInfo{}
 	httpClient := c.clientImpl
@@ -190,7 +190,7 @@ func (c *OllamaClient) ChatWithFunctions(messages []chat.Message, functions []to
 	return c.callOllamaAPI(request, response, httpClient)
 }
 
-func (c *OllamaClient) Chat(messages []chat.Message, options chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
+func (c *OllamaClient) Chat(messages []chat.Message, options *chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
 
 	response := chat.ResponseInfo{}
 	httpClient := c.clientImpl
