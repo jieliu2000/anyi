@@ -181,12 +181,13 @@ func (c *OllamaClient) ChatWithFunctions(messages []chat.Message, functions []to
 		return nil, response, err
 	}
 
-	request := OllamaRequest{
-		Model:    c.Config.Model,
-		Messages: ollamaMessages,
-		Tools:    tools,
-	}
-	return c.callOllamaAPI(&request, response, httpClient)
+	request := &OllamaRequest{}
+	chat.SetChatOptions(options, &request)
+	request.Model = c.Config.Model
+	request.Messages = ollamaMessages
+	request.Tools = tools
+
+	return c.callOllamaAPI(request, response, httpClient)
 }
 
 func (c *OllamaClient) Chat(messages []chat.Message, options chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
@@ -203,11 +204,12 @@ func (c *OllamaClient) Chat(messages []chat.Message, options chat.ChatOptions) (
 		return nil, response, err
 	}
 
-	request := OllamaRequest{
-		Model:    c.Config.Model,
-		Messages: ollamaMessages,
-	}
-	return c.callOllamaAPI(&request, response, httpClient)
+	request := &OllamaRequest{}
+	chat.SetChatOptions(options, &request)
+	request.Model = c.Config.Model
+	request.Messages = ollamaMessages
+
+	return c.callOllamaAPI(request, response, httpClient)
 }
 
 func (c *OllamaClient) callOllamaAPI(request *OllamaRequest, response chat.ResponseInfo, httpClient *http.Client) (*chat.Message, chat.ResponseInfo, error) {
