@@ -10,7 +10,7 @@ import (
 
 func Example_ollama() {
 	// Make sure you start ollama and pulled your target model first.
-	config := ollama.DefaultConfig("mistral")
+	config := ollama.DefaultConfig("qwen2:7b")
 	client, err := llm.NewClient(config)
 
 	if err != nil {

@@ -9,6 +9,16 @@ type Message struct {
 	Content      string        `json:"content,omitempty"`
 	Role         string        `json:"role"`
 	ContentParts []ContentPart `json:"contentParts,omitempty"`
+	ToolCalls    []ToolCall    `json:"tool_calls,omitempty"`
+}
+
+type ToolCall struct {
+	Function FunctionCall `json:"function"`
+}
+
+type FunctionCall struct {
+	Name      string         `json:"name"`
+	Arguments map[string]any `json:"arguments"`
 }
 
 func (m *Message) ToJSON() string {

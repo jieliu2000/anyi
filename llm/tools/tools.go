@@ -1,10 +1,5 @@
 package tools
 
-import (
-	"errors"
-	"fmt"
-)
-
 type ParameterConfig struct {
 	Name        string   `json:"name" mapstructure:"name"`
 	Type        string   `json:"type" mapstructure:"type"`
@@ -23,36 +18,41 @@ type ToolsChatOutput struct {
 	Message string `json:"message" mapstructure:"message"`
 }
 
+func (funcConfig *FunctionConfig) AddParam(name string, paramType string, description string, required bool, paramEnum []string) *FunctionConfig {
+	if funcConfig == nil {
+		return nil
+	}
+
+	if funcConfig.Params == nil {
+		funcConfig.Params = make([]ParameterConfig, 0)
+	}
+	param := NewParameter(name, paramType, description, required, paramEnum)
+
+	funcConfig.Params = append(funcConfig.Params, param)
+
+	return funcConfig
+}
+
+func (funcConfig *FunctionConfig) AddSimpleParam(name string, paramType string, description string) *FunctionConfig {
+	return funcConfig.AddParam(name, paramType, description, true, nil)
+}
+
 // NewFunctionConfig returns a new FunctionConfig. Note that the name and description are required.
 // If the name or description are empty, then nil is returned.
-func NewFunctionConfig(name string, description string, params ...ParameterConfig) (*FunctionConfig, error) {
-	if name == "" || description == "" {
-		return nil, errors.New("name and description are required")
-	}
+func NewFunctionConfig(name string, description string, params ...ParameterConfig) FunctionConfig {
 
-	paramsArray := make([]ParameterConfig, len(params))
-	for index, param := range params {
-		value, err := NewParameter(param.Name, param.Type, param.Description, param.Required)
-		if err != nil {
-			return nil, errors.Join(fmt.Errorf("error creating parameter at index %d", index), err)
-		}
-		paramsArray[index] = *value
-	}
-	return &FunctionConfig{Name: name, Description: description, Params: paramsArray}, nil
+	return FunctionConfig{Name: name, Description: description, Params: params}
 }
 
-func NewParameter(name string, paramType string, description string, required bool) (*ParameterConfig, error) {
-	if name == "" {
-		return nil, errors.New("name is required")
-	}
+func NewParameter(name string, paramType string, description string, required bool, paramEnum []string) ParameterConfig {
 
-	return &ParameterConfig{Name: name, Type: paramType, Description: description, Required: required}, nil
+	return ParameterConfig{Name: name, Type: paramType, Description: description, Required: required, Enum: paramEnum}
 }
 
-func NewOptionalParameter(name string, paramType string, description string) (*ParameterConfig, error) {
-	return NewParameter(name, paramType, description, false)
+func NewOptionalParameter(name string, paramType string, description string) ParameterConfig {
+	return NewParameter(name, paramType, description, false, nil)
 }
 
-func NewRequiredParameter(name string, paramType string, description string) (*ParameterConfig, error) {
-	return NewParameter(name, paramType, description, true)
+func NewRequiredParameter(name string, paramType string, description string) ParameterConfig {
+	return NewParameter(name, paramType, description, true, nil)
 }
