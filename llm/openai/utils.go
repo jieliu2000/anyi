@@ -1,9 +1,129 @@
 package openai
 
 import (
+	"context"
+	"errors"
+
 	"github.com/jieliu2000/anyi/llm/chat"
+	"github.com/jieliu2000/anyi/llm/tools"
 	impl "github.com/sashabaranov/go-openai"
 )
+
+type ParameterDetail struct {
+	Type        string   `json:"type"`
+	Description string   `json:"description,omitempty"`
+	Enum        []string `json:"enum,omitempty"`
+}
+
+func convertToFuncDesc(function tools.FunctionConfig) impl.FunctionDefinition {
+
+	properties := make(map[string]any)
+
+	for _, param := range function.Params {
+		properties[param.Name] = ParameterDetail{
+			Type:        param.Type,
+			Description: param.Description,
+			Enum:        param.Enum,
+		}
+	}
+
+	return impl.FunctionDefinition{
+		Name:        function.Name,
+		Description: function.Description,
+	}
+}
+
+func ExecuteChatWithFunctions(client *impl.Client, model string, messages []chat.Message, functions []tools.FunctionConfig, options *chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
+	info := chat.ResponseInfo{}
+
+	if client == nil {
+		return nil, info, errors.New("client not initialized")
+	}
+
+	messagesInput := ConvertToOpenAIChatMessages(messages)
+	toolsImpl := []impl.Tool{}
+
+	for _, f := range functions {
+
+		funcDefinition := convertToFuncDesc(f)
+		toolImpl := impl.Tool{
+			Type:     impl.ToolTypeFunction,
+			Function: &funcDefinition,
+		}
+
+		toolsImpl = append(toolsImpl, toolImpl)
+	}
+
+	request := impl.ChatCompletionRequest{
+		Model:    model,
+		Messages: messagesInput,
+		Tools:    toolsImpl,
+	}
+
+	resp, err := client.CreateChatCompletion(
+		context.Background(),
+		request,
+	)
+
+	if err != nil {
+		return nil, info, err
+	}
+	choice := resp.Choices[0]
+
+	result := chat.Message{
+		Content: choice.Message.Content,
+		Role:    choice.Message.Role,
+	}
+
+	toolsCalls := []chat.ToolCall{}
+
+	if choice.Message.ToolCalls != nil {
+		for _, call := range choice.Message.ToolCalls {
+			funcCall := chat.FunctionCall{
+				Name: call.Function.Name,
+			}
+			toolsCalls = append(toolsCalls, chat.ToolCall{
+				Function: funcCall,
+			})
+
+		}
+	}
+	info.PromptTokens = resp.Usage.PromptTokens
+	info.CompletionTokens = resp.Usage.CompletionTokens
+
+	return &result, info, nil
+}
+
+func ExecuteChat(client *impl.Client, model string, messages []chat.Message, options *chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
+	info := chat.ResponseInfo{}
+
+	if client == nil {
+		return nil, info, errors.New("client not initialized")
+	}
+
+	messagesInput := ConvertToOpenAIChatMessages(messages)
+	request := impl.ChatCompletionRequest{
+		Model:    model,
+		Messages: messagesInput,
+	}
+
+	resp, err := client.CreateChatCompletion(
+		context.Background(),
+		request,
+	)
+
+	if err != nil {
+		return nil, info, err
+	}
+	result := chat.Message{
+		Content: resp.Choices[0].Message.Content,
+		Role:    resp.Choices[0].Message.Role,
+	}
+	info.PromptTokens = resp.Usage.PromptTokens
+	info.CompletionTokens = resp.Usage.CompletionTokens
+
+	return &result, info, nil
+}
 
 func ConvertToOpenAIChatMessages(messages []chat.Message) []impl.ChatCompletionMessage {
 	result := []impl.ChatCompletionMessage{}

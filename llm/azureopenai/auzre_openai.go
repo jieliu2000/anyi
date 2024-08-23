@@ -1,7 +1,6 @@
 package azureopenai
 
 import (
-	"context"
 	"errors"
 
 	"github.com/jieliu2000/anyi/llm/chat"
@@ -54,37 +53,15 @@ func NewClient(config *AzureOpenAIModelConfig) (*AzureOpenAIClient, error) {
 }
 
 func (c *AzureOpenAIClient) ChatWithFunctions(messages []chat.Message, functions []tools.FunctionConfig, options *chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
-	return nil, chat.ResponseInfo{}, errors.New("not implemented")
+	client := c.clientImpl
+
+	return openai.ExecuteChatWithFunctions(client, c.Config.ModelDeploymentId, messages, functions, options)
 }
 
 func (c *AzureOpenAIClient) Chat(messages []chat.Message, options *chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
 
 	client := c.clientImpl
-	info := chat.ResponseInfo{}
 
-	if client == nil {
-		return nil, info, errors.New("client not initialized")
-	}
+	return openai.ExecuteChat(client, c.Config.ModelDeploymentId, messages, options)
 
-	messagesInput := openai.ConvertToOpenAIChatMessages(messages)
-
-	resp, err := client.CreateChatCompletion(
-		context.Background(),
-		impl.ChatCompletionRequest{
-			Model:    c.Config.ModelDeploymentId,
-			Messages: messagesInput,
-		},
-	)
-
-	if err != nil {
-		return nil, info, err
-	}
-	result := chat.Message{
-		Content: resp.Choices[0].Message.Content,
-		Role:    resp.Choices[0].Message.Role,
-	}
-	info.PromptTokens = resp.Usage.PromptTokens
-	info.CompletionTokens = resp.Usage.CompletionTokens
-
-	return &result, info, nil
 }

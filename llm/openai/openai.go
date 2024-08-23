@@ -109,13 +109,14 @@ func (c *OpenAIClient) Chat(messages []chat.Message, options *chat.ChatOptions) 
 	}
 
 	messagesInput := ConvertToOpenAIChatMessages(messages)
+	request := impl.ChatCompletionRequest{
+		Model:    c.Config.Model,
+		Messages: messagesInput,
+	}
 
 	resp, err := c.clientImpl.CreateChatCompletion(
 		context.Background(),
-		impl.ChatCompletionRequest{
-			Model:    c.Config.Model,
-			Messages: messagesInput,
-		},
+		request,
 	)
 	if err != nil {
 		return nil, responseInfo, err
