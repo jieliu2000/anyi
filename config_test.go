@@ -14,7 +14,7 @@ type MockExecutor struct {
 	Param2 int
 }
 
-func (m *MockExecutor) Run(context flow.FlowContext, Step *flow.Step) (*flow.FlowContext, error) {
+func (m *MockExecutor) Run(context flow.ShortTermMemory, Step *flow.Step) (*flow.ShortTermMemory, error) {
 
 	return &context, nil
 }

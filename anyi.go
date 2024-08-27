@@ -138,8 +138,8 @@ func NewMessage(role string, content string) chat.Message {
 	}
 }
 
-func NewContext(input string) *flow.FlowContext {
-	context := flow.FlowContext{
+func NewContext(input string) *flow.ShortTermMemory {
+	context := flow.ShortTermMemory{
 		Context: input,
 	}
 
