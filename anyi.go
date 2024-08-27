@@ -138,12 +138,12 @@ func NewMessage(role string, content string) chat.Message {
 	}
 }
 
-func NewContext(input string) *flow.FlowContext {
-	context := flow.FlowContext{
-		Context: input,
+func NewShortTermMemory(input string) *flow.ShortTermMemory {
+	memory := flow.ShortTermMemory{
+		Text: input,
 	}
 
-	return &context
+	return &memory
 }
 
 func GetFormatter(name string) chat.PromptFormatter {
