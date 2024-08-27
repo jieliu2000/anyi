@@ -39,7 +39,7 @@ type StepValidator interface {
 type StepExecutor interface {
 	Init() error
 
-	Run(context ShortTermMemory, Step *Step) (*ShortTermMemory, error)
+	Run(memory ShortTermMemory, Step *Step) (*ShortTermMemory, error)
 }
 
 type Step struct {
@@ -53,21 +53,21 @@ type Step struct {
 	MaxRetryTimes int
 }
 
-// ShortTermMemory is the context for a flow. It will be passed to each flow step.
-// The Context field provides the input and output string for a step. For example, before the step runs, the "Context" field is the input string (which might be formatted by the template formatter). After the step runs, the "Context" field is the output string.
+// ShortTermMemory is the memory for a flow. It will be passed to each flow step.
+// The ShortTermMemory field provides the input and output string for a step. For example, before the step runs, the "ShortTermMemory" field is the input string (which might be formatted by the template formatter). After the step runs, the "ShortTermMemory" field is the output string.
 // The Data field could be any data you want to pass between steps.
 type ShortTermMemory struct {
-	Context string
-	Data    any
-	flow    *Flow
+	Text        string
+	NonTextData any
+	flow        *Flow
 }
 
-func NewContext(context string, data any) *ShortTermMemory {
-	return &ShortTermMemory{Context: context, Data: data}
+func NewShortTermMemory(memory string, data any) *ShortTermMemory {
+	return &ShortTermMemory{Text: memory, NonTextData: data}
 }
 
-func (flow *Flow) NewContext(context string, data any) *ShortTermMemory {
-	return &ShortTermMemory{Context: context, Data: data, flow: flow}
+func (flow *Flow) NewShortTermMemory(memory string, data any) *ShortTermMemory {
+	return &ShortTermMemory{Text: memory, NonTextData: data, flow: flow}
 }
 
 func NewStep(executor StepExecutor, validator StepValidator, client llm.Client) *Step {
@@ -93,11 +93,11 @@ func NewStepWithValidator(stepConfig any, executor StepExecutor, validator StepV
 	}
 }
 
-func tryStep(step *Step, context ShortTermMemory) (*ShortTermMemory, error) {
+func tryStep(step *Step, memory ShortTermMemory) (*ShortTermMemory, error) {
 	var err error
 
-	// Run the step and get the updated context
-	result, err := step.Executor.Run(context, step)
+	// Run the step and get the updated memory
+	result, err := step.Executor.Run(memory, step)
 	step.runTimes++
 	if err != nil {
 		return result, err
@@ -107,8 +107,8 @@ func tryStep(step *Step, context ShortTermMemory) (*ShortTermMemory, error) {
 	}
 	if step.Validator != nil {
 		// Validate the step output
-		if step.Validator.Validate(result.Context, step) {
-			// If the step output is valid, update context and continue to the next step
+		if step.Validator.Validate(result.Text, step) {
+			// If the step output is valid, update memory and continue to the next step
 			return result, nil
 		} else {
 			// Otherwise, try again
@@ -120,35 +120,35 @@ func tryStep(step *Step, context ShortTermMemory) (*ShortTermMemory, error) {
 }
 
 func (flow *Flow) RunWithInput(input string) (*ShortTermMemory, error) {
-	// Create a new context with the input
-	context := ShortTermMemory{
-		Context: input,
+	// Create a new memory with the input
+	memory := ShortTermMemory{
+		Text: input,
 	}
 
-	return flow.Run(context)
+	return flow.Run(memory)
 }
 
-func (flow *Flow) Run(initialContext ShortTermMemory) (*ShortTermMemory, error) {
+func (flow *Flow) Run(initialShortTermMemory ShortTermMemory) (*ShortTermMemory, error) {
 
-	context := &initialContext
-	context.flow = flow
+	memory := &initialShortTermMemory
+	memory.flow = flow
 
 	// For each step in the flow
 	for _, step := range flow.Steps {
-		// Run the step and get the updated context
+		// Run the step and get the updated memory
 
-		result, err := tryStep(&step, *context)
+		result, err := tryStep(&step, *memory)
 
 		if err != nil {
 			return nil, err
 		}
 
-		// Update the context
-		context = result
+		// Update the memory
+		memory = result
 	}
 
-	// Return the context content
-	return context, nil
+	// Return the memory content
+	return memory, nil
 }
 
 type LLMStepExecutor struct {
@@ -183,13 +183,13 @@ func (executor *LLMStepExecutor) Init() error {
 	return nil
 }
 
-func (executor *LLMStepExecutor) Run(context ShortTermMemory, step *Step) (*ShortTermMemory, error) {
+func (executor *LLMStepExecutor) Run(memory ShortTermMemory, step *Step) (*ShortTermMemory, error) {
 	if step == nil {
 		return nil, errors.New("no step provided")
 	}
 
 	if step.clientImpl == nil {
-		step.clientImpl = context.flow.clientImpl
+		step.clientImpl = memory.flow.clientImpl
 	}
 	if step.clientImpl == nil {
 		return nil, errors.New("no client set for flow step")
@@ -214,12 +214,12 @@ func (executor *LLMStepExecutor) Run(context ShortTermMemory, step *Step) (*Shor
 	var input string
 	if executor.TemplateFormatter != nil {
 		var err error
-		input, err = executor.TemplateFormatter.Format(context)
+		input, err = executor.TemplateFormatter.Format(memory)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		input = context.Context
+		input = memory.Text
 	}
 
 	messages := make([]chat.Message, 0, 2)
@@ -233,8 +233,8 @@ func (executor *LLMStepExecutor) Run(context ShortTermMemory, step *Step) (*Shor
 		return nil, err
 	}
 
-	context.Context = output.Content
-	return &context, nil
+	memory.Text = output.Content
+	return &memory, nil
 }
 
 func NewLLMStepWithTemplateFile(templateFilePath string, systemMessage string, client llm.Client) (*Step, error) {
