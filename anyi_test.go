@@ -191,6 +191,25 @@ func TestNewPromptTemplateFormatter(t *testing.T) {
 
 }
 
+func TestNewLLMStepExecutorWithFormatter(t *testing.T) {
+	name := "test_executor"
+	formatter := &chat.PromptyTemplateFormatter{
+		TemplateString: "Hello, {{.Name}}!",
+	}
+	systemMessage := "Reactions please!"
+	client := &test.MockClient{}
+
+	stepExecutor := NewLLMStepExecutorWithFormatter(name, formatter, systemMessage, client)
+	assert.NotNil(t, stepExecutor)
+	assert.Equal(t, formatter, stepExecutor.TemplateFormatter)
+	assert.Equal(t, systemMessage, stepExecutor.SystemMessage)
+
+	assert.NoError(t, RegisterExecutor(name, stepExecutor))
+
+	retrievedExecutor := GlobalRegistry.Executors[name]
+	assert.Equal(t, stepExecutor, retrievedExecutor)
+}
+
 func TestGetFlow(t *testing.T) {
 	t.Run("with an existing flow", func(t *testing.T) {
 		flowName := "test_flow"
