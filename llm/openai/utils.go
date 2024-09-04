@@ -2,6 +2,7 @@ package openai
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 
 	"github.com/jieliu2000/anyi/llm/chat"
@@ -17,19 +18,27 @@ type ParameterDetail struct {
 
 func convertToFuncDesc(function tools.FunctionConfig) impl.FunctionDefinition {
 
+	parameters := map[string]any{
+		"type": "object",
+	}
 	properties := make(map[string]any)
 
 	for _, param := range function.Params {
+		if param.Name == "type" {
+			param.Name = "_type_"
+		}
 		properties[param.Name] = ParameterDetail{
 			Type:        param.Type,
 			Description: param.Description,
 			Enum:        param.Enum,
 		}
 	}
+	parameters["properties"] = properties
 
 	return impl.FunctionDefinition{
 		Name:        function.Name,
 		Description: function.Description,
+		Parameters:  parameters,
 	}
 }
 
@@ -79,15 +88,20 @@ func ExecuteChatWithFunctions(client *impl.Client, model string, messages []chat
 
 	if choice.Message.ToolCalls != nil {
 		for _, call := range choice.Message.ToolCalls {
+
+			params := make(map[string]any)
+			json.Unmarshal([]byte(call.Function.Arguments), &params)
 			funcCall := chat.FunctionCall{
-				Name: call.Function.Name,
+				Name:      call.Function.Name,
+				Arguments: params,
 			}
 			toolsCalls = append(toolsCalls, chat.ToolCall{
 				Function: funcCall,
 			})
-
 		}
 	}
+	result.ToolCalls = toolsCalls
+
 	info.PromptTokens = resp.Usage.PromptTokens
 	info.CompletionTokens = resp.Usage.CompletionTokens
 

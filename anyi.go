@@ -27,13 +27,26 @@ var GlobalRegistry *anyiRegistry = &anyiRegistry{
 	executorTypes: make(map[string]flow.StepExecutor),
 }
 
+// RegisterDefaultClient registers the default client to the global registry.
+// Parameters:
+// - client llm.Client: The client to be registered as the default client.
 func RegisterDefaultClient(client llm.Client) {
 	GlobalRegistry.Clients["default"] = client
 }
 
+// GetDefaultClient function retrieves the default client from the Anyi global registry. A default client is a client that meets any of the following conditions:
+// - It has been Set to the global Anyi instance with name "default"
+// - There is only one client in the registry. Then this client will be the default client and returned.
+//
+// If no client is found, it returns an error indicating that no default client was found.
 func GetDefaultClient() (llm.Client, error) {
 	client, ok := GlobalRegistry.Clients["default"]
 	if !ok {
+		if len(GlobalRegistry.Clients) == 1 {
+			for _, client = range GlobalRegistry.Clients {
+				return client, nil
+			}
+		}
 		return nil, errors.New("no default client found")
 	}
 	return client, nil
@@ -187,6 +200,10 @@ func NewFlow(name string, client llm.Client, steps ...flow.Step) (*flow.Flow, er
 	if name == "" {
 		return nil, errors.New("name cannot be empty")
 	}
+	if len(steps) == 0 {
+		return nil, errors.New("no steps provided")
+	}
+
 	f, err := flow.NewFlow(client, name, steps...)
 
 	if err != nil {

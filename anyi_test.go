@@ -34,6 +34,40 @@ func TestNewClientWithName(t *testing.T) {
 
 }
 
+func TestGetDefaultClient(t *testing.T) {
+	t.Run("No default client", func(t *testing.T) {
+		GlobalRegistry.Clients = make(map[string]llm.Client)
+		_, err := GetDefaultClient()
+		assert.Error(t, err)
+	})
+	t.Run("Set default client via RegisterDefaultClient", func(t *testing.T) {
+		client := &test.MockClient{}
+		RegisterDefaultClient(client)
+		got, err := GetDefaultClient()
+		assert.NoError(t, err)
+		assert.Equal(t, client, got)
+	})
+	t.Run("Set default client", func(t *testing.T) {
+		client := &test.MockClient{}
+		GlobalRegistry.Clients["default"] = client
+		got, err := GetDefaultClient()
+		assert.NoError(t, err)
+		assert.Equal(t, client, got)
+	})
+	t.Run("Only one client", func(t *testing.T) {
+		// Arrange
+		GlobalRegistry.Clients = make(map[string]llm.Client)
+		GlobalRegistry.Clients["test"] = &test.MockClient{}
+
+		// Act
+		client, err := GetDefaultClient()
+
+		// Assert
+		assert.NoError(t, err)
+		assert.NotNil(t, client)
+	})
+}
+
 func TestRegisterClient(t *testing.T) {
 
 	t.Run("Success", func(t *testing.T) {
@@ -155,4 +189,76 @@ func TestNewPromptTemplateFormatter(t *testing.T) {
 		assert.Nil(t, formatter)
 	})
 
+}
+
+func TestGetFlow(t *testing.T) {
+	t.Run("with an existing flow", func(t *testing.T) {
+		flowName := "test_flow"
+		GlobalRegistry.Flows[flowName] = &flow.Flow{
+			Name: flowName,
+		}
+		f, err := GetFlow(flowName)
+		assert.Nil(t, err)
+		assert.Equal(t, flowName, f.Name)
+	})
+	t.Run("with a non-existing flow", func(t *testing.T) {
+		flowName := "non_existing_flow"
+		f, err := GetFlow(flowName)
+		assert.Nil(t, f)
+		assert.EqualError(t, err, "no flow found with the given name: "+flowName)
+	})
+	t.Run("with an empty name", func(t *testing.T) {
+		f, err := GetFlow("")
+		assert.Nil(t, f)
+		assert.EqualError(t, err, "name cannot be empty")
+	})
+}
+
+func TestNewShortTermMemory(t *testing.T) {
+	input := "test"
+	memory := NewShortTermMemory(input)
+	assert.IsType(t, &flow.ShortTermMemory{}, memory)
+	assert.Equal(t, input, memory.Text)
+}
+
+func TestNewFlow(t *testing.T) {
+	t.Run("creates a new flow with the given name and steps", func(t *testing.T) {
+		name := "test_flow"
+		client := test.MockClient{}
+		steps := []flow.Step{
+			{},
+			{},
+		}
+
+		flow, err := NewFlow(name, &client, steps...)
+		assert.NoError(t, err)
+		assert.Equal(t, name, flow.Name)
+		assert.Equal(t, len(steps), len(flow.Steps))
+
+	})
+
+	t.Run("returns an error if the name is empty", func(t *testing.T) {
+		client := test.MockClient{}
+		steps := []flow.Step{}
+
+		flow, err := NewFlow("", &client, steps...)
+		assert.Error(t, err)
+		assert.Nil(t, flow)
+	})
+
+	t.Run("returns an error if the flow cannot be created", func(t *testing.T) {
+		name := "invalid_flow"
+		client := test.MockClient{}
+
+		flow, err := NewFlow(name, &client)
+		assert.Error(t, err)
+		assert.Nil(t, flow)
+	})
+}
+
+func TestInit(t *testing.T) {
+	// Execute
+	Init()
+	// Verify
+	assert.NotNil(t, GlobalRegistry.executorTypes["llm"])
 }
