@@ -100,7 +100,9 @@ func NewClient(config *OpenAIModelConfig) (*OpenAIClient, error) {
 }
 
 func (c *OpenAIClient) ChatWithFunctions(messages []chat.Message, functions []tools.FunctionConfig, options *chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
-	return nil, chat.ResponseInfo{}, errors.New("not implemented")
+	client := c.clientImpl
+
+	return ExecuteChatWithFunctions(client, c.Config.Model, messages, functions, options)
 }
 
 func (c *OpenAIClient) Chat(messages []chat.Message, options *chat.ChatOptions) (message *chat.Message, responseInfo chat.ResponseInfo, err error) {

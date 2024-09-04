@@ -279,5 +279,5 @@ func TestInit(t *testing.T) {
 	// Execute
 	Init()
 	// Verify
-	assert.NotNil(t, GlobalRegistry.executorTypes["llm"])
+	assert.NotNil(t, GlobalRegistry.Executors["llm"])
 }

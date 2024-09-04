@@ -14,17 +14,14 @@ type anyiRegistry struct {
 	Validators map[string]flow.StepValidator
 	Executors  map[string]flow.StepExecutor
 	Formatters map[string]chat.PromptFormatter
-
-	executorTypes map[string]flow.StepExecutor
 }
 
 var GlobalRegistry *anyiRegistry = &anyiRegistry{
-	Clients:       make(map[string]llm.Client),
-	Flows:         make(map[string]*flow.Flow),
-	Validators:    make(map[string]flow.StepValidator),
-	Executors:     make(map[string]flow.StepExecutor),
-	Formatters:    make(map[string]chat.PromptFormatter),
-	executorTypes: make(map[string]flow.StepExecutor),
+	Clients:    make(map[string]llm.Client),
+	Flows:      make(map[string]*flow.Flow),
+	Validators: make(map[string]flow.StepValidator),
+	Executors:  make(map[string]flow.StepExecutor),
+	Formatters: make(map[string]chat.PromptFormatter),
 }
 
 // RegisterDefaultClient registers the default client to the global registry.
@@ -214,16 +211,8 @@ func NewFlow(name string, client llm.Client, steps ...flow.Step) (*flow.Flow, er
 	return f, nil
 }
 
-func DefineExecutorType(typeName string, executor flow.StepExecutor) error {
-	if typeName == "" {
-		return errors.New("name cannot be empty")
-	}
-	GlobalRegistry.executorTypes[typeName] = executor
-	return nil
-}
-
-func GetExecutorType(typeName string) flow.StepExecutor {
-	return GlobalRegistry.executorTypes[typeName]
+func GetValidatorType(typeName string) flow.StepValidator {
+	return GlobalRegistry.Validators[typeName]
 }
 
 func RegisterExecutor(name string, executor flow.StepExecutor) error {
@@ -258,5 +247,5 @@ func NewLLMStep(tmplate string, systemMessage string, client llm.Client) (*flow.
 }
 
 func Init() {
-	DefineExecutorType("llm", &flow.LLMStepExecutor{})
+	RegisterExecutor("llm", &flow.LLMStepExecutor{})
 }

@@ -153,7 +153,11 @@ func NewExecutorFromConfig(executorConfig *ExecutorConfig) (flow.StepExecutor, e
 		return nil, errors.New("executor name is not set")
 	}
 
-	executor := GetExecutorType(executorConfig.Type)
+	executor, err := GetExecutor(executorConfig.Type)
+
+	if err != nil {
+		return nil, err
+	}
 
 	if executor == nil {
 		return nil, fmt.Errorf("executor type %s is not found", executorConfig.Type)
@@ -163,6 +167,35 @@ func NewExecutorFromConfig(executorConfig *ExecutorConfig) (flow.StepExecutor, e
 	executor.Init()
 	RegisterExecutor(executorConfig.Name, executor)
 	return executor, nil
+}
+
+func NewValidatorFromConfig(validatorConfig *ValidatorConfig) (flow.StepValidator, error) {
+	if validatorConfig == nil {
+		return nil, errors.New("validator config is nil")
+	}
+
+	if validatorConfig.Type == "" {
+		return nil, errors.New("validator type is not set")
+	}
+
+	if validatorConfig.Name == "" {
+		return nil, errors.New("validator name is not set")
+	}
+
+	validator, err := GetValidator(validatorConfig.Type)
+
+	if err != nil {
+		return nil, err
+	}
+	if validator == nil {
+		return nil, fmt.Errorf("validator type %s is not found", validatorConfig.Type)
+	}
+
+	mapstructure.Decode(validatorConfig.Config, validator)
+	validator.Init()
+	RegisterValidator(validatorConfig.Name, validator)
+	return validator, nil
+
 }
 
 func Config(config *AnyiConfig) error {
@@ -194,6 +227,12 @@ func Config(config *AnyiConfig) error {
 		}
 	}
 
+	for _, validatorConfig := range config.Validators {
+		_, err := NewValidatorFromConfig(&validatorConfig)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 
 }

@@ -5,8 +5,8 @@ import (
 
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/internal/test"
+	"github.com/jieliu2000/anyi/llm"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 type MockExecutor struct {
@@ -59,7 +59,7 @@ func TestNewFlowFromConfig_Success(t *testing.T) {
 	flowInstance, err := NewFlowFromConfig(flowConfig)
 
 	// Verify
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.NotNil(t, flowInstance)
 	assert.Equal(t, flowConfig.Name, flowInstance.Name)
 	assert.Equal(t, 1, len(flowInstance.Steps))
@@ -157,7 +157,7 @@ func TestNewExecutorFromConfig(t *testing.T) {
 	t.Run("Success path with param", func(t *testing.T) {
 
 		executor1 := &MockExecutor{}
-		DefineExecutorType("valid-executor", executor1)
+		RegisterExecutor("valid-executor", executor1)
 
 		executorConfig := &ExecutorConfig{
 			Type: "valid-executor",
@@ -178,4 +178,211 @@ func TestNewExecutorFromConfig(t *testing.T) {
 
 	})
 
+}
+
+func TestNewClientFromConfigWithEmptyName(t *testing.T) {
+	config := llm.ClientConfig{
+		Name: "",
+		Type: "line",
+		Config: map[string]interface{}{
+			"accessToken": "test_access_token",
+		},
+	}
+	client, err := NewClientFromConfig(&config)
+	assert.Nil(t, client)
+	assert.Error(t, err)
+}
+
+func TestNewClientFromConfig(t *testing.T) {
+	config := llm.ClientConfig{
+		Name: "test",
+		Type: "openai",
+		Config: map[string]interface{}{
+			"accessToken": "test_access_token",
+		},
+	}
+	client, err := NewClientFromConfig(&config)
+	assert.Nil(t, err)
+	assert.NotNil(t, client)
+}
+
+func TestNewClientFromConfigWithInvalidType(t *testing.T) {
+	config := llm.ClientConfig{
+		Name: "test",
+		Type: "invalid_type",
+		Config: map[string]interface{}{
+			"accessToken": "test_access_token",
+		},
+	}
+	client, err := NewClientFromConfig(&config)
+	assert.Nil(t, client)
+	assert.Error(t, err)
+}
+
+func TestConfig(t *testing.T) {
+	config := AnyiConfig{
+		Clients: []llm.ClientConfig{
+			{
+				Name: "client1",
+				Type: "ollama",
+				Config: map[string]interface{}{
+					"requestTimeout": 1000,
+					"model":          "qwen2",
+				},
+			},
+		},
+		Executors: []ExecutorConfig{
+			{
+				Name: "executor1",
+				Type: "llm",
+				Config: map[string]interface{}{
+					"requestTimeout": 1000,
+				},
+			},
+		},
+		Flows: []FlowConfig{
+			{
+				Name: "flow1",
+				Steps: []StepConfig{
+					{
+						Executor:      "executor1",
+						ClientName:    "client1",
+						MaxRetryTimes: 1,
+					},
+				},
+			},
+		},
+	}
+	err := Config(&config)
+	assert.Nil(t, err)
+}
+
+func TestConfigWithInvalidExecutor(t *testing.T) {
+	config := AnyiConfig{
+		Clients: []llm.ClientConfig{
+			{
+				Name:   "client1",
+				Type:   "dashscope",
+				Config: map[string]interface{}{},
+			},
+		},
+		Executors: []ExecutorConfig{
+			{
+				Name: "executor1",
+				Type: "llm",
+				Config: map[string]interface{}{
+					"requestTimeout": 1000,
+				},
+			},
+		},
+		Validators: []ValidatorConfig{
+			{
+				Name: "validator1",
+				Type: "http",
+				Config: map[string]interface{}{
+					"requestTimeout": 1000,
+				},
+			},
+		},
+		Flows: []FlowConfig{
+			{
+				Name: "flow1",
+				Steps: []StepConfig{
+					{
+						Executor:      "no-executor",
+						Validator:     "validator1",
+						ClientName:    "client1",
+						MaxRetryTimes: 1,
+					},
+				},
+			},
+		},
+	}
+	err := Config(&config)
+	assert.NotNil(t, err)
+	assert.EqualError(t, err, "step executor no-executor is not found")
+}
+
+func TestConfigWithInvalidValidator(t *testing.T) {
+	config := AnyiConfig{
+		Clients: []llm.ClientConfig{
+			{
+				Name: "client1",
+				Type: "openai",
+				Config: map[string]interface{}{
+					"api_key": "test_key",
+				},
+			},
+		},
+		Executors: []ExecutorConfig{
+			{
+				Name: "executor1",
+				Type: "llm",
+			},
+		},
+		Validators: []ValidatorConfig{
+			{
+				Name: "validator1",
+				Type: "http",
+				Config: map[string]interface{}{
+					"requestTimeout": 1000,
+				},
+			},
+		},
+		Flows: []FlowConfig{
+			{
+				Name: "flow1",
+				Steps: []StepConfig{
+					{
+						Executor:      "executor1",
+						Validator:     "no-validator",
+						ClientName:    "client1",
+						MaxRetryTimes: 1,
+					},
+				},
+			},
+		},
+	}
+	err := Config(&config)
+	assert.NotNil(t, err)
+	assert.EqualError(t, err, "validator type http is not found")
+}
+
+func TestConfigWithInvalidClient(t *testing.T) {
+	config := AnyiConfig{
+		Clients: []llm.ClientConfig{
+			{
+				Name: "client1",
+				Type: "openai",
+				Config: map[string]interface{}{
+					"api_key": "token",
+				},
+			},
+		},
+		Executors: []ExecutorConfig{
+			{
+				Name: "executor1",
+				Type: "llm",
+				Config: map[string]interface{}{
+					"requestTimeout": 1000,
+				},
+			},
+		},
+
+		Flows: []FlowConfig{
+			{
+				Name: "flow1",
+				Steps: []StepConfig{
+					{
+						Executor:      "executor1",
+						ClientName:    "no-client",
+						MaxRetryTimes: 1,
+					},
+				},
+			},
+		},
+	}
+	err := Config(&config)
+	assert.NotNil(t, err)
+	assert.EqualError(t, err, "no client found with the given name: no-client")
 }
