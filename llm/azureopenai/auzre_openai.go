@@ -11,9 +11,9 @@ import (
 )
 
 type AzureOpenAIModelConfig struct {
-	APIKey            string `json:"api_key"`
-	ModelDeploymentId string `json:"model_deployment_id"`
-	Endpoint          string `json:"endpoint"`
+	APIKey            string `json:"apiKey" mapstructure:"apiKey" yaml:"apiKey"`
+	ModelDeploymentId string `json:"modelDeploymentId" mapstructure:"modelDeploymentId" yaml:"modelDeploymentId""`
+	Endpoint          string `json:"endpoint" mapstructure:"endpoint" yaml:"endpoint"`
 	AllowInsecureHttp bool   `json:"allowInsecureHttp" yaml:"allowInsecureHttp" mapstructure:"allowInsecureHttp"`
 }
 

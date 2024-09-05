@@ -1,6 +1,6 @@
 // Use the openai compatible interface to access the DashScope service.
 // See [Dashscope Document] for details.
-// [Dashscope Document]: https://help.aliyun.com/zh/dashscope/developer-reference/compatibility-of-openai-with-dashscope/?spm=a2c4g.11186623.0.0.17504ad0abpnzJ for details
+// [Dashscope Document]: https://help.aliyun.com/zh/dashscope/developer-reference/compatibility-of-openai-with-dashscope/?spm=a2c4g.11186623.0.0.17504ad0abpnzJ
 package dashscope
 
 import (
@@ -19,9 +19,9 @@ const (
 )
 
 type DashScopeModelConfig struct {
-	APIKey  string `json:"api_key"`
-	BaseUrl string `json:"base_url"`
-	Model   string `json:"model"`
+	APIKey  string `json:"apiKey" mapstructure:"apiKey"`
+	BaseUrl string `json:"baseUrl" mapstructure:"baseUrl"`
+	Model   string `json:"model" mapstructure:"model"`
 }
 
 type DashScopeClient struct {
