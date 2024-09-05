@@ -2,8 +2,6 @@ module github.com/jieliu2000/anyi
 
 go 1.21.0
 
-toolchain go1.22.2
-
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/ai/azopenai v0.6.1
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.14.0
