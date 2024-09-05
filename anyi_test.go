@@ -204,8 +204,6 @@ func TestNewLLMStepExecutorWithFormatter(t *testing.T) {
 	assert.Equal(t, formatter, stepExecutor.TemplateFormatter)
 	assert.Equal(t, systemMessage, stepExecutor.SystemMessage)
 
-	assert.NoError(t, RegisterExecutor(name, stepExecutor))
-
 	retrievedExecutor := GlobalRegistry.Executors[name]
 	assert.Equal(t, stepExecutor, retrievedExecutor)
 }
@@ -279,5 +277,6 @@ func TestInit(t *testing.T) {
 	// Execute
 	Init()
 	// Verify
-	assert.NotNil(t, GlobalRegistry.Executors["llm"])
+	assert.NotNil(t, GlobalRegistry.Executors["llmExecutor"])
+	assert.NotNil(t, GlobalRegistry.Validators["stringValidator"])
 }

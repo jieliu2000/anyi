@@ -49,8 +49,12 @@ func TestNewFlowFromConfig_Success(t *testing.T) {
 		Name:       "test-flow",
 		Steps: []StepConfig{
 			{
-				Executor:  "test-executor",
-				Validator: "test-validator",
+				Executor: &ExecutorConfig{
+					Type: "test-executor",
+				},
+				Validator: &ValidatorConfig{
+					Type: "test-validator",
+				},
 			},
 		},
 	}
@@ -79,8 +83,12 @@ func TestNewFlowFromConfig_WithInvalidClientName(t *testing.T) {
 		Name:       "test-flow",
 		Steps: []StepConfig{
 			{
-				Executor:  "test-executor",
-				Validator: "test-validator",
+				Executor: &ExecutorConfig{
+					Type: "test-executor",
+				},
+				Validator: &ValidatorConfig{
+					Type: "test-validator",
+				},
 			},
 		},
 	}
@@ -103,8 +111,12 @@ func TestNewFlowFromConfig_WithInvalidStepConfig(t *testing.T) {
 		Name:       "test-flow",
 		Steps: []StepConfig{
 			{
-				Executor:  "invalid-executor",
-				Validator: "test-validator",
+				Executor: &ExecutorConfig{
+					Type: "invalid-executor",
+				},
+				Validator: &ValidatorConfig{
+					Type: "test-validator",
+				},
 			},
 		},
 	}
@@ -127,7 +139,9 @@ func TestNewFlowFromConfig_WithEmptyStepExecutor(t *testing.T) {
 		Name:       "test-flow",
 		Steps: []StepConfig{
 			{
-				Validator: "test-validator",
+				Validator: &ValidatorConfig{
+					Type: "test-validator",
+				},
 			},
 		},
 	}
@@ -161,23 +175,22 @@ func TestNewExecutorFromConfig(t *testing.T) {
 
 		executorConfig := &ExecutorConfig{
 			Type: "valid-executor",
-			Name: "executor1",
 			Config: map[string]interface{}{
 				"param1": "value1",
 				"param2": 10,
 			},
 		}
 
-		executor, err := NewExecutorFromConfig(executorConfig)
+		result, err := NewExecutorFromConfig(executorConfig)
+		executor := result.(*MockExecutor)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, executor)
 
-		assert.Equal(t, executor1.Param1, "value1")
-		assert.Equal(t, executor1.Param2, 10)
+		assert.Equal(t, "value1", executor.Param1)
+		assert.Equal(t, 10, executor.Param2)
 
 	})
-
 }
 
 func TestNewClientFromConfigWithEmptyName(t *testing.T) {
@@ -220,6 +233,7 @@ func TestNewClientFromConfigWithInvalidType(t *testing.T) {
 }
 
 func TestConfig(t *testing.T) {
+	RegisterExecutor("executor1", &MockExecutor{})
 	config := AnyiConfig{
 		Clients: []llm.ClientConfig{
 			{
@@ -231,21 +245,15 @@ func TestConfig(t *testing.T) {
 				},
 			},
 		},
-		Executors: []ExecutorConfig{
-			{
-				Name: "executor1",
-				Type: "llm",
-				Config: map[string]interface{}{
-					"requestTimeout": 1000,
-				},
-			},
-		},
+
 		Flows: []FlowConfig{
 			{
 				Name: "flow1",
 				Steps: []StepConfig{
 					{
-						Executor:      "executor1",
+						Executor: &ExecutorConfig{
+							Type: "executor1",
+						},
 						ClientName:    "client1",
 						MaxRetryTimes: 1,
 					},
@@ -266,31 +274,15 @@ func TestConfigWithInvalidExecutor(t *testing.T) {
 				Config: map[string]interface{}{},
 			},
 		},
-		Executors: []ExecutorConfig{
-			{
-				Name: "executor1",
-				Type: "llm",
-				Config: map[string]interface{}{
-					"requestTimeout": 1000,
-				},
-			},
-		},
-		Validators: []ValidatorConfig{
-			{
-				Name: "validator1",
-				Type: "http",
-				Config: map[string]interface{}{
-					"requestTimeout": 1000,
-				},
-			},
-		},
+
 		Flows: []FlowConfig{
 			{
 				Name: "flow1",
 				Steps: []StepConfig{
 					{
-						Executor:      "no-executor",
-						Validator:     "validator1",
+						Executor: &ExecutorConfig{
+							Type: "invalid-executor",
+						},
 						ClientName:    "client1",
 						MaxRetryTimes: 1,
 					},
@@ -300,10 +292,11 @@ func TestConfigWithInvalidExecutor(t *testing.T) {
 	}
 	err := Config(&config)
 	assert.NotNil(t, err)
-	assert.EqualError(t, err, "step executor no-executor is not found")
+	assert.EqualError(t, err, "no executor found with the given name: invalid-executor")
 }
 
 func TestConfigWithInvalidValidator(t *testing.T) {
+	RegisterExecutor("executor1", &MockExecutor{})
 	config := AnyiConfig{
 		Clients: []llm.ClientConfig{
 			{
@@ -314,28 +307,18 @@ func TestConfigWithInvalidValidator(t *testing.T) {
 				},
 			},
 		},
-		Executors: []ExecutorConfig{
-			{
-				Name: "executor1",
-				Type: "llm",
-			},
-		},
-		Validators: []ValidatorConfig{
-			{
-				Name: "validator1",
-				Type: "http",
-				Config: map[string]interface{}{
-					"requestTimeout": 1000,
-				},
-			},
-		},
+
 		Flows: []FlowConfig{
 			{
 				Name: "flow1",
 				Steps: []StepConfig{
 					{
-						Executor:      "executor1",
-						Validator:     "no-validator",
+						Executor: &ExecutorConfig{
+							Type: "executor1",
+						},
+						Validator: &ValidatorConfig{
+							Type: "invalid",
+						},
 						ClientName:    "client1",
 						MaxRetryTimes: 1,
 					},
@@ -345,10 +328,11 @@ func TestConfigWithInvalidValidator(t *testing.T) {
 	}
 	err := Config(&config)
 	assert.NotNil(t, err)
-	assert.EqualError(t, err, "validator type http is not found")
+	assert.EqualError(t, err, "no validator found with the given name: invalid")
 }
 
 func TestConfigWithInvalidClient(t *testing.T) {
+	RegisterExecutor("executor1", &MockExecutor{})
 	config := AnyiConfig{
 		Clients: []llm.ClientConfig{
 			{
@@ -359,22 +343,15 @@ func TestConfigWithInvalidClient(t *testing.T) {
 				},
 			},
 		},
-		Executors: []ExecutorConfig{
-			{
-				Name: "executor1",
-				Type: "llm",
-				Config: map[string]interface{}{
-					"requestTimeout": 1000,
-				},
-			},
-		},
 
 		Flows: []FlowConfig{
 			{
 				Name: "flow1",
 				Steps: []StepConfig{
 					{
-						Executor:      "executor1",
+						Executor: &ExecutorConfig{
+							Type: "executor1",
+						},
 						ClientName:    "no-client",
 						MaxRetryTimes: 1,
 					},
@@ -385,4 +362,49 @@ func TestConfigWithInvalidClient(t *testing.T) {
 	err := Config(&config)
 	assert.NotNil(t, err)
 	assert.EqualError(t, err, "no client found with the given name: no-client")
+}
+
+func TestNewValidatorFromConfig(t *testing.T) {
+
+	RegisterValidator("mock", &MockValidator{})
+
+	testCases := []struct {
+		name        string
+		config      *ValidatorConfig
+		expectedErr string
+	}{
+		{
+			name:        "Success",
+			config:      &ValidatorConfig{Type: "mock"},
+			expectedErr: "",
+		},
+		{
+			name:        "Failure: Validator config is nil",
+			config:      nil,
+			expectedErr: "validator config is nil",
+		},
+		{
+			name:        "Failure: Validator type is not set",
+			config:      &ValidatorConfig{},
+			expectedErr: "validator type is not set",
+		},
+		{
+			name:        "Failure: Unrecognized validator type",
+			config:      &ValidatorConfig{Type: "unknown"},
+			expectedErr: "no validator found with the given name: unknown",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			validator, err := NewValidatorFromConfig(tc.config)
+			if tc.expectedErr != "" {
+				assert.EqualError(t, err, tc.expectedErr)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, validator)
+				assert.IsType(t, &MockValidator{}, validator)
+			}
+		})
+	}
 }

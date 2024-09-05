@@ -2,6 +2,7 @@ package anyi
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/llm"
@@ -101,14 +102,22 @@ func GetValidator(name string) (flow.StepValidator, error) {
 	if name == "" {
 		return nil, errors.New("name cannot be empty")
 	}
-	return GlobalRegistry.Validators[name], nil
+	validatorType := GlobalRegistry.Validators[name]
+	if validatorType == nil {
+		return nil, errors.New("no validator found with the given name: " + name)
+	}
+	return validatorType, nil
 }
 
 func GetExecutor(name string) (flow.StepExecutor, error) {
 	if name == "" {
 		return nil, errors.New("name cannot be empty")
 	}
-	return GlobalRegistry.Executors[name], nil
+	executorType := GlobalRegistry.Executors[name]
+	if executorType == nil {
+		return nil, errors.New("no executor found with the given name: " + name)
+	}
+	return executorType, nil
 }
 
 func GetClient(name string) (llm.Client, error) {
@@ -211,21 +220,39 @@ func NewFlow(name string, client llm.Client, steps ...flow.Step) (*flow.Flow, er
 	return f, nil
 }
 
-func GetValidatorType(typeName string) flow.StepValidator {
-	return GlobalRegistry.Validators[typeName]
-}
-
+// RegisterExecutor function registers a StepExecutor to the global registry with a specified name.
+// Note here you can simply pass an empty StepExecutor instance to the GlobalRegistry. The executors are used by steps. You can config the properties of the executors in step config or actual execution.
+// Parameters:
+// - name string: The name of the executor to be registered.
+// - executor flow.StepExecutor: The executor to be registered.
+// Return value:
+// - error: If an error occurs during registration, the corresponding error message is returned.
 func RegisterExecutor(name string, executor flow.StepExecutor) error {
 	if name == "" {
 		return errors.New("name cannot be empty")
 	}
+
+	if GlobalRegistry.Executors[name] != nil {
+		return fmt.Errorf("executor type with the name %s already exists", name)
+	}
+
 	GlobalRegistry.Executors[name] = executor
 	return nil
 }
 
+// RegisterValidator registers a validator with a given name to the global registry.
+// Note here you can simply pass an empty StepValidator instance to the GlobalRegistry. The validators are used by steps. You can config the properties of the validators in step config or actual validation.
+// Parameters:
+// - name string: The name of the validator to be registered.
+// - validator flow.StepValidator: The validator to be registered.
+// Return value:
+// - error: If an error occurs during registration, the corresponding error message is returned.
 func RegisterValidator(name string, validator flow.StepValidator) error {
 	if name == "" {
 		return errors.New("name cannot be empty")
+	}
+	if GlobalRegistry.Validators[name] != nil {
+		return fmt.Errorf("validator type with the name %s already exists", name)
 	}
 	GlobalRegistry.Validators[name] = validator
 	return nil
@@ -247,5 +274,6 @@ func NewLLMStep(tmplate string, systemMessage string, client llm.Client) (*flow.
 }
 
 func Init() {
-	RegisterExecutor("llm", &flow.LLMStepExecutor{})
+	RegisterExecutor("llmExecutor", &flow.LLMStepExecutor{})
+	RegisterValidator("stringValidator", &flow.StringValidator{})
 }

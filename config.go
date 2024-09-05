@@ -3,6 +3,7 @@ package anyi
 import (
 	"errors"
 	"fmt"
+	"reflect"
 
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/internal/utils"
@@ -14,18 +15,14 @@ type AnyiConfig struct {
 	Clients    []llm.ClientConfig
 	Flows      []FlowConfig
 	Formatters []FormatterConfig
-	Executors  []ExecutorConfig
-	Validators []ValidatorConfig
 }
 
 type ValidatorConfig struct {
-	Name   string                 `mapstructure:"name" json:"name" yaml:"name"`
 	Type   string                 `mapstructure:"type" json:"type" yaml:"type"`
 	Config map[string]interface{} `mapstructure:"config" json:"config" yaml:"config"`
 }
 
 type ExecutorConfig struct {
-	Name   string                 `mapstructure:"name" json:"name" yaml:"name"`
 	Type   string                 `mapstructure:"type" json:"type" yaml:"type"`
 	Config map[string]interface{} `mapstructure:"config" json:"config" yaml:"config"`
 }
@@ -49,9 +46,9 @@ type StepConfig struct {
 	ValidatorClientName string `mapstructure:"validatorClientName" json:"validatorClientName" yaml:"validatorClientName"`
 	MaxRetryTimes       int    `mapstructure:"maxRetryTimes" json:"maxRetryTimes" yaml:"maxRetryTimes"`
 
-	Validator string `mapstructure:"validator" json:"validator" yaml:"validator"`
+	Validator *ValidatorConfig `mapstructure:"validator" json:"validator" yaml:"validator"`
 	// This is a required field. The executor name which will be used to execute the step.
-	Executor string `mapstructure:"executor" json:"executor" yaml:"executor"`
+	Executor *ExecutorConfig `mapstructure:"executor" json:"executor" yaml:"executor"`
 }
 
 func NewClientFromConfig(config *llm.ClientConfig) (llm.Client, error) {
@@ -71,15 +68,15 @@ func NewStepFromConfig(stepConfig *StepConfig) (*flow.Step, error) {
 
 	var validator flow.StepValidator
 	var err error
-	if stepConfig.Validator != "" {
-		validator, err = GetValidator(stepConfig.Validator)
+	if stepConfig.Validator != nil {
+		validator, err = GetValidator(stepConfig.Validator.Type)
 		if err != nil {
 			return nil, err
 		}
 	}
 	var executor flow.StepExecutor
-	if stepConfig.Executor != "" {
-		executor, err = GetExecutor(stepConfig.Executor)
+	if stepConfig.Executor != nil {
+		executor, err = GetExecutor(stepConfig.Executor.Type)
 		if err != nil {
 			return nil, err
 		}
@@ -149,11 +146,12 @@ func NewExecutorFromConfig(executorConfig *ExecutorConfig) (flow.StepExecutor, e
 		return nil, errors.New("executor type is not set")
 	}
 
-	if executorConfig.Name == "" {
-		return nil, errors.New("executor name is not set")
+	executorType, err := GetExecutor(executorConfig.Type)
+	if err != nil {
+		return nil, err
 	}
 
-	executor, err := GetExecutor(executorConfig.Type)
+	executor := reflect.New(reflect.TypeOf(executorType).Elem()).Interface().(flow.StepExecutor)
 
 	if err != nil {
 		return nil, err
@@ -165,7 +163,6 @@ func NewExecutorFromConfig(executorConfig *ExecutorConfig) (flow.StepExecutor, e
 
 	mapstructure.Decode(executorConfig.Config, executor)
 	executor.Init()
-	RegisterExecutor(executorConfig.Name, executor)
 	return executor, nil
 }
 
@@ -178,23 +175,23 @@ func NewValidatorFromConfig(validatorConfig *ValidatorConfig) (flow.StepValidato
 		return nil, errors.New("validator type is not set")
 	}
 
-	if validatorConfig.Name == "" {
-		return nil, errors.New("validator name is not set")
+	validatorType, err := GetValidator(validatorConfig.Type)
+	if err != nil {
+		return nil, err
 	}
 
-	validator, err := GetValidator(validatorConfig.Type)
+	validator := reflect.New(reflect.TypeOf(validatorType).Elem()).Interface().(flow.StepValidator)
 
 	if err != nil {
 		return nil, err
 	}
-	if validator == nil {
+	if validatorType == nil {
 		return nil, fmt.Errorf("validator type %s is not found", validatorConfig.Type)
 	}
 
 	mapstructure.Decode(validatorConfig.Config, validator)
 	validator.Init()
-	RegisterValidator(validatorConfig.Name, validator)
-	return validator, nil
+	return validatorType, nil
 
 }
 
@@ -211,13 +208,6 @@ func Config(config *AnyiConfig) error {
 
 		}
 	}
-	// Init executors
-	for _, executorConfig := range config.Executors {
-		_, err := NewExecutorFromConfig(&executorConfig)
-		if err != nil {
-			return err
-		}
-	}
 
 	// Init flows
 	for _, flowConfig := range config.Flows {
@@ -227,12 +217,6 @@ func Config(config *AnyiConfig) error {
 		}
 	}
 
-	for _, validatorConfig := range config.Validators {
-		_, err := NewValidatorFromConfig(&validatorConfig)
-		if err != nil {
-			return err
-		}
-	}
 	return nil
 
 }
