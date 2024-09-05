@@ -27,6 +27,7 @@ func (executor *LLMStepExecutor) Init() error {
 			return err
 		}
 		executor.TemplateFormatter = formatter
+		return nil
 	}
 	if executor.TemplateFormatter == nil && executor.TemplateFile != "" {
 		formatter, err := chat.NewPromptTemplateFormatterFromFile(executor.TemplateFile)
@@ -34,8 +35,9 @@ func (executor *LLMStepExecutor) Init() error {
 			return err
 		}
 		executor.TemplateFormatter = formatter
+		return nil
 	}
-	return nil
+	return errors.New("no required parameters. You need to set either template or templateFile")
 }
 
 func (executor *LLMStepExecutor) Run(memory ShortTermMemory, step *Step) (*ShortTermMemory, error) {
