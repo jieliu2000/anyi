@@ -1,8 +1,9 @@
-package agi
+package baby
 
 import (
 	"log"
 	"os"
+	"strings"
 
 	"github.com/jieliu2000/anyi"
 	"github.com/jieliu2000/anyi/llm"
@@ -62,9 +63,10 @@ type TaskExecutorContext struct {
 	Objective string
 	Result    string
 	Task      *TaskData
+	Tasks     []*TaskData
 }
 
-func ExecuteTask(task *TaskData, taskResultList []TaskResult, objective string) string {
+func ExecuteTask(task *TaskData, taskResultList []TaskResult, objective string) TaskResult {
 	contextPrompt := ResultList(taskResultList)
 	context := TaskExecutorContext{
 		Objective: objective,
@@ -78,11 +80,40 @@ func ExecuteTask(task *TaskData, taskResultList []TaskResult, objective string) 
 	if err != nil {
 		log.Fatal(err)
 	}
-	return memory.Text
+
+	return TaskResult{
+		Result: memory.Text,
+		Task:   task.Description,
+	}
 }
 
-func CreateTask(objective string, result string, taskDescription string, queue *Queue[TaskData]) []*TaskData {
-	return nil
+func CreateTask(objective string, result TaskResult, task *TaskData, queue *Queue[TaskData]) []*TaskData {
+	context := TaskExecutorContext{
+		Objective: objective,
+		Tasks:     queue.data,
+		Result:    result.Result,
+		Task:      task,
+	}
+	executorFlow, _ := anyi.GetFlow("createTask")
+	memory := executorFlow.NewShortTermMemory("", context)
+
+	memory, err := executorFlow.Run(*memory)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	output := memory.Text
+	tasks := strings.Split(output, "\n")
+
+	taskDataList := []*TaskData{}
+
+	for _, task := range tasks {
+		taskData := &TaskData{
+			Description: task,
+		}
+		taskDataList = append(taskDataList, taskData)
+	}
+	return taskDataList
 }
 
 func PrioritizeTaskQueue(queue *Queue[TaskData]) *Queue[TaskData] {
@@ -110,11 +141,35 @@ func InitAnyi() {
 						Executor: &anyi.ExecutorConfig{
 							Type: "llm",
 							Config: map[string]interface{}{
-								"template": `Perform one task based on the following objective: {{.Objective}}
-Take into account these previously completed tasks: 
-{{.Result}}
-Your task: {{.Task}}
-Response:`,
+								"templateFile": "execute_task.tmpl",
+							},
+						},
+					},
+				},
+			},
+			{
+				Name: "createTask",
+				Steps: []anyi.StepConfig{
+					{
+						Executor: &anyi.ExecutorConfig{
+							Type: "llm",
+							Config: map[string]interface{}{
+								"template": `You are to use the result from an execution agent to create new tasks with the following objective: {{.Objective}}.
+The last completed task has the result: {{.Result}}
+This result was based on this task description: {{.Task.Description}} {{if .Tasks}}
+These are incomplete tasks:{{range $index, $task := .Tasks}}
+	- {{$task.Description}}
+{{end}}{{end}}
+Based on the result, return a list of tasks to be completed in order to meet the objective. 
+{{if .Tasks}}These new tasks must not overlap with incomplete tasks. {{end}}
+Return one task per line in your response. The result must be a numbered list in the format:
+
+#. First task
+#. Second task
+
+The number of each entry must be followed by a period. If your list is empty, write "There are no tasks to add at this time."
+Unless your list is empty, do not include any headers before your numbered list or follow your numbered list with any other output.
+`,
 							},
 						},
 					},
@@ -127,11 +182,11 @@ Response:`,
 
 func Example_taskAGI() {
 
-	objective := "Use python to create an AI digital employee project which can generate code for Quasar hybrid mobile app based on user input requirements."
+	objective := "Create an HTML web page with good UI for accessing ollama."
 
 	taskQueue := Queue[TaskData]{
 		data: []*TaskData{
-			{Description: "Create a new project in python"},
+			{Description: "Find out how to access ollama"},
 		},
 	}
 	resultList := []TaskResult{}
@@ -143,7 +198,7 @@ func Example_taskAGI() {
 		if taskQueue.Len() > 0 {
 			log.Println("-------------Task List------------")
 			for i, t := range taskQueue.data {
-				log.Printf("\t%d. %s\n", i+1, t.Description)
+				log.Printf("%d. %s\n", i+1, t.Description)
 			}
 			task := taskQueue.Poll()
 			log.Printf("-------------Next task to do------------\n")
@@ -152,12 +207,9 @@ func Example_taskAGI() {
 			log.Printf("-------------Task result------------\n")
 			log.Println(result)
 
-			resultList = append(resultList, TaskResult{
-				Result: result,
-				Task:   task.Description,
-			})
+			resultList = append(resultList, result)
 
-			newTasks := CreateTask(objective, result, task.Description, &taskQueue)
+			newTasks := CreateTask(objective, result, task, &taskQueue)
 
 			for _, t := range newTasks {
 				taskQueue.Add(t)
@@ -174,4 +226,8 @@ func Example_taskAGI() {
 		}
 
 	}
+	// Output:
+	// -------------Task List------------
+	// 	1. Create a new project in python
+	// -------------Next task to do------------
 }
