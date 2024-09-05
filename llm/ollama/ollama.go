@@ -20,12 +20,12 @@ const (
 
 type OllamaModelConfig struct {
 	//The url of the ollama server. Note that don't add "/chat" to the end of this url. In [Chat] function it will be added automatically.
-	OllamaApiURL string `json:"ollama_api_url"`
+	OllamaApiURL string `json:"ollamaApiURL" mapstructure:"ollamaApiURL"`
 
 	//The model name used by ollama. See [Ollama's documentation] for more information on the available models.
 	//
 	//[Ollama's documentation]: https://github.com/ollama/ollama/blob/main/README.md#quickstart
-	Model string `json:"model"`
+	Model string `json:"model" mapstructure:"model"`
 }
 
 type OllamaClient struct {

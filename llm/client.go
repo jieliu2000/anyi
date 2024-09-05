@@ -10,6 +10,7 @@ import (
 	"github.com/jieliu2000/anyi/llm/ollama"
 	"github.com/jieliu2000/anyi/llm/openai"
 	"github.com/jieliu2000/anyi/llm/tools"
+	"github.com/jieliu2000/anyi/llm/zhipu"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -63,6 +64,8 @@ func NewModelConfigFromClientConfig(clientConfig *ClientConfig) (ModelConfig, er
 		modelConfig = &azureopenai.AzureOpenAIModelConfig{}
 	case "dashscope":
 		modelConfig = &dashscope.DashScopeModelConfig{}
+	case "zhipu":
+		modelConfig = &zhipu.ZhiPuModelConfig{}
 	case "ollama":
 		modelConfig = &ollama.OllamaModelConfig{}
 	default:
@@ -101,6 +104,9 @@ func NewClient(config ModelConfig) (Client, error) {
 
 	case *dashscope.DashScopeModelConfig:
 		return dashscope.NewClient(config.(*dashscope.DashScopeModelConfig))
+
+	case *zhipu.ZhiPuModelConfig:
+		return zhipu.NewClient(config.(*zhipu.ZhiPuModelConfig))
 
 	case *ollama.OllamaModelConfig:
 		return ollama.NewClient(config.(*ollama.OllamaModelConfig))
