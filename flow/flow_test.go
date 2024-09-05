@@ -356,7 +356,7 @@ func TestRunForLLMStep(t *testing.T) {
 	})
 
 	t.Run("template formatter success", func(t *testing.T) {
-		templateFromatter, _ := chat.NewPromptTemplateFormatter("Hello, {{.NonTextData}}")
+		templateFromatter, _ := chat.NewPromptTemplateFormatter("Hello, {{.}}")
 		step := Step{
 
 			clientImpl: &test.MockClient{},
@@ -382,9 +382,7 @@ func TestRunForLLMStep(t *testing.T) {
 			clientImpl: &test.MockClient{},
 		}
 		ctx := ShortTermMemory{
-			flow: &Flow{
-				clientImpl: &test.MockClient{},
-			},
+			NonTextData: "world",
 		}
 		executor := &LLMStepExecutor{
 			TemplateFormatter: templateFromatter,

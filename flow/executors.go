@@ -71,7 +71,10 @@ func (executor *LLMStepExecutor) Run(memory ShortTermMemory, step *Step) (*Short
 	var input string
 	if executor.TemplateFormatter != nil {
 		var err error
-		input, err = executor.TemplateFormatter.Format(memory)
+		if memory.NonTextData == nil {
+			return nil, errors.New("no non-text data provided for template execution")
+		}
+		input, err = executor.TemplateFormatter.Format(memory.NonTextData)
 		if err != nil {
 			return nil, err
 		}

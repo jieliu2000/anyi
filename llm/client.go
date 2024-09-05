@@ -59,15 +59,15 @@ func NewModelConfigFromClientConfig(clientConfig *ClientConfig) (ModelConfig, er
 	var modelConfig ModelConfig
 	switch clientConfig.Type {
 	case "openai":
-		modelConfig = &openai.OpenAIModelConfig{}
+		modelConfig = openai.DefaultConfig("")
 	case "azureopenai":
 		modelConfig = &azureopenai.AzureOpenAIModelConfig{}
 	case "dashscope":
-		modelConfig = &dashscope.DashScopeModelConfig{}
+		modelConfig = dashscope.DefaultConfig("", "")
 	case "zhipu":
-		modelConfig = &zhipu.ZhiPuModelConfig{}
+		modelConfig = zhipu.DefaultConfig("", "")
 	case "ollama":
-		modelConfig = &ollama.OllamaModelConfig{}
+		modelConfig = ollama.DefaultConfig("")
 	default:
 		return nil, errors.New("unknown model")
 	}

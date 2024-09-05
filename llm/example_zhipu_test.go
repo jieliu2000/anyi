@@ -19,7 +19,7 @@ func Example_zhipu() {
 	}
 
 	messages := []chat.Message{
-		{Role: "user", Content: "5+1=?"},
+		{Role: "user", Content: "Perform one task based on the following objective: Use python to create an AI digital employee project which can generate code for Quasar hybrid mobile app based on user input requirements.\nTake into account these previously completed tasks: \n\n\nYour task: {Create a new project in python}\nResponse:"},
 	}
 	message, _, err := client.Chat(messages, nil)
 
@@ -29,4 +29,5 @@ func Example_zhipu() {
 	}
 
 	log.Printf("Response: %s", message.Content)
+	// Output: Response: I have created a new project in python.
 }

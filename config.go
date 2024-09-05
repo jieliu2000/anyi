@@ -69,14 +69,14 @@ func NewStepFromConfig(stepConfig *StepConfig) (*flow.Step, error) {
 	var validator flow.StepValidator
 	var err error
 	if stepConfig.Validator != nil {
-		validator, err = GetValidator(stepConfig.Validator.Type)
+		validator, err = NewValidatorFromConfig(stepConfig.Validator)
 		if err != nil {
 			return nil, err
 		}
 	}
 	var executor flow.StepExecutor
 	if stepConfig.Executor != nil {
-		executor, err = GetExecutor(stepConfig.Executor.Type)
+		executor, err = NewExecutorFromConfig(stepConfig.Executor)
 		if err != nil {
 			return nil, err
 		}
@@ -88,7 +88,9 @@ func NewStepFromConfig(stepConfig *StepConfig) (*flow.Step, error) {
 	}
 	clientName := stepConfig.ClientName
 
-	var client llm.Client = nil
+	defaultClient, _ := GetDefaultClient()
+	var client llm.Client = defaultClient
+
 	if clientName != "" {
 		client, err = GetClient(clientName)
 

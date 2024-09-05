@@ -274,6 +274,6 @@ func NewLLMStep(tmplate string, systemMessage string, client llm.Client) (*flow.
 }
 
 func Init() {
-	RegisterExecutor("llmExecutor", &flow.LLMStepExecutor{})
-	RegisterValidator("stringValidator", &flow.StringValidator{})
+	RegisterExecutor("llm", &flow.LLMStepExecutor{})
+	RegisterValidator("string", &flow.StringValidator{})
 }
