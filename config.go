@@ -98,9 +98,10 @@ func NewStepFromConfig(stepConfig *StepConfig) (*flow.Step, error) {
 			return nil, err
 		}
 	}
-
 	step := flow.NewStep(executor, validator, client)
-
+	if stepConfig.MaxRetryTimes > 0 {
+		step.MaxRetryTimes = stepConfig.MaxRetryTimes
+	}
 	return step, nil
 }
 
@@ -193,7 +194,7 @@ func NewValidatorFromConfig(validatorConfig *ValidatorConfig) (flow.StepValidato
 
 	mapstructure.Decode(validatorConfig.Config, validator)
 	validator.Init()
-	return validatorType, nil
+	return validator, nil
 
 }
 

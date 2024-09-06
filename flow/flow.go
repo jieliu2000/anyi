@@ -58,7 +58,7 @@ func (flow *Flow) NewShortTermMemory(memory string, data any) *ShortTermMemory {
 }
 
 func NewStep(executor StepExecutor, validator StepValidator, client llm.Client) *Step {
-	return &Step{Executor: executor, Validator: validator, clientImpl: client}
+	return &Step{Executor: executor, Validator: validator, clientImpl: client, MaxRetryTimes: DefaultMaxRetryTimes}
 }
 
 // Create a new flow step with executor and validator.

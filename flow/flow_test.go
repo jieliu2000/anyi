@@ -23,6 +23,50 @@ func TestNewFlow(t *testing.T) {
 
 }
 
+func TestNewStep(t *testing.T) {
+	executor := &LLMStepExecutor{}
+	validator := &StringValidator{}
+	client := &test.MockClient{}
+
+	step := NewStep(executor, validator, client)
+
+	assert.NotNil(t, step)
+	assert.Equal(t, executor, step.Executor)
+	assert.Equal(t, validator, step.Validator)
+	assert.Equal(t, client, step.clientImpl)
+	assert.Equal(t, DefaultMaxRetryTimes, step.MaxRetryTimes)
+}
+
+func TestNewStepWithDefaultMaxRetry(t *testing.T) {
+	executor := &LLMStepExecutor{}
+	validator := &StringValidator{}
+	client := &test.MockClient{}
+
+	step := NewStep(executor, validator, client)
+
+	assert.NotNil(t, step)
+	assert.Equal(t, executor, step.Executor)
+	assert.Equal(t, validator, step.Validator)
+	assert.Equal(t, client, step.clientImpl)
+	assert.Equal(t, DefaultMaxRetryTimes, step.MaxRetryTimes)
+}
+
+func TestNewStepWithCustomMaxRetry(t *testing.T) {
+	executor := &LLMStepExecutor{}
+	validator := &StringValidator{}
+	client := &test.MockClient{}
+	customMaxRetry := 5
+
+	step := NewStep(executor, validator, client)
+	step.MaxRetryTimes = customMaxRetry
+
+	assert.NotNil(t, step)
+	assert.Equal(t, executor, step.Executor)
+	assert.Equal(t, validator, step.Validator)
+	assert.Equal(t, client, step.clientImpl)
+	assert.Equal(t, customMaxRetry, step.MaxRetryTimes)
+}
+
 func TestNewLLMStepWithTemplateFile(t *testing.T) {
 
 	step, err := NewLLMStepWithTemplateFile("../internal/test/test_prompt1.tmpl", "system_message", nil)

@@ -15,8 +15,8 @@ type StepValidator interface {
 // StringValidator is a validator for string output. It can be used to check if the step's output matches a given regular expression or equals a specific string.
 // Note that the EqualTo and MatchRegex fields are mutually exclusive. If both are set, an error is returned during initialization.
 type StringValidator struct {
-	EqualTo    string `json:"eqaulTo" mapstruct:"eqaulTo" yaml:"eqaulTo"`
-	MatchRegex string `json:"matchRegex" mapstruct:"matchRegex" yaml:"matchRegex"`
+	EqualTo    string `json:"eqaulTo" mapstructure:"eqaulTo" yaml:"eqaulTo"`
+	MatchRegex string `json:"matchRegex" mapstructure:"matchRegex" yaml:"matchRegex"`
 }
 
 // Init initializes the StringValidator.
