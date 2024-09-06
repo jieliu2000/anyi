@@ -1,0 +1,337 @@
+package baby
+
+import (
+	"fmt"
+	"log"
+	"os"
+	"strings"
+
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm"
+)
+
+type TaskData struct {
+	Description string
+}
+
+type TaskResult struct {
+	Result string
+	Task   string
+}
+
+type Queue[T any] struct {
+	data []*T
+}
+
+func (q *Queue[T]) Add(data *T) {
+	q.data = append(q.data, data)
+}
+
+func (q *Queue[T]) Len() int {
+	return len(q.data)
+}
+
+func (q *Queue[T]) IsEmpty() bool {
+	return q.Len() == 0
+}
+
+func (q *Queue[T]) Poll() *T {
+	if len(q.data) > 0 {
+		data := q.data[0]
+		q.data = q.data[1:]
+
+		return data
+	} else {
+		return nil
+	}
+}
+
+func ResultList(resultList []TaskResult) string {
+	var result string
+	sliceLen := len(resultList)
+	resultToShow := []TaskResult{}
+	for index := range resultList {
+		if index > 9 {
+			break
+		}
+		reverseIndex := sliceLen - 1 - index
+		r := resultList[reverseIndex]
+		resultToShow = append(resultToShow, r)
+	}
+	for _, r := range resultToShow {
+		result += fmt.Sprintf("*. Task: {%s}. Result: {%s}\n", r.Task, r.Result)
+	}
+	return result
+}
+
+type TaskExecutorContext struct {
+	Objective string
+	Result    string
+	Task      *TaskData
+	Tasks     []*TaskData
+}
+
+func ExecuteTask(task *TaskData, taskResultList []TaskResult, objective string) TaskResult {
+	contextPrompt := ResultList(taskResultList)
+	context := TaskExecutorContext{
+		Objective: objective,
+		Result:    contextPrompt,
+		Task:      task,
+	}
+	executorFlow, _ := anyi.GetFlow("executorTask")
+	memory := executorFlow.NewShortTermMemory("", context)
+
+	memory, err := executorFlow.Run(*memory)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return TaskResult{
+		Result: memory.Text,
+		Task:   task.Description,
+	}
+}
+
+func CreateTask(objective string, results []TaskResult, task *TaskData, queue *Queue[TaskData]) []*TaskData {
+	completedTask := ""
+	for _, result := range results {
+		completedTask += fmt.Sprintf(" - %s\n", result.Task)
+	}
+
+	context := TaskExecutorContext{
+		Objective: objective,
+		Tasks:     queue.data,
+		Result:    completedTask,
+		Task:      task,
+	}
+	executorFlow, _ := anyi.GetFlow("createTask")
+	memory := executorFlow.NewShortTermMemory("", context)
+
+	memory, err := executorFlow.Run(*memory)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	output := memory.Text
+	if output == "notask" {
+		return []*TaskData{}
+	}
+
+	tasks := strings.Split(output, "\n")
+
+	taskDataList := []*TaskData{}
+
+	for _, task := range tasks {
+		if len(task) == 0 {
+			continue
+		}
+		if !strings.HasPrefix(task, "- ") {
+			continue
+		}
+
+		task = strings.TrimPrefix(task, "- ")
+
+		taskData := &TaskData{
+			Description: task,
+		}
+		taskDataList = append(taskDataList, taskData)
+	}
+	return taskDataList
+}
+
+func PrioritizeTaskQueue(objective string, result []TaskResult, task *TaskData, queue *Queue[TaskData]) []*TaskData {
+	resultString := ResultList(result)
+	context := TaskExecutorContext{
+		Objective: objective,
+		Tasks:     queue.data,
+		Result:    resultString,
+		Task:      task,
+	}
+	executorFlow, _ := anyi.GetFlow("reorgTask")
+	memory := executorFlow.NewShortTermMemory("", context)
+
+	memory, err := executorFlow.Run(*memory)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	output := memory.Text
+	tasks := strings.Split(output, "\n")
+
+	taskDataList := []*TaskData{}
+	for _, task := range tasks {
+		if len(task) == 0 {
+			continue
+		}
+		if !strings.HasPrefix(task, "- ") {
+			continue
+		}
+
+		task = strings.TrimPrefix(task, "- ")
+
+		taskData := &TaskData{
+			Description: task,
+		}
+		taskDataList = append(taskDataList, taskData)
+	}
+
+	return taskDataList
+
+}
+
+func InitAnyi() {
+	config := anyi.AnyiConfig{
+		Clients: []llm.ClientConfig{
+			{
+				Name: "zhipu",
+				Type: "zhipu",
+				Config: map[string]interface{}{
+					"apiKey":   os.Getenv("ZHIPU_API_KEY"),
+					"model":    os.Getenv("AZ_OPENAI_MODEL_DEPLOYMENT_ID"),
+					"endpoint": os.Getenv("AZ_OPENAI_ENDPOINT"),
+				},
+			},
+		},
+
+		Flows: []anyi.FlowConfig{
+			{
+				Name: "executorTask",
+				Steps: []anyi.StepConfig{
+					{
+						Executor: &anyi.ExecutorConfig{
+							Type: "llm",
+
+							Config: map[string]interface{}{
+								"systemMessage": "You are a professional sci-fi writer",
+								"templateFile":  "execute_task.tmpl",
+							},
+						},
+					},
+				},
+			},
+			{
+				Name: "createTask",
+				Steps: []anyi.StepConfig{
+					{
+						Validator: &anyi.ValidatorConfig{
+							Type: "string",
+							Config: map[string]interface{}{
+								"matchRegex": `(^\-\s.*)|(^notask$)`,
+							},
+						},
+						Executor: &anyi.ExecutorConfig{
+							Type: "llm",
+							Config: map[string]interface{}{
+								"template": `You are to use the result from an execution agent to create new tasks with the following objective: {{.Objective}}.
+These are completed tasks: 
+{{.Result}}
+
+{{if .Tasks}}
+These are incomplete tasks:{{range $index, $task := .Tasks}}
+	- {{$task.Description}}
+{{end}}
+These new tasks must not overlap with incomplete tasks. {{end}}
+Be very careful when creating new tasks. Review the existing tasks and only create new tasks when the existing tasks cannot archieve the objective.
+If the existing tasks are enough to archive the objective, then you should not create new tasks.
+Return one task per line in your response. The result must be an unordered bullet list in the format:
+
+- First task
+- Second task
+
+Use - as bullet symbol. Don't add any numbers or other symbols on each line.
+If your list is empty, output "notask" without any other text.
+Unless your list is empty, do not include any headers before your numbered list or follow your numbered list with any other output.
+`,
+							},
+						},
+					},
+				},
+			},
+			{
+				Name: "reorgTask",
+				Steps: []anyi.StepConfig{
+					{
+						Validator: &anyi.ValidatorConfig{
+							Type: "string",
+							Config: map[string]interface{}{
+								"matchRegex": `(^\-\s.*)|(^notask$)`,
+							},
+						},
+						Executor: &anyi.ExecutorConfig{
+							Type: "llm",
+							Config: map[string]interface{}{
+								"template": `You are tasked with prioritizing the following tasks: 
+{{range $index, $task := .Tasks}}	- {{$task.Description}}
+{{end}}
+Consider the ultimate objective of your team: {{.Objective}}.
+
+Tasks should be sorted from highest to lowest priority, where higher-priority tasks are those that act as pre-requisites or are more essential for meeting the objective.
+Output one task per line in your response. The result must be an unordered bullet list in the format:
+
+- First task.
+- Second task.
+
+Use - as bullet symbol. Don't add any numbers or other symbols on each line.
+Do not include any headers before your ranked list or follow your list with any other output.`,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	anyi.Config(&config)
+}
+
+func Example_taskAGI() {
+
+	objective := "Become a millionaire"
+
+	taskQueue := Queue[TaskData]{
+		data: []*TaskData{
+			{Description: "Build ideas"},
+		},
+	}
+	resultList := []TaskResult{}
+
+	InitAnyi()
+	loop := true
+
+	for loop == true {
+		if taskQueue.Len() > 0 {
+			log.Println("-------------Task List------------")
+			for i, t := range taskQueue.data {
+				log.Printf("%d. %s\n", i+1, t.Description)
+			}
+			task := taskQueue.Poll()
+			log.Printf("-------------Next task to do------------\n")
+			log.Println(task.Description)
+			result := ExecuteTask(task, resultList, objective)
+			log.Printf("-------------Task result------------\n")
+			log.Println(result.Result)
+
+			resultList = append(resultList, result)
+
+			newTasks := CreateTask(objective, resultList, task, &taskQueue)
+
+			if len(newTasks) > 0 {
+				for _, nt := range newTasks {
+					taskQueue.Add(nt)
+				}
+			}
+			if taskQueue.Len() > 0 {
+				prioritizedTasks := PrioritizeTaskQueue(objective, resultList, task, &taskQueue)
+
+				taskQueue.data = prioritizedTasks
+			}
+		} else {
+			log.Println("All tasks completed!")
+			loop = false
+		}
+
+	}
+	// Output:
+	// -------------Task List------------
+	// 	1. Create a new project in python
+	// -------------Next task to do------------
+}
