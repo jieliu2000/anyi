@@ -186,7 +186,7 @@ func InitAnyi() {
 				Name: "zhipu",
 				Type: "zhipu",
 				Config: map[string]interface{}{
-					"apiKey":   os.Getenv("ZHIPU_API_KEY"),
+					"apiKey":   os.Getenv("AZ_OPENAI_API_KEY"),
 					"model":    os.Getenv("AZ_OPENAI_MODEL_DEPLOYMENT_ID"),
 					"endpoint": os.Getenv("AZ_OPENAI_ENDPOINT"),
 				},
