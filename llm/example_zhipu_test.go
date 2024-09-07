@@ -29,5 +29,4 @@ func Example_zhipu() {
 	}
 
 	log.Printf("Response: %s", message.Content)
-	// Output: Response: I have created a new project in python.
 }
