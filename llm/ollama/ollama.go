@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"time"
 
@@ -220,7 +219,6 @@ func (c *OllamaClient) callOllamaAPI(request *OllamaRequest, response chat.Respo
 	}
 
 	res, err := httpClient.Post(c.Config.OllamaApiURL+"/chat", "application/json", bytes.NewBuffer(requestJson))
-	log.Print(string(requestJson))
 
 	if err != nil {
 		return nil, response, err

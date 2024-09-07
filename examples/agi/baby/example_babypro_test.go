@@ -122,6 +122,9 @@ func CreateTask(objective string, results []TaskResult, task *TaskData, queue *Q
 	taskDataList := []*TaskData{}
 
 	for _, task := range tasks {
+
+		task = strings.TrimSpace(task)
+
 		if len(task) == 0 {
 			continue
 		}
@@ -147,7 +150,7 @@ func PrioritizeTaskQueue(objective string, result []TaskResult, task *TaskData, 
 		Result:    resultString,
 		Task:      task,
 	}
-	executorFlow, _ := anyi.GetFlow("reorgTask")
+	executorFlow, _ := anyi.GetFlow("prioritizeTask")
 	memory := executorFlow.NewShortTermMemory("", context)
 
 	memory, err := executorFlow.Run(*memory)
@@ -160,6 +163,7 @@ func PrioritizeTaskQueue(objective string, result []TaskResult, task *TaskData, 
 
 	taskDataList := []*TaskData{}
 	for _, task := range tasks {
+		task = strings.TrimSpace(task)
 		if len(task) == 0 {
 			continue
 		}
@@ -183,12 +187,11 @@ func InitAnyi() {
 	config := anyi.AnyiConfig{
 		Clients: []llm.ClientConfig{
 			{
-				Name: "zhipu",
-				Type: "zhipu",
+				Name: "dashscope",
+				Type: "dashscope",
 				Config: map[string]interface{}{
-					"apiKey":   os.Getenv("AZ_OPENAI_API_KEY"),
-					"model":    os.Getenv("AZ_OPENAI_MODEL_DEPLOYMENT_ID"),
-					"endpoint": os.Getenv("AZ_OPENAI_ENDPOINT"),
+					"model":  "qwen-max",
+					"apiKey": os.Getenv("DASHSCOPE_API_KEY"),
 				},
 			},
 		},
@@ -202,8 +205,7 @@ func InitAnyi() {
 							Type: "llm",
 
 							Config: map[string]interface{}{
-								"systemMessage": "You are a professional sci-fi writer",
-								"templateFile":  "execute_task.tmpl",
+								"templateFile": "execute_task.tmpl",
 							},
 						},
 					},
@@ -216,7 +218,7 @@ func InitAnyi() {
 						Validator: &anyi.ValidatorConfig{
 							Type: "string",
 							Config: map[string]interface{}{
-								"matchRegex": `(^\-\s.*)|(^notask$)`,
+								"matchRegex": `(^\s*\-\s.*)|(^notask$)`,
 							},
 						},
 						Executor: &anyi.ExecutorConfig{
@@ -229,10 +231,10 @@ These are completed tasks:
 {{if .Tasks}}
 These are incomplete tasks:{{range $index, $task := .Tasks}}
 	- {{$task.Description}}
-{{end}}
-These new tasks must not overlap with incomplete tasks. {{end}}
+{{end}}{{end}}
+Think about the existing completed tasks and the incomplete tasks. If they are not enough to archive the objective, then you should create new tasks and output them.
+These new tasks must not overlap with exisitng completed or incompleted tasks. 
 Be very careful when creating new tasks. Review the existing tasks and only create new tasks when the existing tasks cannot archieve the objective.
-If the existing tasks are enough to archive the objective, then you should not create new tasks.
 Return one task per line in your response. The result must be an unordered bullet list in the format:
 
 - First task
@@ -240,7 +242,7 @@ Return one task per line in your response. The result must be an unordered bulle
 
 Use - as bullet symbol. Don't add any numbers or other symbols on each line.
 If your list is empty, output "notask" without any other text.
-Unless your list is empty, do not include any headers before your numbered list or follow your numbered list with any other output.
+Unless your list is empty, do not include any headers before your bullet list or follow your bullet list with any other output.
 `,
 							},
 						},
@@ -248,13 +250,13 @@ Unless your list is empty, do not include any headers before your numbered list 
 				},
 			},
 			{
-				Name: "reorgTask",
+				Name: "prioritizeTask",
 				Steps: []anyi.StepConfig{
 					{
 						Validator: &anyi.ValidatorConfig{
 							Type: "string",
 							Config: map[string]interface{}{
-								"matchRegex": `(^\-\s.*)|(^notask$)`,
+								"matchRegex": `(^\s*\-\s.*)|(^notask$)`,
 							},
 						},
 						Executor: &anyi.ExecutorConfig{
@@ -285,11 +287,11 @@ Do not include any headers before your ranked list or follow your list with any 
 
 func Example_taskAGI() {
 
-	objective := "Become a millionaire"
+	objective := "Write a python function to add two integers"
 
 	taskQueue := Queue[TaskData]{
 		data: []*TaskData{
-			{Description: "Build ideas"},
+			{Description: "Write code"},
 		},
 	}
 	resultList := []TaskResult{}
@@ -330,8 +332,4 @@ func Example_taskAGI() {
 		}
 
 	}
-	// Output:
-	// -------------Task List------------
-	// 	1. Create a new project in python
-	// -------------Next task to do------------
 }
