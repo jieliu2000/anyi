@@ -204,7 +204,7 @@ func InitAnyi() {
 						Executor: &anyi.ExecutorConfig{
 							Type: "llm",
 
-							Config: map[string]interface{}{
+							WithConfig: map[string]interface{}{
 								"templateFile": "execute_task.tmpl",
 							},
 						},
@@ -217,13 +217,13 @@ func InitAnyi() {
 					{
 						Validator: &anyi.ValidatorConfig{
 							Type: "string",
-							Config: map[string]interface{}{
+							WithConfig: map[string]interface{}{
 								"matchRegex": `(^\s*\-\s.*)|(^notask$)`,
 							},
 						},
 						Executor: &anyi.ExecutorConfig{
 							Type: "llm",
-							Config: map[string]interface{}{
+							WithConfig: map[string]interface{}{
 								"template": `You are to use the result from an execution agent to create new tasks with the following objective: {{.Objective}}.
 These are completed tasks: 
 {{.Result}}
@@ -255,13 +255,13 @@ Unless your list is empty, do not include any headers before your bullet list or
 					{
 						Validator: &anyi.ValidatorConfig{
 							Type: "string",
-							Config: map[string]interface{}{
+							WithConfig: map[string]interface{}{
 								"matchRegex": `(^\s*\-\s.*)|(^notask$)`,
 							},
 						},
 						Executor: &anyi.ExecutorConfig{
 							Type: "llm",
-							Config: map[string]interface{}{
+							WithConfig: map[string]interface{}{
 								"template": `You are tasked with prioritizing the following tasks: 
 {{range $index, $task := .Tasks}}	- {{$task.Description}}
 {{end}}

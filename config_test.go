@@ -175,7 +175,7 @@ func TestNewExecutorFromConfig(t *testing.T) {
 
 		executorConfig := &ExecutorConfig{
 			Type: "valid-executor",
-			Config: map[string]interface{}{
+			WithConfig: map[string]interface{}{
 				"param1": "value1",
 				"param2": 10,
 			},

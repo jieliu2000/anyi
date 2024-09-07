@@ -18,19 +18,19 @@ type AnyiConfig struct {
 }
 
 type ValidatorConfig struct {
-	Type   string                 `mapstructure:"type" json:"type" yaml:"type"`
-	Config map[string]interface{} `mapstructure:"config" json:"config" yaml:"config"`
+	Type       string                 `mapstructure:"type" json:"type" yaml:"type"`
+	WithConfig map[string]interface{} `mapstructure:"withconfig" json:"withconfig" yaml:"withconfig"`
 }
 
 type ExecutorConfig struct {
-	Type   string                 `mapstructure:"type" json:"type" yaml:"type"`
-	Config map[string]interface{} `mapstructure:"config" json:"config" yaml:"config"`
+	Type       string                 `mapstructure:"type" json:"type" yaml:"type"`
+	WithConfig map[string]interface{} `mapstructure:"withconfig" json:"withconfig" yaml:"withconfig"`
 }
 
 type FormatterConfig struct {
-	Name   string                 `mapstructure:"name" json:"name" yaml:"name"`
-	Type   string                 `mapstructure:"type" json:"type" yaml:"type"`
-	Config map[string]interface{} `mapstructure:"config" json:"config" yaml:"config"`
+	Name       string                 `mapstructure:"name" json:"name" yaml:"name"`
+	Type       string                 `mapstructure:"type" json:"type" yaml:"type"`
+	WithConfig map[string]interface{} `mapstructure:"withconfig" json:"withconfig" yaml:"withconfig"`
 }
 
 type FlowConfig struct {
@@ -164,7 +164,7 @@ func NewExecutorFromConfig(executorConfig *ExecutorConfig) (flow.StepExecutor, e
 		return nil, fmt.Errorf("executor type %s is not found", executorConfig.Type)
 	}
 
-	mapstructure.Decode(executorConfig.Config, executor)
+	mapstructure.Decode(executorConfig.WithConfig, executor)
 	executor.Init()
 	return executor, nil
 }
@@ -192,7 +192,7 @@ func NewValidatorFromConfig(validatorConfig *ValidatorConfig) (flow.StepValidato
 		return nil, fmt.Errorf("validator type %s is not found", validatorConfig.Type)
 	}
 
-	mapstructure.Decode(validatorConfig.Config, validator)
+	mapstructure.Decode(validatorConfig.WithConfig, validator)
 	validator.Init()
 	return validator, nil
 
