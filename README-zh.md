@@ -33,6 +33,10 @@ Anyi 作为一个 Go 语言的编程框架，提供以下特性：
 
 更多功能正在开发中，敬请期待。
 
+## 代码和示例
+
+详细的使用向导请参照[Anyi 使用向导和示例](/docs/zh/tutorial.md)。下面部分是一些简单的上手指南。
+
 ## 快速开始
 
 ### 安装
@@ -116,7 +120,7 @@ func main() {
 						Executor: &anyi.ExecutorConfig{
 							Type: "llm",
 							WithConfig: map[string]interface{}{
-								"template": "Write a sci-fi story about {{.Text}}",
+								"template": "写一篇关于{{.Text}}的科幻小说",
 							},
 						},
 					},
@@ -125,7 +129,7 @@ func main() {
 						Executor: &anyi.ExecutorConfig{
 							Type: "llm",
 							WithConfig: map[string]interface{}{
-								"template": `Translate below text to French without any extra output. The text to be translated:
+								"template": `把下面用'''括起来的文本翻译成法语，除了翻译的文本以外，不要有任何额外输出。需要翻译的文本:
 								'''{{.Text}}'''`,
 							},
 						},
@@ -158,10 +162,6 @@ func main() {
 - 第二个步骤也是使用了 llm 类型的 Executor，但是用了不同的提示词模板。
 
 通过 `anyi.GetFlow("smart_writer")` 可以获取到 Anyi 创建的名为`smart_writer`的工作流。然后通过 `flow.RunWithInput("the moon")` 运行该工作流，并传入输入参数`"the moon"`。
-
-### 代码和示例
-
-请参照[Anyi 使用向导和示例](/docs/zh/tutorial.md)
 
 ## 许可证
 
