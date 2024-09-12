@@ -29,7 +29,7 @@ func Example_azureOpenAIWithTools() {
 	functions := []tools.FunctionConfig{
 		funcConfig,
 	}
-	message, _, err := client.ChatWithFunctions(messages, functions, nil)
+	message, _, _ := client.ChatWithFunctions(messages, functions, nil)
 
 	log.Printf("Response: %s\n", message.Content)
 }
