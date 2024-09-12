@@ -8,14 +8,18 @@ import (
 )
 
 type MockStepExecutor struct {
-	RunWithError bool
+	RunWithError  bool
+	InitCompleted bool
+	RunCompleted  bool
 }
 
 func (executor *MockStepExecutor) Init() error {
+	executor.InitCompleted = true
 	return nil
 }
 
 func (executor *MockStepExecutor) Run(flowContext FlowContext, step *Step) (*FlowContext, error) {
+	executor.RunCompleted = true
 	if executor.RunWithError {
 		return nil, errors.New("error")
 	}
@@ -51,11 +55,33 @@ func TestDecratedStepExecutor_Init_NoExecutorProvided(t *testing.T) {
 }
 func TestDecratedStepExecutor_Init_NoPreOrPostRunProvided(t *testing.T) {
 	executor := DecratedStepExecutor{
-		WithExecutor: nil,
+		WithExecutor: &DecratedStepExecutor{},
 	}
 	err := executor.Init()
 	assert.Error(t, err)
+	assert.EqualError(t, err, "no pre or post run function provided")
 }
+
+func TestDecratedStepExecutor_Init_NoExecutor(t *testing.T) {
+	executor := DecratedStepExecutor{}
+	err := executor.Init()
+	assert.Error(t, err)
+	assert.EqualError(t, err, "no executor provided")
+}
+func TestDecratedStepExecutor_Init(t *testing.T) {
+	mockExecutor := &MockStepExecutor{}
+	executor := DecratedStepExecutor{
+		PreRun: func(flowContext FlowContext, step *Step) (*FlowContext, error) {
+			return &flowContext, nil
+		},
+		WithExecutor: mockExecutor,
+	}
+	err := executor.Init()
+	assert.NoError(t, err)
+	assert.True(t, mockExecutor.InitCompleted)
+
+}
+
 func TestLLMStepExecutor_Init_NoTemplateAndNoTemplateFileProvided(t *testing.T) {
 	executor := LLMStepExecutor{}
 	err := executor.Init()
