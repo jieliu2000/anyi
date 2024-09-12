@@ -14,8 +14,19 @@ type Flow struct {
 	Name string
 
 	Steps []Step
-	// The default clientImpl for the flow
-	clientImpl llm.Client
+	// The default ClientImpl for the flow
+	ClientImpl llm.Client
+}
+type StepExecutor interface {
+	Init() error
+	Run(flowContext FlowContext, Step *Step) (*FlowContext, error)
+}
+
+// StepValidator is the interface for validators of step output.
+// In a flow if a step validator is set, the output of the step will be checked against the validator's Validate method.
+type StepValidator interface {
+	Init() error
+	Validate(stepOutput string, Step *Step) bool
 }
 
 func NewFlow(client llm.Client, name string, steps ...Step) (*Flow, error) {
@@ -24,13 +35,13 @@ func NewFlow(client llm.Client, name string, steps ...Step) (*Flow, error) {
 		return nil, errors.New("flow name cannot be empty")
 	}
 
-	flow := &Flow{Steps: steps, Name: name, clientImpl: client}
+	flow := &Flow{Steps: steps, Name: name, ClientImpl: client}
 
 	return flow, nil
 }
 
 type Step struct {
-	clientImpl         llm.Client
+	ClientImpl         llm.Client
 	validateClientImpl llm.Client
 
 	Executor StepExecutor
@@ -38,6 +49,16 @@ type Step struct {
 	Validator     StepValidator
 	runTimes      int
 	MaxRetryTimes int
+}
+
+// GetClient function returns the client of the Step.
+// If the clientImpl of the Step is not nil, it returns the clientImpl.
+// Otherwise, it returns nil.
+func (step *Step) GetClient() llm.Client {
+	if step.ClientImpl != nil {
+		return step.ClientImpl
+	}
+	return nil
 }
 
 type ShortTermMemory any
@@ -48,7 +69,7 @@ type ShortTermMemory any
 type FlowContext struct {
 	Text   string
 	Memory ShortTermMemory
-	flow   *Flow
+	Flow   *Flow
 }
 
 func NewFlowContext(flowContext string, data any) *FlowContext {
@@ -56,11 +77,11 @@ func NewFlowContext(flowContext string, data any) *FlowContext {
 }
 
 func (flow *Flow) NewFlowContext(flowContext string, data any) *FlowContext {
-	return &FlowContext{Text: flowContext, Memory: data, flow: flow}
+	return &FlowContext{Text: flowContext, Memory: data, Flow: flow}
 }
 
 func NewStep(executor StepExecutor, validator StepValidator, client llm.Client) *Step {
-	return &Step{Executor: executor, Validator: validator, clientImpl: client, MaxRetryTimes: DefaultMaxRetryTimes}
+	return &Step{Executor: executor, Validator: validator, ClientImpl: client, MaxRetryTimes: DefaultMaxRetryTimes}
 }
 
 // Create a new flow step with executor and validator.
@@ -77,7 +98,7 @@ func NewStepWithValidator(stepConfig any, executor StepExecutor, validator StepV
 		Validator:          validator,
 		runTimes:           0,
 		MaxRetryTimes:      DefaultMaxRetryTimes,
-		clientImpl:         client,
+		ClientImpl:         client,
 		validateClientImpl: validateClient,
 	}
 }
@@ -120,7 +141,7 @@ func (flow *Flow) RunWithInput(input string) (*FlowContext, error) {
 func (flow *Flow) Run(initialFlowContext FlowContext) (*FlowContext, error) {
 
 	flowContext := &initialFlowContext
-	flowContext.flow = flow
+	flowContext.Flow = flow
 
 	// For each step in the flow
 	for _, step := range flow.Steps {

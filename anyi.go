@@ -258,9 +258,9 @@ func RegisterValidator(name string, validator flow.StepValidator) error {
 	return nil
 }
 
-func NewLLMStepExecutorWithFormatter(name string, formatter *chat.PromptyTemplateFormatter, systemMessage string, client llm.Client) *flow.LLMStepExecutor {
+func NewLLMStepExecutorWithFormatter(name string, formatter *chat.PromptyTemplateFormatter, systemMessage string, client llm.Client) *LLMStepExecutor {
 
-	stepExecutor := flow.LLMStepExecutor{
+	stepExecutor := LLMStepExecutor{
 		TemplateFormatter: formatter,
 		SystemMessage:     systemMessage,
 	}
@@ -270,10 +270,10 @@ func NewLLMStepExecutorWithFormatter(name string, formatter *chat.PromptyTemplat
 }
 
 func NewLLMStep(tmplate string, systemMessage string, client llm.Client) (*flow.Step, error) {
-	return flow.NewLLMStepWithTemplate(tmplate, systemMessage, client)
+	return NewLLMStepWithTemplate(tmplate, systemMessage, client)
 }
 
 func Init() {
-	RegisterExecutor("llm", &flow.LLMStepExecutor{})
-	RegisterValidator("string", &flow.StringValidator{})
+	RegisterExecutor("llm", &LLMStepExecutor{})
+	RegisterValidator("string", &StringValidator{})
 }

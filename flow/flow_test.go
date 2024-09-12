@@ -2,14 +2,31 @@ package flow
 
 import (
 	"errors"
-	"log"
 	"testing"
 
 	"github.com/jieliu2000/anyi/internal/test"
 	"github.com/jieliu2000/anyi/llm"
-	"github.com/jieliu2000/anyi/llm/chat"
 	"github.com/stretchr/testify/assert"
 )
+
+type MockStepExecutor struct {
+	RunWithError  bool
+	InitCompleted bool
+	RunCompleted  bool
+}
+
+func (executor *MockStepExecutor) Init() error {
+	executor.InitCompleted = true
+	return nil
+}
+
+func (executor *MockStepExecutor) Run(flowContext FlowContext, step *Step) (*FlowContext, error) {
+	executor.RunCompleted = true
+	if executor.RunWithError {
+		return nil, errors.New("error")
+	}
+	return &flowContext, nil
+}
 
 func TestNewFlow(t *testing.T) {
 
@@ -19,13 +36,13 @@ func TestNewFlow(t *testing.T) {
 
 	assert.NotNil(t, flow)
 	assert.Equal(t, "flow1", flow.Name)
-	assert.Equal(t, &client, flow.clientImpl)
+	assert.Equal(t, &client, flow.ClientImpl)
 
 }
 
 func TestNewStep(t *testing.T) {
-	executor := &LLMStepExecutor{}
-	validator := &StringValidator{}
+	executor := &MockStepExecutor{}
+	validator := &MockValidator{}
 	client := &test.MockClient{}
 
 	step := NewStep(executor, validator, client)
@@ -33,13 +50,13 @@ func TestNewStep(t *testing.T) {
 	assert.NotNil(t, step)
 	assert.Equal(t, executor, step.Executor)
 	assert.Equal(t, validator, step.Validator)
-	assert.Equal(t, client, step.clientImpl)
+	assert.Equal(t, client, step.ClientImpl)
 	assert.Equal(t, DefaultMaxRetryTimes, step.MaxRetryTimes)
 }
 
 func TestNewStepWithDefaultMaxRetry(t *testing.T) {
-	executor := &LLMStepExecutor{}
-	validator := &StringValidator{}
+	executor := &MockStepExecutor{}
+	validator := &MockValidator{}
 	client := &test.MockClient{}
 
 	step := NewStep(executor, validator, client)
@@ -47,13 +64,13 @@ func TestNewStepWithDefaultMaxRetry(t *testing.T) {
 	assert.NotNil(t, step)
 	assert.Equal(t, executor, step.Executor)
 	assert.Equal(t, validator, step.Validator)
-	assert.Equal(t, client, step.clientImpl)
+	assert.Equal(t, client, step.ClientImpl)
 	assert.Equal(t, DefaultMaxRetryTimes, step.MaxRetryTimes)
 }
 
 func TestNewStepWithCustomMaxRetry(t *testing.T) {
-	executor := &LLMStepExecutor{}
-	validator := &StringValidator{}
+	executor := &MockStepExecutor{}
+	validator := &MockValidator{}
 	client := &test.MockClient{}
 	customMaxRetry := 5
 
@@ -63,61 +80,8 @@ func TestNewStepWithCustomMaxRetry(t *testing.T) {
 	assert.NotNil(t, step)
 	assert.Equal(t, executor, step.Executor)
 	assert.Equal(t, validator, step.Validator)
-	assert.Equal(t, client, step.clientImpl)
+	assert.Equal(t, client, step.ClientImpl)
 	assert.Equal(t, customMaxRetry, step.MaxRetryTimes)
-}
-
-func TestNewLLMStepWithTemplateFile(t *testing.T) {
-
-	step, err := NewLLMStepWithTemplateFile("../internal/test/test_prompt1.tmpl", "system_message", nil)
-
-	assert.NoError(t, err)
-	assert.NotNil(t, step)
-
-	executor := step.Executor.(*LLMStepExecutor)
-	assert.Equal(t, "system_message", executor.SystemMessage)
-
-	formatter := executor.TemplateFormatter
-	assert.NotNil(t, formatter)
-	assert.Equal(t, "../internal/test/test_prompt1.tmpl", formatter.File)
-
-	type AgentTasks struct {
-		Tasks     []string
-		Objective string
-	}
-
-	tasks := AgentTasks{
-		Tasks:     []string{"task1", "task2"},
-		Objective: "objective",
-	}
-
-	output, err := formatter.Format(tasks)
-	assert.Nil(t, err)
-	log.Printf("output: %s", output)
-
-	assert.Greater(t, len(output), 10)
-
-}
-
-func TestNewLLMStepWithTemplateString(t *testing.T) {
-	step, err := NewLLMStepWithTemplate("Analyze this target and break it into action plans: {{.}}", "system_message", nil)
-
-	assert.NoError(t, err)
-	assert.NotNil(t, step)
-
-	executor := step.Executor.(*LLMStepExecutor)
-
-	assert.Equal(t, "system_message", executor.SystemMessage)
-
-	formatter := executor.TemplateFormatter
-
-	assert.NotNil(t, formatter)
-
-	output, err := formatter.Format("Build an AI operating system")
-	assert.Nil(t, err)
-
-	assert.Equal(t, "Analyze this target and break it into action plans: Build an AI operating system", output)
-
 }
 
 type MockExecutor struct {
@@ -348,92 +312,4 @@ func TestFlow_Run_WithValidatorAndInvalidStep(t *testing.T) {
 	assert.NoError(t, err)
 	_, err = flow.Run(FlowContext{Text: "Initial"})
 	assert.NotNil(t, err)
-}
-
-func TestRunForLLMStep(t *testing.T) {
-	t.Run("nil step", func(t *testing.T) {
-		ctx := FlowContext{
-			Text: "input",
-			flow: &Flow{
-
-				clientImpl: &test.MockClient{},
-			},
-		}
-		_, err := (&LLMStepExecutor{}).Run(ctx, nil)
-		assert.Error(t, err, "no step provided")
-	})
-
-	t.Run("no client set for flow step", func(t *testing.T) {
-		step := Step{}
-		ctx := FlowContext{
-			Text: "input",
-			flow: &Flow{
-
-				clientImpl: nil,
-			},
-		}
-		_, err := (&LLMStepExecutor{}).Run(ctx, &step)
-		assert.Error(t, err, "no client set for flow step")
-	})
-	t.Run("client chat error", func(t *testing.T) {
-
-		step := Step{
-			clientImpl: &test.MockClient{
-				Err: errors.New("client chat error"),
-			},
-		}
-		ctx := FlowContext{}
-		_, err := (&LLMStepExecutor{}).Run(ctx, &step)
-		assert.Error(t, err, "client chat error")
-	})
-	t.Run("success", func(t *testing.T) {
-
-		step := Step{
-			clientImpl: &test.MockClient{
-				ChatOutput: "output",
-			},
-		}
-		ctx := FlowContext{}
-		newCtx, err := (&LLMStepExecutor{}).Run(ctx, &step)
-		assert.Nil(t, err)
-		assert.Equal(t, "output", newCtx.Text)
-	})
-
-	t.Run("template formatter success", func(t *testing.T) {
-		templateFromatter, _ := chat.NewPromptTemplateFormatter("Hello, {{.}}")
-		step := Step{
-
-			clientImpl: &test.MockClient{},
-		}
-		ctx := FlowContext{
-			Memory: "world",
-			flow: &Flow{
-				clientImpl: &test.MockClient{},
-			},
-		}
-		executor := &LLMStepExecutor{
-			TemplateFormatter: templateFromatter,
-		}
-		output, err := executor.Run(ctx, &step)
-
-		assert.NoError(t, err)
-		assert.Equal(t, "Hello, world", output.Text)
-	})
-
-	t.Run("template formatter error", func(t *testing.T) {
-		templateFromatter, _ := chat.NewPromptTemplateFormatter("Hello, {{.None}}")
-		step := Step{
-			clientImpl: &test.MockClient{},
-		}
-		ctx := FlowContext{
-			Memory: "world",
-		}
-		executor := &LLMStepExecutor{
-			TemplateFormatter: templateFromatter,
-		}
-		output, err := executor.Run(ctx, &step)
-		assert.Error(t, err)
-		assert.Nil(t, output)
-
-	})
 }
