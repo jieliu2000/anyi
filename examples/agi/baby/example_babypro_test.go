@@ -236,8 +236,8 @@ These are incomplete tasks:{{range $index, $task := .Tasks}}
 	- {{$task.Description}}
 {{end}}{{end}}
 Think about the existing completed tasks and the incomplete tasks. If they are not enough to archive the objective, then you should create new tasks and output them.
-These new tasks must not overlap with exisitng completed or incompleted tasks. 
-Be very careful when creating new tasks. Review the existing tasks and only create new tasks when the existing tasks cannot archieve the objective.
+These new tasks must not overlap with existing completed or incompleted tasks. 
+Be very careful when creating new tasks. Review the existing tasks and only create new tasks when the existing tasks cannot achieve the objective.
 Return one task per line in your response. The result must be an unordered bullet list in the format:
 
 - First task
