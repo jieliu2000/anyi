@@ -156,10 +156,6 @@ func NewExecutorFromConfig(executorConfig *ExecutorConfig) (flow.StepExecutor, e
 
 	executor := reflect.New(reflect.TypeOf(executorType).Elem()).Interface().(flow.StepExecutor)
 
-	if err != nil {
-		return nil, err
-	}
-
 	if executor == nil {
 		return nil, fmt.Errorf("executor type %s is not found", executorConfig.Type)
 	}
@@ -185,9 +181,6 @@ func NewValidatorFromConfig(validatorConfig *ValidatorConfig) (flow.StepValidato
 
 	validator := reflect.New(reflect.TypeOf(validatorType).Elem()).Interface().(flow.StepValidator)
 
-	if err != nil {
-		return nil, err
-	}
 	if validatorType == nil {
 		return nil, fmt.Errorf("validator type %s is not found", validatorConfig.Type)
 	}

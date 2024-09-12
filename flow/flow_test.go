@@ -121,15 +121,15 @@ func TestNewLLMStepWithTemplateString(t *testing.T) {
 }
 
 type MockExecutor struct {
-	Mock func(memory ShortTermMemory, step *Step) (*ShortTermMemory, error)
+	Mock func(flowContext FlowContext, step *Step) (*FlowContext, error)
 }
 
 type MockValidator struct {
 	Mock func(output string, step *Step) bool
 }
 
-func (m MockExecutor) Run(memory ShortTermMemory, step *Step) (*ShortTermMemory, error) {
-	return m.Mock(memory, step)
+func (m MockExecutor) Run(flowContext FlowContext, step *Step) (*FlowContext, error) {
+	return m.Mock(flowContext, step)
 }
 
 func (m MockExecutor) Init() error {
@@ -147,7 +147,7 @@ func (m MockValidator) Validate(output string, step *Step) bool {
 	return m.Mock(output, step)
 }
 
-func NewStepWithValidatorAndExectorFunction(name string, runFunc func(memory ShortTermMemory, step *Step) (*ShortTermMemory, error), validateFunc func(output string, step *Step) bool, client llm.Client) *Step {
+func NewStepWithValidatorAndExectorFunction(name string, runFunc func(flowContext FlowContext, step *Step) (*FlowContext, error), validateFunc func(output string, step *Step) bool, client llm.Client) *Step {
 
 	return NewStep(
 		MockExecutor{
@@ -161,7 +161,7 @@ func NewStepWithValidatorAndExectorFunction(name string, runFunc func(memory Sho
 func Test_tryStep_RunError(t *testing.T) {
 	step := NewStepWithValidatorAndExectorFunction(
 		"",
-		func(memory ShortTermMemory, step *Step) (*ShortTermMemory, error) {
+		func(flowContext FlowContext, step *Step) (*FlowContext, error) {
 			return nil, errors.New("run error")
 		},
 		func(output string, step *Step) bool {
@@ -169,15 +169,15 @@ func Test_tryStep_RunError(t *testing.T) {
 		},
 		test.NewMockClient(),
 	)
-	_, err := tryStep(step, ShortTermMemory{})
+	_, err := tryStep(step, FlowContext{})
 	assert.EqualError(t, err, "run error")
 }
 func Test_tryStep_RetryExceeded(t *testing.T) {
 
 	step := NewStepWithValidatorAndExectorFunction(
 		"",
-		func(memory ShortTermMemory, step *Step) (*ShortTermMemory, error) {
-			return &ShortTermMemory{}, nil
+		func(flowContext FlowContext, step *Step) (*FlowContext, error) {
+			return &FlowContext{}, nil
 		},
 		func(output string, step *Step) bool {
 			if step.runTimes <= 2 {
@@ -189,155 +189,155 @@ func Test_tryStep_RetryExceeded(t *testing.T) {
 		test.NewMockClient(),
 	)
 	step.MaxRetryTimes = 0
-	_, err := tryStep(step, ShortTermMemory{})
+	_, err := tryStep(step, FlowContext{})
 	assert.EqualError(t, err, "step retry times exceeded")
 
 	step.runTimes = 0
 	step.MaxRetryTimes = 1
-	_, err = tryStep(step, ShortTermMemory{})
+	_, err = tryStep(step, FlowContext{})
 	assert.EqualError(t, err, "step retry times exceeded")
 
 	step.runTimes = 0
 	step.MaxRetryTimes = 3
-	_, err = tryStep(step, ShortTermMemory{})
+	_, err = tryStep(step, FlowContext{})
 	assert.NoError(t, err, "step should be success because retry times doesn't exceed MaxRetryTimes")
 }
 func Test_tryStep_ValidatorError(t *testing.T) {
 	step := NewStepWithValidatorAndExectorFunction(
 		"",
-		func(memory ShortTermMemory, step *Step) (*ShortTermMemory, error) {
-			return &ShortTermMemory{}, nil
+		func(flowContext FlowContext, step *Step) (*FlowContext, error) {
+			return &FlowContext{}, nil
 		},
 		func(output string, step *Step) bool {
 			return false
 		},
 		test.NewMockClient(),
 	)
-	_, err := tryStep(step, ShortTermMemory{})
+	_, err := tryStep(step, FlowContext{})
 	assert.Error(t, err)
 }
 func Test_tryStep_ValidatorSuccess(t *testing.T) {
 	step := NewStepWithValidatorAndExectorFunction(
 		"",
-		func(memory ShortTermMemory, step *Step) (*ShortTermMemory, error) {
-			return &ShortTermMemory{}, nil
+		func(flowContext FlowContext, step *Step) (*FlowContext, error) {
+			return &FlowContext{}, nil
 		},
 		func(output string, step *Step) bool {
 			return true
 		},
 		test.NewMockClient(),
 	)
-	result, err := tryStep(step, ShortTermMemory{})
+	result, err := tryStep(step, FlowContext{})
 	assert.Nil(t, err)
-	assert.Equal(t, result, &ShortTermMemory{})
+	assert.Equal(t, result, &FlowContext{})
 }
 
 func TestFlow_Run(t *testing.T) {
 	flow, err := NewFlow(&test.MockClient{}, "Test Flow",
-		*NewStepWithValidatorAndExectorFunction("Step 1", func(memory ShortTermMemory, step *Step) (*ShortTermMemory, error) {
-			memory.NonTextData = "Data from Step 1"
-			return &memory, nil
+		*NewStepWithValidatorAndExectorFunction("Step 1", func(flowContext FlowContext, step *Step) (*FlowContext, error) {
+			flowContext.Memory = "Data from Step 1"
+			return &flowContext, nil
 		}, nil, nil),
-		*NewStepWithValidatorAndExectorFunction("Step 2", func(memory ShortTermMemory, step *Step) (*ShortTermMemory, error) {
-			memory.NonTextData = memory.NonTextData.(string) + " and Step 2"
-			return &memory, nil
+		*NewStepWithValidatorAndExectorFunction("Step 2", func(flowContext FlowContext, step *Step) (*FlowContext, error) {
+			flowContext.Memory = flowContext.Memory.(string) + " and Step 2"
+			return &flowContext, nil
 		}, nil, nil),
 	)
 	assert.Nil(t, err)
 
-	shortTermMemory, err := flow.Run(ShortTermMemory{Text: "Initial"})
+	flowContext, err := flow.Run(FlowContext{Text: "Initial"})
 	assert.Nil(t, err)
-	assert.Equal(t, "Initial", shortTermMemory.Text)
-	assert.Equal(t, "Data from Step 1 and Step 2", shortTermMemory.NonTextData)
+	assert.Equal(t, "Initial", flowContext.Text)
+	assert.Equal(t, "Data from Step 1 and Step 2", flowContext.Memory)
 }
 func TestFlow_Run_WithInvalidStep(t *testing.T) {
 	flow, err := NewFlow(&test.MockClient{}, "Test Flow",
-		*NewStepWithValidatorAndExectorFunction("Step 1", func(memory ShortTermMemory, step *Step) (*ShortTermMemory, error) {
-			memory.NonTextData = "Data from Step 1"
-			return &memory, nil
+		*NewStepWithValidatorAndExectorFunction("Step 1", func(flowContext FlowContext, step *Step) (*FlowContext, error) {
+			flowContext.Memory = "Data from Step 1"
+			return &flowContext, nil
 		}, nil, nil),
-		*NewStepWithValidatorAndExectorFunction("Step 2", func(memory ShortTermMemory, step *Step) (*ShortTermMemory, error) {
+		*NewStepWithValidatorAndExectorFunction("Step 2", func(flowContext FlowContext, step *Step) (*FlowContext, error) {
 			return nil, errors.New("Error in Step 2")
 		}, nil, nil),
 	)
 
 	assert.Nil(t, err)
-	_, err = flow.Run(ShortTermMemory{Text: "Initial"})
+	_, err = flow.Run(FlowContext{Text: "Initial"})
 	assert.NotNil(t, err)
 }
 func TestFlow_Run_WithMaxRetryTimes(t *testing.T) {
 	flow, err := NewFlow(&test.MockClient{}, "Test Flow",
-		*NewStepWithValidatorAndExectorFunction("Step 1", func(memory ShortTermMemory, step *Step) (*ShortTermMemory, error) {
+		*NewStepWithValidatorAndExectorFunction("Step 1", func(flowContext FlowContext, step *Step) (*FlowContext, error) {
 			return nil, errors.New("Error in Step 1")
 		}, nil, nil),
-		*NewStepWithValidatorAndExectorFunction("Step 2", func(memory ShortTermMemory, step *Step) (*ShortTermMemory, error) {
+		*NewStepWithValidatorAndExectorFunction("Step 2", func(flowContext FlowContext, step *Step) (*FlowContext, error) {
 			return nil, errors.New("Error in Step 2")
 		}, nil, nil),
-		*NewStepWithValidatorAndExectorFunction("Step 3", func(memory ShortTermMemory, step *Step) (*ShortTermMemory, error) {
+		*NewStepWithValidatorAndExectorFunction("Step 3", func(flowContext FlowContext, step *Step) (*FlowContext, error) {
 			return nil, errors.New("Error in Step 3")
 		}, nil, nil),
 	)
 
 	assert.NoError(t, err)
-	_, err = flow.Run(ShortTermMemory{Text: "Initial"})
+	_, err = flow.Run(FlowContext{Text: "Initial"})
 
 	assert.NotNil(t, err)
 }
 
 func TestFlow_Run_WithValidator_And_Validation_Passed(t *testing.T) {
 	flow, err := NewFlow(&test.MockClient{}, "Test Flow",
-		*NewStepWithValidatorAndExectorFunction("Step 1", func(memory ShortTermMemory, step *Step) (*ShortTermMemory, error) {
-			assert.Equal(t, "Initial", memory.Text)
-			memory.Text = "Data from Step 1"
-			return &memory, nil
+		*NewStepWithValidatorAndExectorFunction("Step 1", func(flowContext FlowContext, step *Step) (*FlowContext, error) {
+			assert.Equal(t, "Initial", flowContext.Text)
+			flowContext.Text = "Data from Step 1"
+			return &flowContext, nil
 		}, func(stepOutput string, step *Step) bool {
 			return stepOutput == "Data from Step 1"
 		}, nil),
-		*NewStepWithValidatorAndExectorFunction("Step 2", func(memory ShortTermMemory, step *Step) (*ShortTermMemory, error) {
-			assert.Equal(t, "Data from Step 1", memory.Text)
-			memory.Text = "Data from Step 2"
-			return &memory, nil
+		*NewStepWithValidatorAndExectorFunction("Step 2", func(flowContext FlowContext, step *Step) (*FlowContext, error) {
+			assert.Equal(t, "Data from Step 1", flowContext.Text)
+			flowContext.Text = "Data from Step 2"
+			return &flowContext, nil
 		}, func(stepOutput string, step *Step) bool {
 			return stepOutput == "Data from Step 2"
 		}, nil),
 	)
 
 	assert.NoError(t, err)
-	shortTermMemory, err := flow.Run(ShortTermMemory{Text: "Initial"})
+	flowContext, err := flow.Run(FlowContext{Text: "Initial"})
 	assert.NoError(t, err)
-	assert.Equal(t, "Data from Step 2", shortTermMemory.Text)
+	assert.Equal(t, "Data from Step 2", flowContext.Text)
 }
 func TestFlow_Run_WithValidator_And_Validation_Failed(t *testing.T) {
 	flow, err := NewFlow(&test.MockClient{}, "Test Flow",
-		*NewStepWithValidatorAndExectorFunction("Step 1", func(memory ShortTermMemory, step *Step) (*ShortTermMemory, error) {
+		*NewStepWithValidatorAndExectorFunction("Step 1", func(flowContext FlowContext, step *Step) (*FlowContext, error) {
 
-			return &memory, nil
+			return &flowContext, nil
 		}, func(stepOutput string, step *Step) bool {
 			return stepOutput == "Data from Step 1"
 		}, nil),
-		*NewStepWithValidatorAndExectorFunction("Step 2", func(memory ShortTermMemory, step *Step) (*ShortTermMemory, error) {
-			memory.NonTextData = "Data from Step 1"
-			return &memory, nil
+		*NewStepWithValidatorAndExectorFunction("Step 2", func(flowContext FlowContext, step *Step) (*FlowContext, error) {
+			flowContext.Memory = "Data from Step 1"
+			return &flowContext, nil
 		}, func(stepOutput string, step *Step) bool {
 			return stepOutput == "Data from Step 1 and Step 2"
 		}, nil),
 	)
 
 	assert.NoError(t, err)
-	_, err = flow.Run(ShortTermMemory{Text: "Initial"})
+	_, err = flow.Run(FlowContext{Text: "Initial"})
 	assert.Error(t, err)
 }
 func TestFlow_Run_WithValidatorAndInvalidStep(t *testing.T) {
 	flow, err := NewFlow(&test.MockClient{}, "Test Flow",
 		*NewStepWithValidatorAndExectorFunction("Step 1",
-			func(memory ShortTermMemory, step *Step) (*ShortTermMemory, error) {
-				return &memory, nil
+			func(flowContext FlowContext, step *Step) (*FlowContext, error) {
+				return &flowContext, nil
 			},
 			func(stepOutput string, step *Step) bool {
 				return stepOutput == "Data from Step 1"
 			}, nil),
 		*NewStepWithValidatorAndExectorFunction("Step 2",
-			func(memory ShortTermMemory, step *Step) (*ShortTermMemory, error) {
+			func(flowContext FlowContext, step *Step) (*FlowContext, error) {
 				return nil, errors.New("Error in Step 2")
 			},
 			func(stepOutput string, step *Step) bool {
@@ -346,13 +346,13 @@ func TestFlow_Run_WithValidatorAndInvalidStep(t *testing.T) {
 	)
 
 	assert.NoError(t, err)
-	_, err = flow.Run(ShortTermMemory{Text: "Initial"})
+	_, err = flow.Run(FlowContext{Text: "Initial"})
 	assert.NotNil(t, err)
 }
 
 func TestRunForLLMStep(t *testing.T) {
 	t.Run("nil step", func(t *testing.T) {
-		ctx := ShortTermMemory{
+		ctx := FlowContext{
 			Text: "input",
 			flow: &Flow{
 
@@ -365,7 +365,7 @@ func TestRunForLLMStep(t *testing.T) {
 
 	t.Run("no client set for flow step", func(t *testing.T) {
 		step := Step{}
-		ctx := ShortTermMemory{
+		ctx := FlowContext{
 			Text: "input",
 			flow: &Flow{
 
@@ -382,7 +382,7 @@ func TestRunForLLMStep(t *testing.T) {
 				Err: errors.New("client chat error"),
 			},
 		}
-		ctx := ShortTermMemory{}
+		ctx := FlowContext{}
 		_, err := (&LLMStepExecutor{}).Run(ctx, &step)
 		assert.Error(t, err, "client chat error")
 	})
@@ -393,7 +393,7 @@ func TestRunForLLMStep(t *testing.T) {
 				ChatOutput: "output",
 			},
 		}
-		ctx := ShortTermMemory{}
+		ctx := FlowContext{}
 		newCtx, err := (&LLMStepExecutor{}).Run(ctx, &step)
 		assert.Nil(t, err)
 		assert.Equal(t, "output", newCtx.Text)
@@ -405,8 +405,8 @@ func TestRunForLLMStep(t *testing.T) {
 
 			clientImpl: &test.MockClient{},
 		}
-		ctx := ShortTermMemory{
-			NonTextData: "world",
+		ctx := FlowContext{
+			Memory: "world",
 			flow: &Flow{
 				clientImpl: &test.MockClient{},
 			},
@@ -425,8 +425,8 @@ func TestRunForLLMStep(t *testing.T) {
 		step := Step{
 			clientImpl: &test.MockClient{},
 		}
-		ctx := ShortTermMemory{
-			NonTextData: "world",
+		ctx := FlowContext{
+			Memory: "world",
 		}
 		executor := &LLMStepExecutor{
 			TemplateFormatter: templateFromatter,

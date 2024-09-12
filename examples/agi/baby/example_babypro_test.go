@@ -79,15 +79,15 @@ func ExecuteTask(task *TaskData, taskResultList []TaskResult, objective string) 
 		Task:      task,
 	}
 	executorFlow, _ := anyi.GetFlow("executorTask")
-	memory := executorFlow.NewShortTermMemory("", context)
+	flowContext := executorFlow.NewFlowContext("", context)
 
-	memory, err := executorFlow.Run(*memory)
+	flowContext, err := executorFlow.Run(*flowContext)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	return TaskResult{
-		Result: memory.Text,
+		Result: flowContext.Text,
 		Task:   task.Description,
 	}
 }
@@ -105,14 +105,14 @@ func CreateTask(objective string, results []TaskResult, task *TaskData, queue *Q
 		Task:      task,
 	}
 	executorFlow, _ := anyi.GetFlow("createTask")
-	memory := executorFlow.NewShortTermMemory("", context)
+	flowContext := executorFlow.NewFlowContext("", context)
 
-	memory, err := executorFlow.Run(*memory)
+	flowContext, err := executorFlow.Run(*flowContext)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	output := memory.Text
+	output := flowContext.Text
 	if output == "notask" {
 		return []*TaskData{}
 	}
@@ -151,14 +151,14 @@ func PrioritizeTaskQueue(objective string, result []TaskResult, task *TaskData, 
 		Task:      task,
 	}
 	executorFlow, _ := anyi.GetFlow("prioritizeTask")
-	memory := executorFlow.NewShortTermMemory("", context)
+	flowContext := executorFlow.NewFlowContext("", context)
 
-	memory, err := executorFlow.Run(*memory)
+	flowContext, err := executorFlow.Run(*flowContext)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	output := memory.Text
+	output := flowContext.Text
 	tasks := strings.Split(output, "\n")
 
 	taskDataList := []*TaskData{}
@@ -203,9 +203,12 @@ func InitAnyi() {
 					{
 						Executor: &anyi.ExecutorConfig{
 							Type: "llm",
-
 							WithConfig: map[string]interface{}{
-								"templateFile": "execute_task.tmpl",
+								"template": `Perform one task based on the following objective: {{.Objective}}
+Take into account these previously completed tasks: 
+{{.Result}}
+Your task: {{.Task.Description}}
+Response:`,
 							},
 						},
 					},

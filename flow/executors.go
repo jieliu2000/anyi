@@ -10,7 +10,7 @@ import (
 type StepExecutor interface {
 	Init() error
 
-	Run(memory ShortTermMemory, Step *Step) (*ShortTermMemory, error)
+	Run(flowContext FlowContext, Step *Step) (*FlowContext, error)
 }
 
 type LLMStepExecutor struct {
@@ -40,13 +40,13 @@ func (executor *LLMStepExecutor) Init() error {
 	return errors.New("no required parameters. You need to set either template or templateFile")
 }
 
-func (executor *LLMStepExecutor) Run(memory ShortTermMemory, step *Step) (*ShortTermMemory, error) {
+func (executor *LLMStepExecutor) Run(flowContext FlowContext, step *Step) (*FlowContext, error) {
 	if step == nil {
 		return nil, errors.New("no step provided")
 	}
 
 	if step.clientImpl == nil {
-		step.clientImpl = memory.flow.clientImpl
+		step.clientImpl = flowContext.flow.clientImpl
 	}
 	if step.clientImpl == nil {
 		return nil, errors.New("no client set for flow step")
@@ -71,15 +71,15 @@ func (executor *LLMStepExecutor) Run(memory ShortTermMemory, step *Step) (*Short
 	var input string
 	if executor.TemplateFormatter != nil {
 		var err error
-		if memory.NonTextData == nil {
+		if flowContext.Memory == nil {
 			return nil, errors.New("no non-text data provided for template execution")
 		}
-		input, err = executor.TemplateFormatter.Format(memory.NonTextData)
+		input, err = executor.TemplateFormatter.Format(flowContext.Memory)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		input = memory.Text
+		input = flowContext.Text
 	}
 
 	messages := make([]chat.Message, 0, 2)
@@ -93,8 +93,8 @@ func (executor *LLMStepExecutor) Run(memory ShortTermMemory, step *Step) (*Short
 		return nil, err
 	}
 
-	memory.Text = output.Content
-	return &memory, nil
+	flowContext.Text = output.Content
+	return &flowContext, nil
 }
 
 func NewLLMStepWithTemplateFile(templateFilePath string, systemMessage string, client llm.Client) (*Step, error) {
