@@ -9,8 +9,55 @@ import (
 
 type StepExecutor interface {
 	Init() error
-
 	Run(flowContext FlowContext, Step *Step) (*FlowContext, error)
+}
+
+type DecratedStepExecutor struct {
+	WithExecutor StepExecutor `json:"withExecutor" yaml:"withExecutor" mapstructure:"withExecutor"`
+	PreRun       func(flowContext FlowContext, step *Step) (*FlowContext, error)
+	PostRun      func(flowContext FlowContext, step *Step) (*FlowContext, error)
+}
+
+// Init initializes the DecratedStepExecutor.
+// It checks if an executor is provided and if pre or post run functions are set.
+// If any of the checks fail, an error is returned.
+// If all checks pass, it calls the Init method of the executor.
+func (executor *DecratedStepExecutor) Init() error {
+	if executor.WithExecutor == nil {
+		return errors.New("no executor provided")
+	}
+
+	if executor.PreRun == nil && executor.PostRun == nil {
+		return errors.New("no pre or post run function provided")
+	}
+	return executor.WithExecutor.Init()
+}
+
+// The Run function executes the given step within the provided flow context.
+// Parameters:
+// - flowContext FlowContext: The flow context in which the step will be executed.
+// - step *Step: The step to be executed.
+// Return values:
+// - *FlowContext: The updated flow context after executing the step.
+// - error: If an error occurs during execution, the corresponding error message is returned.
+func (executor *DecratedStepExecutor) Run(flowContext FlowContext, step *Step) (*FlowContext, error) {
+	context := &flowContext
+	if executor.WithExecutor == nil {
+		return context, errors.New("no executor provided")
+	}
+	if executor.PreRun != nil {
+		var err error
+		context, err := executor.PreRun(*context, step)
+		if err != nil {
+			return context, err
+		}
+	}
+	context, err := executor.WithExecutor.Run(*context, step)
+	if executor.PostRun != nil {
+
+		context, err = executor.PostRun(*context, step)
+	}
+	return context, err
 }
 
 type LLMStepExecutor struct {
