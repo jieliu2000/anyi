@@ -1,6 +1,8 @@
 package coder
 
 import (
+	"os"
+
 	log "github.com/sirupsen/logrus"
 
 	"github.com/jieliu2000/anyi"
@@ -9,7 +11,12 @@ import (
 )
 
 type TaskData struct {
-	Description string
+	Id          int    `json:"id"`
+	Description string `json:"description"`
+
+	FilePath string `json:"file_path"`
+
+	IsolatedContext string `json:"isolated_context"`
 }
 
 type TaskResult struct {
@@ -50,15 +57,16 @@ func (q *Queue[T]) Poll() *T {
 }
 
 func InitAnyi() {
+
 	config := anyi.AnyiConfig{
 		Clients: []llm.ClientConfig{
 			{
 				Name: "azureopenai",
 				Type: "azureopenai",
 				Config: map[string]interface{}{
-					"apiKey":            "cd3a53acfde14af1a96073974536cb29",
-					"modelDeploymentId": "gpt-4o",
-					"endpoint":          "https://xa-ms-openai.openai.azure.com/",
+					"apiKey":            os.Getenv("AZ_OPENAI_API_KEY"),
+					"modelDeploymentId": os.Getenv("AZ_OPENAI_MODEL_DEPLOYMENT_ID"),
+					"endpoint":          os.Getenv("AZ_OPENAI_ENDPOINT"),
 				},
 			},
 		},
@@ -85,6 +93,7 @@ Response:`,
 				Name: "taskInitiator",
 				Steps: []anyi.StepConfig{
 					{
+						Name: "create_initial_task",
 						Executor: &anyi.ExecutorConfig{
 							Type: "llm",
 							WithConfig: map[string]interface{}{
@@ -158,6 +167,7 @@ Response:`,
 						},
 					},
 					{
+						Name: "tasks_refactor_agent",
 						Executor: &anyi.ExecutorConfig{
 							Type: "llm",
 							WithConfig: map[string]interface{}{
@@ -192,17 +202,17 @@ Response:`,
                     {
                     "id": 2,
                     "description": "Write code to print 'Hello World!' with Python",
-                    "file_path": "./project/main.py",
+					"file_path": "./project/main.py",
                     },
                     {
                     "id": 3,
                     "description": "Write code to create a function named 'parser' that takes an input named 'input' of type str, [perform a specific task on it], and returns a specific output",
-                    "file_path": "./project/main.py",
+					"file_path": "./project/main.py",
                     }
                     {
                     "id": 3,
                     "description": "Run a command calling the script in ./project/main.py",
-                    "file_path": "./project/main.py",
+             		"file_path": "./project/main.py",
                     }
                     ...
                 ],
@@ -227,8 +237,8 @@ Response:`,
 
     RETURN JSON OUTPUTS ONLY.
     
-    Here is the overall objective you need to refactor the tasks for: {.Memory.Objective}.
-    Here is the task list you need to improve: {.Text}
+    Here is the overall objective you need to refactor the tasks for: {{.Memory.Objective}}.
+    Here is the task list you need to improve: {{.Text}}
     
     RETURN THE SAME TASK LIST but with the description improved to contain the details you is adding for each task in the list. DO NOT MAKE OTHER MODIFICATIONS TO THE LIST. Your input should go in the 'description' field of each task.
     
@@ -241,6 +251,7 @@ Response:`,
 						Executor: &anyi.ExecutorConfig{
 							Type: "llm",
 							WithConfig: map[string]interface{}{
+								"outputJSON": true,
 								"template": `You are an AGI agent responsible for improving a list of tasks in JSON format and adding ALL the necessary context to each task's description property. These tasks will be executed individually by agents that have no idea about other tasks or what code exists in the codebase. It is FUNDAMENTAL that each task has enough context so that an individual isolated agent can execute. The metadata of the task is the only information the agents will have.
 
     Look at all tasks at once, and add the necessary context to each task so that it can be executed by an agent without seeing the other tasks. Remember, one agent can only see one task and has no idea about what happened in other tasks. CONTEXT IS CRUCIAL. For example, if one task creates one folder and the other tasks creates a file in that folder. The second tasks should contain the name of the folder that already exists and the information that it already exists.
@@ -255,8 +266,8 @@ Response:`,
 
 	ONLY UPDATE THE DESCRIPTION FIELD OF EACH TASK. DO NOT MAKE OTHER MODIFICATIONS TO THE TASK LIST.
     
-    Here is the overall objective you need to refactor the tasks for: {.Memory.Objective}.
-    Here is the task list you need to improve: {.Text}
+    Here is the overall objective you need to refactor the tasks for: {{.Memory.Objective}}.
+    Here is the task list you need to improve: {{.Text}}
     
     RETURN THE SAME TASK LIST but with a new field called 'isolated_context' for each task in the list. This field should be a string with the context you are adding. DO NOT MAKE OTHER MODIFICATIONS TO THE LIST.
     
@@ -302,22 +313,24 @@ Do not include any headers before your ranked list or follow your list with any 
 	anyi.Config(&config)
 }
 
+type InitialTasksPlan struct {
+	Tasks []TaskData `json:"tasks"`
+}
+
 func Example_coderTaskAGI() {
 
 	log.SetLevel(log.DebugLevel)
+	log.SetFormatter(&log.TextFormatter{
+		PadLevelText:  true,
+		FullTimestamp: false,
+		DisableQuote:  true,
+	})
 	task := Task{
 		Objective: `Create a Python program that consists of a single class named 'TemperatureConverter' in a file named 'temperature_converter.py'. The class should have the following methods:
 - celsius_to_fahrenheit(self, celsius: float) -> float: Converts Celsius temperature to Fahrenheit.
 - fahrenheit_to_celsius(self, fahrenheit: float) -> float: Converts Fahrenheit temperature to Celsius.
 Create a separate 'main.py' file that imports the 'TemperatureConverter' class, takes user input for the temperature value and the unit, converts the temperature to the other unit, and then prints the result.`,
 	}
-
-	taskQueue := Queue[TaskData]{
-		data: []*TaskData{
-			{Description: "Write code"},
-		},
-	}
-	resultList := []TaskResult{}
 
 	InitAnyi()
 	loop := true
@@ -332,11 +345,16 @@ Create a separate 'main.py' file that imports the 'TemperatureConverter' class, 
 	context, err = initialFlow.Run(*context)
 	if err != nil {
 		log.Fatal(err)
+		panic("error in running flow")
 	}
-	log.Println(taskQueue)
-	log.Println(resultList)
 
-	log.Println(context)
+	taskPlan := &InitialTasksPlan{}
+	err = context.UnmarshalJsonText(&taskPlan)
+
+	if err != nil {
+		log.Fatal(err)
+		panic("error in unmarshalling")
+	}
 
 	for loop == true {
 		/**

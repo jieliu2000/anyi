@@ -1,6 +1,7 @@
 package flow
 
 import (
+	"encoding/json"
 	"errors"
 
 	log "github.com/sirupsen/logrus"
@@ -51,6 +52,7 @@ type Step struct {
 	Validator     StepValidator
 	runTimes      int
 	MaxRetryTimes int
+	Name          string
 }
 
 // GetClient function returns the client of the Step.
@@ -72,6 +74,10 @@ type FlowContext struct {
 	Text   string
 	Memory ShortTermMemory
 	Flow   *Flow
+}
+
+func (fc *FlowContext) UnmarshalJsonText(entity any) error {
+	return json.Unmarshal([]byte(fc.Text), entity)
 }
 
 func NewFlowContext(flowContext string, data any) *FlowContext {

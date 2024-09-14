@@ -49,6 +49,7 @@ func TestNewFlowFromConfig_Success(t *testing.T) {
 		Name:       "test-flow",
 		Steps: []StepConfig{
 			{
+				Name: "name1",
 				Executor: &ExecutorConfig{
 					Type: "test-executor",
 				},
@@ -67,6 +68,8 @@ func TestNewFlowFromConfig_Success(t *testing.T) {
 	assert.NotNil(t, flowInstance)
 	assert.Equal(t, flowConfig.Name, flowInstance.Name)
 	assert.Equal(t, 1, len(flowInstance.Steps))
+	step := flowInstance.Steps[0]
+	assert.Equal(t, "name1", step.Name)
 }
 func TestNewFlowFromConfig_WithNil(t *testing.T) {
 	// Execute

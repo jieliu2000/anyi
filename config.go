@@ -51,6 +51,7 @@ type StepConfig struct {
 	Validator *ValidatorConfig `mapstructure:"validator" json:"validator" yaml:"validator"`
 	// This is a required field. The executor name which will be used to execute the step.
 	Executor *ExecutorConfig `mapstructure:"executor" json:"executor" yaml:"executor"`
+	Name     string          `mapstructure:"name" json:"name" yaml:"name"`
 }
 
 func NewClientFromConfig(config *llm.ClientConfig) (llm.Client, error) {
@@ -101,6 +102,7 @@ func NewStepFromConfig(stepConfig *StepConfig) (*flow.Step, error) {
 		}
 	}
 	step := flow.NewStep(executor, validator, client)
+	step.Name = stepConfig.Name
 	if stepConfig.MaxRetryTimes > 0 {
 		step.MaxRetryTimes = stepConfig.MaxRetryTimes
 	}
