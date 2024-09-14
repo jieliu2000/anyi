@@ -31,7 +31,6 @@ Anyi, as a Go programming framework, offers the following features:
 - **Defining Multiple Workflows**: Allows defining multiple workflows and accessing them by workflow name.
 - **Configuration-Based Workflow Definition**: Allows dynamic configuration of workflows through program code or static configuration files.
 
-More features are under development. Stay tuned for updates.
 
 ## Quick start
 

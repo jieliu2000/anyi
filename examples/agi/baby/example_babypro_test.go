@@ -1,4 +1,4 @@
-package baby
+package main
 
 import (
 	"fmt"
@@ -8,6 +8,7 @@ import (
 
 	"github.com/jieliu2000/anyi"
 	"github.com/jieliu2000/anyi/llm"
+	"github.com/jieliu2000/anyi/llm/openai"
 )
 
 type TaskData struct {
@@ -187,6 +188,19 @@ func InitAnyi() {
 	config := anyi.AnyiConfig{
 		Clients: []llm.ClientConfig{
 			{
+				Name: "openai",
+				Type: "openai",
+				Config: map[string]interface{}{
+					"model":  openai.GPT4o,
+					"apiKey": os.Getenv("OPENAI_API_KEY"),
+				},
+			},
+		},
+
+		/**
+		//Use qwen-max on dashscope
+		Clients: []llm.ClientConfig{
+			{
 				Name: "dashscope",
 				Type: "dashscope",
 				Config: map[string]interface{}{
@@ -195,6 +209,7 @@ func InitAnyi() {
 				},
 			},
 		},
+		*/
 
 		Flows: []anyi.FlowConfig{
 			{
@@ -285,7 +300,7 @@ Do not include any headers before your ranked list or follow your list with any 
 	anyi.Config(&config)
 }
 
-func Example_taskAGI() {
+func main() {
 
 	objective := "Write a python function to add two integers"
 
