@@ -231,11 +231,11 @@ func TestGetFlow(t *testing.T) {
 	})
 }
 
-func TestNewShortTermMemory(t *testing.T) {
+func TestNewFlowContext(t *testing.T) {
 	input := "test"
-	memory := NewShortTermMemory(input)
-	assert.IsType(t, &flow.ShortTermMemory{}, memory)
-	assert.Equal(t, input, memory.Text)
+	flowContext := NewFlowContext(input)
+	assert.IsType(t, &flow.FlowContext{}, flowContext)
+	assert.Equal(t, input, flowContext.Text)
 }
 
 func TestNewFlow(t *testing.T) {

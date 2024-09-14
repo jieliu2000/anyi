@@ -1,8 +1,9 @@
-package flow
+package anyi
 
 import (
 	"testing"
 
+	"github.com/jieliu2000/anyi/flow"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -43,28 +44,28 @@ func TestStringValidator_Validate(t *testing.T) {
 		validator := StringValidator{
 			EqualTo: "expected output",
 		}
-		step := &Step{}
+		step := &flow.Step{}
 		assert.True(t, validator.Validate("expected output", step))
 	})
 	t.Run("EqualTo - Invalid", func(t *testing.T) {
 		validator := StringValidator{
 			EqualTo: "expected output",
 		}
-		step := &Step{}
+		step := &flow.Step{}
 		assert.False(t, validator.Validate("wrong output", step))
 	})
 	t.Run("MatchRegex - Valid", func(t *testing.T) {
 		validator := StringValidator{
 			MatchRegex: "[a-z]*",
 		}
-		step := &Step{}
+		step := &flow.Step{}
 		assert.True(t, validator.Validate("expected output", step))
 	})
 	t.Run("MatchRegex - Invalid", func(t *testing.T) {
 		validator := StringValidator{
 			MatchRegex: "^[a-z]*$", // only allow lowercase
 		}
-		step := &Step{}
+		step := &flow.Step{}
 		assert.False(t, validator.Validate("1234567890", step))
 	})
 
@@ -75,7 +76,7 @@ func TestStringValidator_Validate_InvalidRegex(t *testing.T) {
 		MatchRegex: "[", // Invalid regular expression
 	}
 
-	step := &Step{}
+	step := &flow.Step{}
 
 	assert.False(t, validator.Validate("any output", step))
 }
@@ -91,7 +92,7 @@ func TestStringValidator_Validate_NilStep(t *testing.T) {
 func TestStringValidator_Validate_NilValues(t *testing.T) {
 	validator := StringValidator{}
 
-	step := &Step{}
+	step := &flow.Step{}
 
 	assert.False(t, validator.Validate("any output", step))
 }

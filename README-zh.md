@@ -7,30 +7,34 @@
 
 ## 介绍
 
-Anyi(安易)是一个开源的[Go语言](https://go.dev/)AI 智能体(AI Agent)框架，旨在帮助你构建可以和实际工作相结合的 AI 智能体。我们也提供对大语言模型访问的 API。
+Anyi(安易)是一个开源的[Go 语言](https://go.dev/)AI 智能体(AI Agent)框架，旨在帮助你构建可以和实际工作相结合的 AI 智能体。我们也提供对大语言模型访问的 API。
 
-Anyi需要Go语言[1.20](https://go.dev/doc/devel/release#go1.20)或更高版本。
+Anyi 需要 Go 语言[1.20](https://go.dev/doc/devel/release#go1.20)或更高版本。
 
 ## 特性
 
-Anyi 作为一个Go语言的编程框架，提供以下特性：
+Anyi 作为一个 Go 语言的编程框架，提供以下特性：
 
 - 对大语言模型的访问，允许通过同样的接口使用不同的配置访问不同大语言模型，目前支持的大语言模型接口包括：
 
-		- OpenAI
-		- Azure OpenAI
-		- 阿里云模型服务灵积(Dashscope)
-		- Ollama
-		
-- 对以上大语言模型，除了支持普通文本聊天外，Anyi还支持对多模态大语言模型发送图片进行访问。
+      - OpenAI
+      - Azure OpenAI
+      - 阿里云模型服务灵积(Dashscope)
+      - Ollama
+
+- 对以上大语言模型，除了支持普通文本聊天外，Anyi 还支持对多模态大语言模型发送图片进行访问。
 - 支持同时访问多个不同来源的大语言模型，不同大语言模型客户端可以通过客户端名字进行区分。
-- 支持基于Go语言模板的提示词生成
+- 支持基于 Go 语言模板的提示词生成
 - 工作流支持：允许将多个对话任务串联起来，形成一个工作流
 - 工作流步骤校验：如果一个步骤的输出不符合预期，则反复执行该步骤直到输出符合预期。如果执行次数超过设定次数，则返回一个错误。
 - 工作流中不同的步骤允许使用不同的大语言模型客户端
 - 允许定义多个工作流，并根据工作流名称访问不同的工作流
 - 基于配置的工作流定义：允许通过程序代码动态配置工作流，或者通过静态配置文件配置工作流
 
+
+## 代码和示例
+
+详细的使用向导请参照[Anyi 使用向导和示例](/docs/zh/tutorial.md)。下面部分是一些简单的上手指南。
 
 ## 快速开始
 
@@ -40,7 +44,7 @@ Anyi 作为一个Go语言的编程框架，提供以下特性：
 go get -u github.com/jieliu2000/anyi
 ```
 
-### 使用 Anyi 访问大语言模型
+### Anyi 访问大语言模型示例
 
 以下为使用 Anyi 访问 OpenAI 的一个简单示例：
 
@@ -78,9 +82,86 @@ func main() {
 
 在上面的示例中，首先通过`openai.DefaultConfig` 创建一个 OpenAI 的 Anyi 配置，然后将该配置传递给 `anyi.NewClient` 创建一个 OpenAI 客户端，最后通过 `client.Chat` 发送一个聊天请求。
 
-### 代码和示例
+### Anyi 工作流示例
 
-请参照[Anyi使用向导和示例](/docs/zh/tutorial.md)
+Anyi 允许你定义工作流(Flow)，然后通过工作流名称访问不同的工作流。每个工作流可以包含多个步骤(Step)，每个步骤(Step)可以定义自己的执行器（Executor）和校验器（Validator）。
+
+以下为使用 Anyi 定义一个工作流的示例：
+
+```go
+package main
+
+import (
+	"log"
+	"os"
+
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm"
+)
+
+func main() {
+	config := anyi.AnyiConfig{
+		Clients: []llm.ClientConfig{
+			{
+				Name: "dashscope",
+				Type: "dashscope",
+				Config: map[string]interface{}{
+					"model":  "qwen-max",
+					"apiKey": os.Getenv("DASHSCOPE_API_KEY"),
+				},
+			},
+		},
+		Flows: []anyi.FlowConfig{
+			{
+				Name: "smart_writer",
+				Steps: []anyi.StepConfig{
+					{
+						Executor: &anyi.ExecutorConfig{
+							Type: "llm",
+							WithConfig: map[string]interface{}{
+								"template": "写一篇关于{{.Text}}的科幻小说",
+							},
+						},
+					},
+
+					{
+						Executor: &anyi.ExecutorConfig{
+							Type: "llm",
+							WithConfig: map[string]interface{}{
+								"template": `把下面用'''括起来的文本翻译成法语，除了翻译的文本以外，不要有任何额外输出。需要翻译的文本:
+								'''{{.Text}}'''`,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	anyi.Config(&config)
+	flow, err := anyi.GetFlow("smart_writer")
+	if err != nil {
+		panic(err)
+	}
+	context, err := flow.RunWithInput("the moon")
+	if err != nil {
+		panic(err)
+	}
+	log.Printf("%s", context.Text)
+}
+```
+
+在上面的示例中，首先创建了一个 `AnyiConfig` 配置，该配置包含一个 dashscope `Client` 配置和一个配置名称为`smart_writer`的 Flow。然后通过`anyi.Config` 方法将该配置传递给 Anyi。Anyi 会根据配置自动创建相应的客户端和工作流。
+
+由于程序中仅有一个 `Client` 也就是名为 `dashscope` 的 `Client`，Anyi 会将这个客户端注册为默认的 Client。Anyi 在 Flow, Step 等配置中都可以指定使用哪个 `Client` 执行任务。如果没有指定，Anyi 会使用默认的 Client。
+
+在上面代码中的 Flow 的配置里，定义了两个步骤（`Step`）：
+
+- 第一个步骤使用了一个 llm 类型的 Executor。llm 是 Anyi 内建的一种执行器类型，可以使用直接提示词或者基于模板的提示词调用 LLM 模型。在上面的示例中，`template` 参数指定了调用 LLM 的提示词模板，这个模板是使用 Go 语言的文本模板。
+- 第二个步骤也是使用了 llm 类型的 Executor，但是用了不同的提示词模板。
+
+通过 `anyi.GetFlow("smart_writer")` 可以获取到 Anyi 创建的名为`smart_writer`的工作流。然后通过 `flow.RunWithInput("the moon")` 运行该工作流，并传入输入参数`"the moon"`。
 
 ## 许可证
+
 Anyi 遵循 [Apache License 2.0](LICENSE)。

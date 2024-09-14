@@ -80,15 +80,15 @@ func ExecuteTask(task *TaskData, taskResultList []TaskResult, objective string) 
 		Task:      task,
 	}
 	executorFlow, _ := anyi.GetFlow("executorTask")
-	memory := executorFlow.NewShortTermMemory("", context)
+	flowContext := executorFlow.NewFlowContext("", context)
 
-	memory, err := executorFlow.Run(*memory)
+	flowContext, err := executorFlow.Run(*flowContext)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	return TaskResult{
-		Result: memory.Text,
+		Result: flowContext.Text,
 		Task:   task.Description,
 	}
 }
@@ -106,14 +106,14 @@ func CreateTask(objective string, results []TaskResult, task *TaskData, queue *Q
 		Task:      task,
 	}
 	executorFlow, _ := anyi.GetFlow("createTask")
-	memory := executorFlow.NewShortTermMemory("", context)
+	flowContext := executorFlow.NewFlowContext("", context)
 
-	memory, err := executorFlow.Run(*memory)
+	flowContext, err := executorFlow.Run(*flowContext)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	output := memory.Text
+	output := flowContext.Text
 	if output == "notask" {
 		return []*TaskData{}
 	}
@@ -152,14 +152,14 @@ func PrioritizeTaskQueue(objective string, result []TaskResult, task *TaskData, 
 		Task:      task,
 	}
 	executorFlow, _ := anyi.GetFlow("prioritizeTask")
-	memory := executorFlow.NewShortTermMemory("", context)
+	flowContext := executorFlow.NewFlowContext("", context)
 
-	memory, err := executorFlow.Run(*memory)
+	flowContext, err := executorFlow.Run(*flowContext)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	output := memory.Text
+	output := flowContext.Text
 	tasks := strings.Split(output, "\n")
 
 	taskDataList := []*TaskData{}
@@ -218,9 +218,12 @@ func InitAnyi() {
 					{
 						Executor: &anyi.ExecutorConfig{
 							Type: "llm",
-
-							Config: map[string]interface{}{
-								"templateFile": "execute_task.tmpl",
+							WithConfig: map[string]interface{}{
+								"template": `Perform one task based on the following objective: {{.Objective}}
+Take into account these previously completed tasks: 
+{{.Result}}
+Your task: {{.Task.Description}}
+Response:`,
 							},
 						},
 					},
@@ -232,13 +235,13 @@ func InitAnyi() {
 					{
 						Validator: &anyi.ValidatorConfig{
 							Type: "string",
-							Config: map[string]interface{}{
+							WithConfig: map[string]interface{}{
 								"matchRegex": `(^\s*\-\s.*)|(^notask$)`,
 							},
 						},
 						Executor: &anyi.ExecutorConfig{
 							Type: "llm",
-							Config: map[string]interface{}{
+							WithConfig: map[string]interface{}{
 								"template": `You are to use the result from an execution agent to create new tasks with the following objective: {{.Objective}}.
 These are completed tasks: 
 {{.Result}}
@@ -248,8 +251,8 @@ These are incomplete tasks:{{range $index, $task := .Tasks}}
 	- {{$task.Description}}
 {{end}}{{end}}
 Think about the existing completed tasks and the incomplete tasks. If they are not enough to archive the objective, then you should create new tasks and output them.
-These new tasks must not overlap with exisitng completed or incompleted tasks. 
-Be very careful when creating new tasks. Review the existing tasks and only create new tasks when the existing tasks cannot archieve the objective.
+These new tasks must not overlap with existing completed or incompleted tasks. 
+Be very careful when creating new tasks. Review the existing tasks and only create new tasks when the existing tasks cannot achieve the objective.
 Return one task per line in your response. The result must be an unordered bullet list in the format:
 
 - First task
@@ -270,13 +273,13 @@ Unless your list is empty, do not include any headers before your bullet list or
 					{
 						Validator: &anyi.ValidatorConfig{
 							Type: "string",
-							Config: map[string]interface{}{
+							WithConfig: map[string]interface{}{
 								"matchRegex": `(^\s*\-\s.*)|(^notask$)`,
 							},
 						},
 						Executor: &anyi.ExecutorConfig{
 							Type: "llm",
-							Config: map[string]interface{}{
+							WithConfig: map[string]interface{}{
 								"template": `You are tasked with prioritizing the following tasks: 
 {{range $index, $task := .Tasks}}	- {{$task.Description}}
 {{end}}

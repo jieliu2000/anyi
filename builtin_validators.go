@@ -1,16 +1,11 @@
-package flow
+package anyi
 
 import (
 	"errors"
 	"regexp"
-)
 
-// StepValidator is the interface for validators of step output.
-// In a flow if a step validator is set, the output of the step will be checked against the validator's Validate method.
-type StepValidator interface {
-	Init() error
-	Validate(stepOutput string, Step *Step) bool
-}
+	"github.com/jieliu2000/anyi/flow"
+)
 
 // StringValidator is a validator for string output. It can be used to check if the step's output matches a given regular expression or equals a specific string.
 // Note that the EqualTo and MatchRegex fields are mutually exclusive. If both are set, an error is returned during initialization.
@@ -50,7 +45,7 @@ func (validator *StringValidator) Init() error {
 // - bool: True if the validation passes, false otherwise.
 //
 // [Golang regexp documentation]: https://pkg.go.dev/regexp
-func (validator *StringValidator) Validate(stepOutput string, Step *Step) bool {
+func (validator *StringValidator) Validate(stepOutput string, Step *flow.Step) bool {
 
 	if validator.EqualTo != "" && stepOutput == validator.EqualTo {
 		return true

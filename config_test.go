@@ -14,9 +14,9 @@ type MockExecutor struct {
 	Param2 int
 }
 
-func (m *MockExecutor) Run(memory flow.ShortTermMemory, Step *flow.Step) (*flow.ShortTermMemory, error) {
+func (m *MockExecutor) Run(flowContext flow.FlowContext, Step *flow.Step) (*flow.FlowContext, error) {
 
-	return &memory, nil
+	return &flowContext, nil
 }
 
 func (m *MockExecutor) Init() error {
@@ -175,7 +175,7 @@ func TestNewExecutorFromConfig(t *testing.T) {
 
 		executorConfig := &ExecutorConfig{
 			Type: "valid-executor",
-			Config: map[string]interface{}{
+			WithConfig: map[string]interface{}{
 				"param1": "value1",
 				"param2": 10,
 			},

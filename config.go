@@ -18,19 +18,19 @@ type AnyiConfig struct {
 }
 
 type ValidatorConfig struct {
-	Type   string                 `mapstructure:"type" json:"type" yaml:"type"`
-	Config map[string]interface{} `mapstructure:"config" json:"config" yaml:"config"`
+	Type       string                 `mapstructure:"type" json:"type" yaml:"type"`
+	WithConfig map[string]interface{} `mapstructure:"withconfig" json:"withconfig" yaml:"withconfig"`
 }
 
 type ExecutorConfig struct {
-	Type   string                 `mapstructure:"type" json:"type" yaml:"type"`
-	Config map[string]interface{} `mapstructure:"config" json:"config" yaml:"config"`
+	Type       string                 `mapstructure:"type" json:"type" yaml:"type"`
+	WithConfig map[string]interface{} `mapstructure:"withconfig" json:"withconfig" yaml:"withconfig"`
 }
 
 type FormatterConfig struct {
-	Name   string                 `mapstructure:"name" json:"name" yaml:"name"`
-	Type   string                 `mapstructure:"type" json:"type" yaml:"type"`
-	Config map[string]interface{} `mapstructure:"config" json:"config" yaml:"config"`
+	Name       string                 `mapstructure:"name" json:"name" yaml:"name"`
+	Type       string                 `mapstructure:"type" json:"type" yaml:"type"`
+	WithConfig map[string]interface{} `mapstructure:"withconfig" json:"withconfig" yaml:"withconfig"`
 }
 
 type FlowConfig struct {
@@ -156,15 +156,11 @@ func NewExecutorFromConfig(executorConfig *ExecutorConfig) (flow.StepExecutor, e
 
 	executor := reflect.New(reflect.TypeOf(executorType).Elem()).Interface().(flow.StepExecutor)
 
-	if err != nil {
-		return nil, err
-	}
-
 	if executor == nil {
 		return nil, fmt.Errorf("executor type %s is not found", executorConfig.Type)
 	}
 
-	mapstructure.Decode(executorConfig.Config, executor)
+	mapstructure.Decode(executorConfig.WithConfig, executor)
 	executor.Init()
 	return executor, nil
 }
@@ -185,14 +181,11 @@ func NewValidatorFromConfig(validatorConfig *ValidatorConfig) (flow.StepValidato
 
 	validator := reflect.New(reflect.TypeOf(validatorType).Elem()).Interface().(flow.StepValidator)
 
-	if err != nil {
-		return nil, err
-	}
 	if validatorType == nil {
 		return nil, fmt.Errorf("validator type %s is not found", validatorConfig.Type)
 	}
 
-	mapstructure.Decode(validatorConfig.Config, validator)
+	mapstructure.Decode(validatorConfig.WithConfig, validator)
 	validator.Init()
 	return validator, nil
 

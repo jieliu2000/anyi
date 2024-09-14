@@ -1,16 +1,59 @@
-package flow
+package anyi
 
 import (
 	"errors"
 
+	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/llm"
 	"github.com/jieliu2000/anyi/llm/chat"
 )
 
-type StepExecutor interface {
-	Init() error
+type DecratedStepExecutor struct {
+	WithExecutor flow.StepExecutor `json:"withExecutor" yaml:"withExecutor" mapstructure:"withExecutor"`
+	PreRun       func(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error)
+	PostRun      func(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error)
+}
 
-	Run(memory ShortTermMemory, Step *Step) (*ShortTermMemory, error)
+// Init initializes the DecratedStepExecutor.
+// It checks if an executor is provided and if pre or post run functions are set.
+// If any of the checks fail, an error is returned.
+// If all checks pass, it calls the Init method of the executor.
+func (executor *DecratedStepExecutor) Init() error {
+	if executor.WithExecutor == nil {
+		return errors.New("no executor provided")
+	}
+
+	if executor.PreRun == nil && executor.PostRun == nil {
+		return errors.New("no pre or post run function provided")
+	}
+	return executor.WithExecutor.Init()
+}
+
+// The Run function executes the given step within the provided flow context.
+// Parameters:
+// - flowContext flow.FlowContext: The flow context in which the step will be executed.
+// - step *flow.Step: The step to be executed.
+// Return values:
+// - *flow.FlowContext: The updated flow context after executing the step.
+// - error: If an error occurs during execution, the corresponding error message is returned.
+func (executor *DecratedStepExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
+	context := &flowContext
+	if executor.WithExecutor == nil {
+		return context, errors.New("no executor provided")
+	}
+	if executor.PreRun != nil {
+		var err error
+		context, err := executor.PreRun(*context, step)
+		if err != nil {
+			return context, err
+		}
+	}
+	context, err := executor.WithExecutor.Run(*context, step)
+	if executor.PostRun != nil {
+
+		context, err = executor.PostRun(*context, step)
+	}
+	return context, err
 }
 
 type LLMStepExecutor struct {
@@ -40,15 +83,15 @@ func (executor *LLMStepExecutor) Init() error {
 	return errors.New("no required parameters. You need to set either template or templateFile")
 }
 
-func (executor *LLMStepExecutor) Run(memory ShortTermMemory, step *Step) (*ShortTermMemory, error) {
+func (executor *LLMStepExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
 	if step == nil {
 		return nil, errors.New("no step provided")
 	}
 
-	if step.clientImpl == nil {
-		step.clientImpl = memory.flow.clientImpl
+	if step.GetClient() == nil {
+		step.ClientImpl = flowContext.Flow.ClientImpl
 	}
-	if step.clientImpl == nil {
+	if step.ClientImpl == nil {
 		return nil, errors.New("no client set for flow step")
 	}
 
@@ -71,15 +114,15 @@ func (executor *LLMStepExecutor) Run(memory ShortTermMemory, step *Step) (*Short
 	var input string
 	if executor.TemplateFormatter != nil {
 		var err error
-		if memory.NonTextData == nil {
+		if flowContext.Memory == nil {
 			return nil, errors.New("no non-text data provided for template execution")
 		}
-		input, err = executor.TemplateFormatter.Format(memory.NonTextData)
+		input, err = executor.TemplateFormatter.Format(flowContext.Memory)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		input = memory.Text
+		input = flowContext.Text
 	}
 
 	messages := make([]chat.Message, 0, 2)
@@ -88,16 +131,16 @@ func (executor *LLMStepExecutor) Run(memory ShortTermMemory, step *Step) (*Short
 	}
 	messages = append(messages, chat.NewUserMessage(input))
 
-	output, _, err := step.clientImpl.Chat(messages, nil)
+	output, _, err := step.ClientImpl.Chat(messages, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	memory.Text = output.Content
-	return &memory, nil
+	flowContext.Text = output.Content
+	return &flowContext, nil
 }
 
-func NewLLMStepWithTemplateFile(templateFilePath string, systemMessage string, client llm.Client) (*Step, error) {
+func NewLLMStepWithTemplateFile(templateFilePath string, systemMessage string, client llm.Client) (*flow.Step, error) {
 
 	// Create a new formatter with the template
 	formatter, err := chat.NewPromptTemplateFormatterFromFile(templateFilePath)
@@ -108,12 +151,12 @@ func NewLLMStepWithTemplateFile(templateFilePath string, systemMessage string, c
 		TemplateFormatter: formatter,
 		SystemMessage:     systemMessage,
 	}
-	step := NewStep(executor, nil, client)
+	step := flow.NewStep(executor, nil, client)
 
 	return step, nil
 }
 
-func NewLLMStepWithTemplate(tmplate string, systemMessage string, client llm.Client) (*Step, error) {
+func NewLLMStepWithTemplate(tmplate string, systemMessage string, client llm.Client) (*flow.Step, error) {
 	// Create a new formatter with the template
 	formatter, err := chat.NewPromptTemplateFormatter(tmplate)
 	if err != nil {
@@ -124,6 +167,6 @@ func NewLLMStepWithTemplate(tmplate string, systemMessage string, client llm.Cli
 		TemplateFormatter: formatter,
 		SystemMessage:     systemMessage,
 	}
-	step := NewStep(executor, nil, client)
+	step := flow.NewStep(executor, nil, client)
 	return step, nil
 }
