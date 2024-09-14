@@ -69,6 +69,7 @@ type LLMStepExecutor struct {
 	TemplateFile      string `json:"templateFile" yaml:"templateFile" mapstructure:"templateFile"`
 	TemplateFormatter *chat.PromptyTemplateFormatter
 	SystemMessage     string `json:"systemMessage" yaml:"systemMessage" mapstructure:"systemMessage"`
+	OutputJSON        bool   `json:"outputJSON" yaml:"outputJSON" mapstructure:"outputJSON"`
 }
 
 func (executor *LLMStepExecutor) Init() error {
@@ -122,9 +123,6 @@ func (executor *LLMStepExecutor) Run(flowContext flow.FlowContext, step *flow.St
 	var input string
 	if executor.TemplateFormatter != nil {
 		var err error
-		if flowContext.Memory == nil {
-			return nil, errors.New("no non-text data provided for template execution")
-		}
 		input, err = executor.TemplateFormatter.Format(flowContext)
 		if err != nil {
 			return nil, err
@@ -137,9 +135,18 @@ func (executor *LLMStepExecutor) Run(flowContext flow.FlowContext, step *flow.St
 	if executor.SystemMessage != "" {
 		messages = append(messages, chat.NewSystemMessage(executor.SystemMessage))
 	}
+
+	var options *chat.ChatOptions
+
 	messages = append(messages, chat.NewUserMessage(input))
 
-	output, _, err := step.ClientImpl.Chat(messages, nil)
+	if executor.OutputJSON {
+		options = &chat.ChatOptions{
+			Format: "json",
+		}
+	}
+
+	output, _, err := step.ClientImpl.Chat(messages, options)
 	if err != nil {
 		return nil, err
 	}

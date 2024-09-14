@@ -1,10 +1,10 @@
 package coder
 
 import (
-	"log"
-	"os"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/llm"
 )
 
@@ -15,6 +15,11 @@ type TaskData struct {
 type TaskResult struct {
 	Result string
 	Task   string
+}
+
+type Task struct {
+	Objective    string
+	Instructions []string
 }
 
 type Queue[T any] struct {
@@ -48,15 +53,15 @@ func InitAnyi() {
 	config := anyi.AnyiConfig{
 		Clients: []llm.ClientConfig{
 			{
-				Name: "dashscope",
-				Type: "dashscope",
+				Name: "azureopenai",
+				Type: "azureopenai",
 				Config: map[string]interface{}{
-					"model":  "qwen-max",
-					"apiKey": os.Getenv("DASHSCOPE_API_KEY"),
+					"apiKey":            "cd3a53acfde14af1a96073974536cb29",
+					"modelDeploymentId": "gpt-4o",
+					"endpoint":          "https://xa-ms-openai.openai.azure.com/",
 				},
 			},
 		},
-
 		Flows: []anyi.FlowConfig{
 			{
 				Name: "executorTask",
@@ -70,6 +75,7 @@ Take into account these previously completed tasks:
 {{.Result}}
 Your task: {{.Task.Description}}
 Response:`,
+								"outputJSON": true,
 							},
 						},
 					},
@@ -91,7 +97,7 @@ Response:`,
 
     Keep in mind that the agents cannot open files in text editors, and tasks should be designed to work within these agent capabilities.
 
-    Here is the programming objective you need to create a checklist for: {.Memory.Objective}.
+    Here is the programming objective you need to create a checklist for: {{.Memory.Objective}}.
 
     To generate the checklist, follow these steps:
 
@@ -119,32 +125,35 @@ Response:`,
 
     Here is a sample JSON output for a checklist:
 
-            {{
+            {
                 "tasks": [
-                    {{
+                    {
                     "id": 1,
                     "description": "Run a command to create the project directory named 'project'",
                     "file_path": "./project",
-                    }},
-                    {{
+                    },
+                    {
                     "id": 2,
                     "description": "Run a command to Install the following dependencies: 'numpy', 'pandas', 'scikit-learn', 'matplotlib'",
                     "file_path": "null",
-                    }},
-                    {{
+                    },
+                    {
                     "id": 3,
                     "description": "Write code to create a function named 'parser' that takes an input named 'input' of type str, [perform a specific task on it], and returns a specific output",
                     "file_path": "./project/main.py",
-                    }},
+                    },
                     ...
-                    {{
+                    {
                     "id": N,
                     "description": "...",
-                    }}
+                    }
                 ],
-            }}
+            }
 
-    The tasks will be executed by either of the three agents: command_executor, code_writer or code_refactor. They can't interact with programs. They can either run terminal commands or write code snippets. Their output is controlled by other functions to run the commands or save their output to code files. Make sure the tasks are compatible with the current agents. ALL tasks MUST start either with the following phrases: 'Run a command to...', 'Write code to...', 'Edit existing code to...' depending on the agent that will execute the task. RETURN JSON ONLY:`,
+    The tasks will be executed by either of the three agents: command_executor, code_writer or code_refactor. They can't interact with programs. They can either run terminal commands or write code snippets. Their output is controlled by other functions to run the commands or save their output to code files. Make sure the tasks are compatible with the current agents. ALL tasks MUST start either with the following phrases: 'Run a command to...', 'Write code to...', 'Edit existing code to...' depending on the agent that will execute the task. 
+	Don't append any other characters except the JSON body.
+	`,
+								"outputJSON": true,
 							},
 						},
 					},
@@ -161,8 +170,8 @@ Response:`,
     - code_refactor_agent: Responsible for editing current existing code/files.
     - command_executor_agent: Executes terminal commands for tasks such as creating directories, installing dependencies, etc.
 
-    Here is the overall objective you need to refactor the tasks for: {.Memory.objective}.
-    Here is the JSON task list you need to refactor for compatibility with the current agents: {.Text}.
+    Here is the overall objective you need to refactor the tasks for: {{.Memory.Objective}}.
+    Here is the JSON task list you need to refactor for compatibility with the current agents: {{.Text}}.
 
     To refactor the task list, follow these steps:
     1. Modify the task descriptions to make them compatible with the current agents, ensuring that the tasks are self-contained, clear, and executable by the agents without additional context. You don't need to mention the agents in the task descriptions, but the tasks should be compatible with the current agents.
@@ -173,35 +182,36 @@ Response:`,
     Always specify file paths to files. Make sure tasks are not duplicated. Never write code to create files. If needed, use commands to create files and folders.
     Return the updated JSON task list with the following format:
 
-            {{
+            {
                 "tasks": [
-                    {{
+                    {
                     "id": 1,
                     "description": "Run a commmand to create a folder named 'project' in the current directory",
                     "file_path": "./project",
-                    }},
-                    {{
+                    },
+                    {
                     "id": 2,
                     "description": "Write code to print 'Hello World!' with Python",
                     "file_path": "./project/main.py",
-                    }},
-                    {{
+                    },
+                    {
                     "id": 3,
                     "description": "Write code to create a function named 'parser' that takes an input named 'input' of type str, [perform a specific task on it], and returns a specific output",
                     "file_path": "./project/main.py",
-                    }}
-                    {{
+                    }
+                    {
                     "id": 3,
                     "description": "Run a command calling the script in ./project/main.py",
                     "file_path": "./project/main.py",
-                    }}
+                    }
                     ...
                 ],
-            }}
+            }
 
     IMPORTANT: All tasks should start either with the following phrases: 'Run a command to...', 'Write a code to...', 'Edit the code to...' depending on the agent that will execute the task:
             
     ALWAYS ENSURE ALL TASKS HAVE RELEVANT CONTEXT ABOUT THE CODE TO BE WRITTEN, INCLUDE DETAILS ON HOW TO CALL FUNCTIONS, CLASSES, IMPORTS, ETC. AGENTS HAVE NO VIEW OF OTHER TASKS, SO THEY NEED TO BE SELF-CONTAINED. RETURN THE JSON:`,
+								"outputJSON": true,
 							},
 						},
 					},
@@ -223,6 +233,7 @@ Response:`,
     RETURN THE SAME TASK LIST but with the description improved to contain the details you is adding for each task in the list. DO NOT MAKE OTHER MODIFICATIONS TO THE LIST. Your input should go in the 'description' field of each task.
     
     RETURN JSON ONLY:`,
+								"outputJSON": true,
 							},
 						},
 					},
@@ -230,7 +241,7 @@ Response:`,
 						Executor: &anyi.ExecutorConfig{
 							Type: "llm",
 							WithConfig: map[string]interface{}{
-								"template": `You are an AGI agent responsible for improving a list of tasks in JSON format and adding ALL the necessary context to it. These tasks will be executed individually by agents that have no idea about other tasks or what code exists in the codebase. It is FUNDAMENTAL that each task has enough context so that an individual isolated agent can execute. The metadata of the task is the only information the agents will have.
+								"template": `You are an AGI agent responsible for improving a list of tasks in JSON format and adding ALL the necessary context to each task's description property. These tasks will be executed individually by agents that have no idea about other tasks or what code exists in the codebase. It is FUNDAMENTAL that each task has enough context so that an individual isolated agent can execute. The metadata of the task is the only information the agents will have.
 
     Look at all tasks at once, and add the necessary context to each task so that it can be executed by an agent without seeing the other tasks. Remember, one agent can only see one task and has no idea about what happened in other tasks. CONTEXT IS CRUCIAL. For example, if one task creates one folder and the other tasks creates a file in that folder. The second tasks should contain the name of the folder that already exists and the information that it already exists.
 
@@ -241,6 +252,8 @@ Response:`,
     Always use imports with the file name. For example, 'from my_script import MyScript'. 
     
     RETURN JSON OUTPUTS ONLY.
+
+	ONLY UPDATE THE DESCRIPTION FIELD OF EACH TASK. DO NOT MAKE OTHER MODIFICATIONS TO THE TASK LIST.
     
     Here is the overall objective you need to refactor the tasks for: {.Memory.Objective}.
     Here is the task list you need to improve: {.Text}
@@ -291,12 +304,13 @@ Do not include any headers before your ranked list or follow your list with any 
 
 func Example_coderTaskAGI() {
 
-	objective := `Create a Python program that consists of a single class named 'TemperatureConverter' in a file named 'temperature_converter.py'. The class should have the following methods:
-
+	log.SetLevel(log.DebugLevel)
+	task := Task{
+		Objective: `Create a Python program that consists of a single class named 'TemperatureConverter' in a file named 'temperature_converter.py'. The class should have the following methods:
 - celsius_to_fahrenheit(self, celsius: float) -> float: Converts Celsius temperature to Fahrenheit.
 - fahrenheit_to_celsius(self, fahrenheit: float) -> float: Converts Fahrenheit temperature to Celsius.
-
-Create a separate 'main.py' file that imports the 'TemperatureConverter' class, takes user input for the temperature value and the unit, converts the temperature to the other unit, and then prints the result.`
+Create a separate 'main.py' file that imports the 'TemperatureConverter' class, takes user input for the temperature value and the unit, converts the temperature to the other unit, and then prints the result.`,
+	}
 
 	taskQueue := Queue[TaskData]{
 		data: []*TaskData{
@@ -308,7 +322,24 @@ Create a separate 'main.py' file that imports the 'TemperatureConverter' class, 
 	InitAnyi()
 	loop := true
 
+	initialFlow, err := anyi.GetFlow("taskInitiator")
+	if err != nil {
+		log.Fatal(err)
+	}
+	context := &flow.FlowContext{
+		Memory: task,
+	}
+	context, err = initialFlow.Run(*context)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println(taskQueue)
+	log.Println(resultList)
+
+	log.Println(context)
+
 	for loop == true {
+		/**
 		if taskQueue.Len() > 0 {
 			log.Println("-------------Task List------------")
 			for i, t := range taskQueue.data {
@@ -339,6 +370,8 @@ Create a separate 'main.py' file that imports the 'TemperatureConverter' class, 
 			log.Println("All tasks completed!")
 			loop = false
 		}
-
+		*/
 	}
+	// Output:
+	// {Write code}
 }

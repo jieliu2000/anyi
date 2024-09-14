@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/llm"
 	"github.com/jieliu2000/anyi/llm/chat"
@@ -274,6 +276,9 @@ func NewLLMStep(tmplate string, systemMessage string, client llm.Client) (*flow.
 }
 
 func Init() {
+
+	log.Debug("Initializing Anyi...")
 	RegisterExecutor("llm", &LLMStepExecutor{})
 	RegisterValidator("string", &StringValidator{})
+	log.Debug("Anyi initialized successfully.")
 }

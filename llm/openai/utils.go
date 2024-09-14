@@ -121,6 +121,11 @@ func ExecuteChat(client *impl.Client, model string, messages []chat.Message, opt
 		Messages: messagesInput,
 	}
 
+	if options != nil {
+		if options.
+		request.ResponseFormat
+	}
+
 	resp, err := client.CreateChatCompletion(
 		context.Background(),
 		request,

@@ -3,6 +3,8 @@ package flow
 import (
 	"errors"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/jieliu2000/anyi/llm"
 )
 
@@ -106,6 +108,7 @@ func NewStepWithValidator(stepConfig any, executor StepExecutor, validator StepV
 func tryStep(step *Step, flowContext FlowContext) (*FlowContext, error) {
 	var err error
 
+	log.Debug("Running step ", step, " with flowContext:", flowContext, ".")
 	// Run the step and get the updated flowContext
 	result, err := step.Executor.Run(flowContext, step)
 	step.runTimes++
@@ -113,6 +116,7 @@ func tryStep(step *Step, flowContext FlowContext) (*FlowContext, error) {
 		return result, err
 	}
 	if step.runTimes > step.MaxRetryTimes+1 {
+		log.Error("Step retry times exceeded, returning error.")
 		return result, errors.New("step retry times exceeded")
 	}
 	if step.Validator != nil {
@@ -143,12 +147,14 @@ func (flow *Flow) Run(initialFlowContext FlowContext) (*FlowContext, error) {
 	flowContext := &initialFlowContext
 	flowContext.Flow = flow
 
+	log.Debug("Starting run flow ", flow.Name, " with initial context: ", flowContext, ".")
 	// For each step in the flow
 	for _, step := range flow.Steps {
 		// Run the step and get the updated flowContext
 
 		result, err := tryStep(&step, *flowContext)
 
+		log.Debug("Step running finished. Result: ", result, ". Error:", err, ".")
 		if err != nil {
 			return nil, err
 		}

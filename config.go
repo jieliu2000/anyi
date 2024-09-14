@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"reflect"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/internal/utils"
 	"github.com/jieliu2000/anyi/llm"
@@ -194,6 +196,8 @@ func NewValidatorFromConfig(validatorConfig *ValidatorConfig) (flow.StepValidato
 func Config(config *AnyiConfig) error {
 
 	Init()
+
+	log.Debug("Config Anyi with: ", config)
 	// Init clients
 	for _, clientConfig := range config.Clients {
 		if clientConfig.Name != "" {
@@ -213,6 +217,7 @@ func Config(config *AnyiConfig) error {
 		}
 	}
 
+	log.Debug("Config loaded successfully")
 	return nil
 
 }

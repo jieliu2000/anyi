@@ -2,7 +2,9 @@ package baby
 
 import (
 	"fmt"
-	"log"
+
+	log "github.com/sirupsen/logrus"
+
 	"os"
 	"strings"
 
