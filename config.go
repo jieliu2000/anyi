@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"reflect"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/internal/utils"
 	"github.com/jieliu2000/anyi/llm"
@@ -49,6 +51,7 @@ type StepConfig struct {
 	Validator *ValidatorConfig `mapstructure:"validator" json:"validator" yaml:"validator"`
 	// This is a required field. The executor name which will be used to execute the step.
 	Executor *ExecutorConfig `mapstructure:"executor" json:"executor" yaml:"executor"`
+	Name     string          `mapstructure:"name" json:"name" yaml:"name"`
 }
 
 func NewClientFromConfig(config *llm.ClientConfig) (llm.Client, error) {
@@ -99,6 +102,7 @@ func NewStepFromConfig(stepConfig *StepConfig) (*flow.Step, error) {
 		}
 	}
 	step := flow.NewStep(executor, validator, client)
+	step.Name = stepConfig.Name
 	if stepConfig.MaxRetryTimes > 0 {
 		step.MaxRetryTimes = stepConfig.MaxRetryTimes
 	}
@@ -194,6 +198,8 @@ func NewValidatorFromConfig(validatorConfig *ValidatorConfig) (flow.StepValidato
 func Config(config *AnyiConfig) error {
 
 	Init()
+
+	log.Debug("Config Anyi with: ", config)
 	// Init clients
 	for _, clientConfig := range config.Clients {
 		if clientConfig.Name != "" {
@@ -213,6 +219,7 @@ func Config(config *AnyiConfig) error {
 		}
 	}
 
+	log.Debug("Config loaded successfully")
 	return nil
 
 }

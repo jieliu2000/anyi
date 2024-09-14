@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
-	"log"
+
+	log "github.com/sirupsen/logrus"
+
 	"os"
 	"strings"
 
@@ -219,10 +221,10 @@ func InitAnyi() {
 						Executor: &anyi.ExecutorConfig{
 							Type: "llm",
 							WithConfig: map[string]interface{}{
-								"template": `Perform one task based on the following objective: {{.Objective}}
+								"template": `Perform one task based on the following objective: {{.Memory.Objective}}
 Take into account these previously completed tasks: 
-{{.Result}}
-Your task: {{.Task.Description}}
+{{.Memory.Result}}
+Your task: {{.Memory.Task.Description}}
 Response:`,
 							},
 						},
@@ -242,12 +244,12 @@ Response:`,
 						Executor: &anyi.ExecutorConfig{
 							Type: "llm",
 							WithConfig: map[string]interface{}{
-								"template": `You are to use the result from an execution agent to create new tasks with the following objective: {{.Objective}}.
+								"template": `You are to use the result from an execution agent to create new tasks with the following objective: {{.Memory.Objective}}.
 These are completed tasks: 
-{{.Result}}
+{{.Memory.Result}}
 
-{{if .Tasks}}
-These are incomplete tasks:{{range $index, $task := .Tasks}}
+{{if .Memory.Tasks}}
+These are incomplete tasks:{{range $index, $task := .Memory.Tasks}}
 	- {{$task.Description}}
 {{end}}{{end}}
 Think about the existing completed tasks and the incomplete tasks. If they are not enough to archive the objective, then you should create new tasks and output them.
@@ -281,9 +283,9 @@ Unless your list is empty, do not include any headers before your bullet list or
 							Type: "llm",
 							WithConfig: map[string]interface{}{
 								"template": `You are tasked with prioritizing the following tasks: 
-{{range $index, $task := .Tasks}}	- {{$task.Description}}
+{{range $index, $task := .Memory.Tasks}}	- {{$task.Description}}
 {{end}}
-Consider the ultimate objective of your team: {{.Objective}}.
+Consider the ultimate objective of your team: {{.Memory.Objective}}.
 
 Tasks should be sorted from highest to lowest priority, where higher-priority tasks are those that act as pre-requisites or are more essential for meeting the objective.
 Output one task per line in your response. The result must be an unordered bullet list in the format:
@@ -348,6 +350,5 @@ func main() {
 			log.Println("All tasks completed!")
 			loop = false
 		}
-
 	}
 }

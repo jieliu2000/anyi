@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/jieliu2000/anyi/llm/chat"
 	"github.com/jieliu2000/anyi/llm/tools"
@@ -121,12 +124,22 @@ func ExecuteChat(client *impl.Client, model string, messages []chat.Message, opt
 		Messages: messagesInput,
 	}
 
+	if options != nil {
+		if strings.ToLower(options.Format) == "json" {
+			request.ResponseFormat = &impl.ChatCompletionResponseFormat{
+				Type: "json_object",
+			}
+		}
+	}
+	log.Debugf("Sending request %v", request)
 	resp, err := client.CreateChatCompletion(
 		context.Background(),
 		request,
 	)
+	log.Debugf("Response: %v", resp)
 
 	if err != nil {
+		log.Errorf("Error: %v", err)
 		return nil, info, err
 	}
 	result := chat.Message{

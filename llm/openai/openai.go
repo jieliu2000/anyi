@@ -3,6 +3,7 @@ package openai
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/jieliu2000/anyi/llm/chat"
 	"github.com/jieliu2000/anyi/llm/tools"
@@ -114,6 +115,11 @@ func (c *OpenAIClient) Chat(messages []chat.Message, options *chat.ChatOptions) 
 	request := impl.ChatCompletionRequest{
 		Model:    c.Config.Model,
 		Messages: messagesInput,
+	}
+	if options != nil && strings.ToLower(options.Format) == "json" {
+		request.ResponseFormat = &impl.ChatCompletionResponseFormat{
+			Type: "json",
+		}
 	}
 
 	resp, err := c.clientImpl.CreateChatCompletion(

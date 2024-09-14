@@ -8,25 +8,33 @@ import (
 	"github.com/jieliu2000/anyi/llm/chat"
 )
 
-type DecratedStepExecutor struct {
-	WithExecutor flow.StepExecutor `json:"withExecutor" yaml:"withExecutor" mapstructure:"withExecutor"`
-	PreRun       func(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error)
-	PostRun      func(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error)
+type DecoratedStepExecutor struct {
+	ExecutorImpl flow.StepExecutor                                                              `json:"-" yaml:"-" mapstructure:"-"`
+	PreRun       func(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) `json:"-" yaml:"-" mapstructure:"-"`
+	PostRun      func(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) `json:"-" yaml:"-" mapstructure:"-"`
+	With         *ExecutorConfig                                                                `json:"with" yaml:"with" mapstructure:"with"`
 }
 
 // Init initializes the DecratedStepExecutor.
 // It checks if an executor is provided and if pre or post run functions are set.
 // If any of the checks fail, an error is returned.
 // If all checks pass, it calls the Init method of the executor.
-func (executor *DecratedStepExecutor) Init() error {
-	if executor.WithExecutor == nil {
+func (executor *DecoratedStepExecutor) Init() error {
+	if executor.With != nil && executor.ExecutorImpl == nil {
+		impl, err := NewExecutorFromConfig(executor.With)
+		if err != nil {
+			return err
+		}
+		executor.ExecutorImpl = impl
+	}
+	if executor.ExecutorImpl == nil {
 		return errors.New("no executor provided")
 	}
 
 	if executor.PreRun == nil && executor.PostRun == nil {
 		return errors.New("no pre or post run function provided")
 	}
-	return executor.WithExecutor.Init()
+	return executor.ExecutorImpl.Init()
 }
 
 // The Run function executes the given step within the provided flow context.
@@ -36,9 +44,9 @@ func (executor *DecratedStepExecutor) Init() error {
 // Return values:
 // - *flow.FlowContext: The updated flow context after executing the step.
 // - error: If an error occurs during execution, the corresponding error message is returned.
-func (executor *DecratedStepExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
+func (executor *DecoratedStepExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
 	context := &flowContext
-	if executor.WithExecutor == nil {
+	if executor.ExecutorImpl == nil {
 		return context, errors.New("no executor provided")
 	}
 	if executor.PreRun != nil {
@@ -48,7 +56,7 @@ func (executor *DecratedStepExecutor) Run(flowContext flow.FlowContext, step *fl
 			return context, err
 		}
 	}
-	context, err := executor.WithExecutor.Run(*context, step)
+	context, err := executor.ExecutorImpl.Run(*context, step)
 	if executor.PostRun != nil {
 
 		context, err = executor.PostRun(*context, step)
@@ -61,6 +69,7 @@ type LLMStepExecutor struct {
 	TemplateFile      string `json:"templateFile" yaml:"templateFile" mapstructure:"templateFile"`
 	TemplateFormatter *chat.PromptyTemplateFormatter
 	SystemMessage     string `json:"systemMessage" yaml:"systemMessage" mapstructure:"systemMessage"`
+	OutputJSON        bool   `json:"outputJSON" yaml:"outputJSON" mapstructure:"outputJSON"`
 }
 
 func (executor *LLMStepExecutor) Init() error {
@@ -114,10 +123,7 @@ func (executor *LLMStepExecutor) Run(flowContext flow.FlowContext, step *flow.St
 	var input string
 	if executor.TemplateFormatter != nil {
 		var err error
-		if flowContext.Memory == nil {
-			return nil, errors.New("no non-text data provided for template execution")
-		}
-		input, err = executor.TemplateFormatter.Format(flowContext.Memory)
+		input, err = executor.TemplateFormatter.Format(flowContext)
 		if err != nil {
 			return nil, err
 		}
@@ -129,9 +135,18 @@ func (executor *LLMStepExecutor) Run(flowContext flow.FlowContext, step *flow.St
 	if executor.SystemMessage != "" {
 		messages = append(messages, chat.NewSystemMessage(executor.SystemMessage))
 	}
+
+	var options *chat.ChatOptions
+
 	messages = append(messages, chat.NewUserMessage(input))
 
-	output, _, err := step.ClientImpl.Chat(messages, nil)
+	if executor.OutputJSON {
+		options = &chat.ChatOptions{
+			Format: "json",
+		}
+	}
+
+	output, _, err := step.ClientImpl.Chat(messages, options)
 	if err != nil {
 		return nil, err
 	}
