@@ -390,6 +390,4 @@ Create a separate 'main.py' file that imports the 'TemperatureConverter' class, 
 		}
 		*/
 	}
-	// Output:
-	// {Write code}
 }
