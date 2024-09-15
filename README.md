@@ -17,14 +17,15 @@ Anyi, as a Go programming framework, offers the following features:
 
 - **Access to Large Language Models**: Allows access to large language models through a uniform interface, using different configurations to access various large models. Currently supported large model interfaces include:
 
-    - OpenAI
-    - Azure OpenAI
-    - Dashscope
-    - Ollama
+  - OpenAI
+  - Azure OpenAI
+  - Dashscope
+  - Ollama
+  - Zhipu AI online service (bigmodel.cn)
 
 - **Multimodal Model Support**: In addition to supporting regular text-based conversations, Anyi also supports sending images to multimodal large models for processing.
 - **Multiple LLM Clients Support** Supports simultaneous access to multiple large language models from different sources. Different large model clients can be distinguished by their client names.
-- **Prompt Generation Based on Go Templates**: Supports generating prompts based on Go language templates.
+- **Prompt Generation Based on Go Templates**: Supports generating prompts based on Go language ([text/template](https://pkg.go.dev/text/template)).
 - **Workflow Support**: Allows chaining multiple conversation tasks into workflows.
 - **Step Validation in Workflows**: Repeats steps whose outputs do not meet expectations until the output is as expected. If the number of retries exceeds a predefined limit, an error is returned.
 - **Using Different Large Model Clients in Workflow Steps**: Different workflow steps can use different large model clients.
@@ -93,7 +94,7 @@ Workflows can be created in the following three ways:
 
 Anyi allows for **hybrid configuration**, meaning you can mix and use the three methods mentioned above within your program to create various objects such as clients, steps, executors and workflows themselves.
 
-In Anyi's workflows, objects such as Flow, Step, StepExecutor, StepValidator all pass information through the `flow.FlowContext` object. The declaration of the `flow.FlowContext` struct is as follows:
+In Anyi's workflows, objects such as Flow, Step, StepExecutor, StepValidator all exchange information through the `flow.FlowContext` object. The declaration of the `flow.FlowContext` struct is as follows:
 
 ```go
 type FlowContext struct {
@@ -162,7 +163,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	context, err := flow.RunWithInput("moon")
+	context, err := flow.RunWithInput("the moon")
 	if err != nil {
 		panic(err)
 	}
@@ -172,18 +173,20 @@ func main() {
 
 In the example above, an `AnyiConfig` configuration is first created that includes `Clients` and `Flows` properties. As the names suggest, `Clients` is used to define an array of Anyi client configurations, while `Flows` is used to define an array of workflow configurations.
 
-In `Clients` configuration, there is only one openai `Client` configuration included. Since there is only one `Client` named `openai` in the program, Anyi registers this client as the **default Client**. Anyi allows registering multiple Clients, and in Flows and Steps, you can specify which `Client` should execute the task. If none is specified, Anyi will use the *default Client*.
+In `Clients` configuration, there is only one openai `Client` configuration included. Since there is only one `Client` named `openai` in the program, Anyi registers this client as the **default Client**. Anyi allows registering multiple Clients, and in Flows and Steps, you can specify which `Client` should execute the task. If none is specified, Anyi will use the _default Client_.
 
 In `Flows` configuration, a Flow named `smart_writer` is defined. This workflow contains two steps (Steps):
 
 - The first step "write_scifi_novel" uses an Executor of the llm type. llm is a built-in type of Executor in Anyi that can call LLM models using **direct prompts** or **prompts based on templates**. In the example above, the `template` parameter specifies the prompt template for calling the LLM model. This template uses Go language text templates ([text/template](https://pkg.go.dev/text/template)).
-The template uses {{.Text}} as a parameter, where `.Text` is a property of `flow.FlowContext`. In Anyi's llm executor, Anyi sets the `.Text` property of `flow.FlowContext` based on the user's initial input. If the Executor outputs text content, Anyi sets the `.Text` property of `flow.FlowContext` as the output.
+  The template uses {{.Text}} as a parameter, where `.Text` is a property of `flow.FlowContext`. In Anyi's llm executor, Anyi sets the `.Text` property of `flow.FlowContext` based on the user's initial input. If the Executor outputs text content, Anyi sets the `.Text` property of `flow.FlowContext` as the output.
 
 - The second step "translate_novel" also uses an Executor of the llm type but with a different prompt template.
 
-After configuring Anyi with `anyi.Config(&config)`, you can get the workflow named `smart_writer` created by Anyi through `anyi.GetFlow("smart_writer")`. Then run the workflow with `flow.RunWithInput("moon")`. Before running the Flow, the parameter "moon" passed to RunWithInput is set to the `.Text` property of `flow.FlowContext`, which is then passed to the Executor of the first Step ("write_scifi_novel").
+After configuring Anyi with `anyi.Config(&config)`, you can get the workflow named `smart_writer` created by Anyi through `anyi.GetFlow("smart_writer")`. Then run the workflow with `flow.RunWithInput("the moon")`.
 
-The Executor of the first step "write_scifi_novel" generates a prompt based on the prompt template and user input, then calls the LLM model for computation. The output of this step, which is the content of the story, is set to the `.Text` property of `flow.FlowContext` and then passed to the next step "translate_novel" for translation.
+Before running the Flow, the parameter "the moon" passed to RunWithInput is set to the `.Text` property of `flow.FlowContext`, which is then passed to the Executor of the first Step ("write_scifi_novel").
+
+The Executor of the first step "write_scifi_novel" generates a prompt based on the prompt template and user input, then calls the LLM model for computation. The output of this step, which is the generated content of the story, is set to the `.Text` property of returned `flow.FlowContext` and then passed to the next step "translate_novel" for translation.
 
 Similarly, the second step also uses Go language templates, where {{.Text}} in the template is replaced with the `.Text` property of `flow.FlowContext`, which is the output content from "write_scifi_novel". Afterward, Anyi calls the LLM model for translation and sets the translation result back to the `.Text` property of `flow.FlowContext`. Finally, Anyi returns a reference to `flow.FlowContext` as the result of the Flow execution.
 
