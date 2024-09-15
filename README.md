@@ -172,7 +172,7 @@ func main() {
 
 In the example above, an `AnyiConfig` configuration is first created that includes `Clients` and `Flows` properties. As the names suggest, `Clients` is used to define an array of Anyi client configurations, while `Flows` is used to define an array of workflow configurations.
 
-In `Clients` configuration, there is only one openai `Client` configuration included. Since there is only one `Client` named `dashscope` in the program, Anyi registers this client as the **default Client**. Anyi allows registering multiple Clients, and in Flows and Steps, you can specify which `Client` should execute the task. If none is specified, Anyi will use the *default Client*.
+In `Clients` configuration, there is only one openai `Client` configuration included. Since there is only one `Client` named `openai` in the program, Anyi registers this client as the **default Client**. Anyi allows registering multiple Clients, and in Flows and Steps, you can specify which `Client` should execute the task. If none is specified, Anyi will use the *default Client*.
 
 In `Flows` configuration, a Flow named `smart_writer` is defined. This workflow contains two steps (Steps):
 
