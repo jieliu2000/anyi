@@ -1,9 +1,7 @@
 package openai
 
 import (
-	"context"
 	"errors"
-	"strings"
 
 	"github.com/jieliu2000/anyi/llm/chat"
 	"github.com/jieliu2000/anyi/llm/tools"
@@ -107,38 +105,7 @@ func (c *OpenAIClient) ChatWithFunctions(messages []chat.Message, functions []to
 }
 
 func (c *OpenAIClient) Chat(messages []chat.Message, options *chat.ChatOptions) (message *chat.Message, responseInfo chat.ResponseInfo, err error) {
-	if c.clientImpl == nil {
-		return nil, responseInfo, errors.New("client not initialized")
-	}
+	client := c.clientImpl
 
-	messagesInput := ConvertToOpenAIChatMessages(messages)
-	request := impl.ChatCompletionRequest{
-		Model:    c.Config.Model,
-		Messages: messagesInput,
-	}
-	if options != nil && strings.ToLower(options.Format) == "json" {
-		request.ResponseFormat = &impl.ChatCompletionResponseFormat{
-			Type: "json",
-		}
-	}
-
-	resp, err := c.clientImpl.CreateChatCompletion(
-		context.Background(),
-		request,
-	)
-	if err != nil {
-		return nil, responseInfo, err
-	}
-
-	if len(resp.Choices) == 0 {
-		return nil, responseInfo, errors.New("no chat completion choices returned")
-	}
-
-	responseInfo.CompletionTokens = resp.Usage.CompletionTokens
-	responseInfo.PromptTokens = resp.Usage.PromptTokens
-
-	return &chat.Message{
-		Content: resp.Choices[0].Message.Content,
-		Role:    resp.Choices[0].Message.Role,
-	}, responseInfo, nil
+	return ExecuteChat(client, c.Config.Model, messages, options)
 }

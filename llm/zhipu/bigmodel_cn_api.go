@@ -4,7 +4,6 @@
 package zhipu
 
 import (
-	"context"
 	"errors"
 
 	"github.com/jieliu2000/anyi/llm/chat"
@@ -79,45 +78,7 @@ func (c *ZhipuClient) ChatWithFunctions(messages []chat.Message, functions []too
 }
 
 func (c *ZhipuClient) Chat(messages []chat.Message, options *chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
-
-	info := chat.ResponseInfo{}
-	// Check if the client implementation is initialized
 	client := c.clientImpl
-	if client == nil {
-		return nil, info, errors.New("client not initialized")
-	}
 
-	// Convert the messages to OpenAI ChatMessages format
-	messagesInput := openai.ConvertToOpenAIChatMessages(messages)
-
-	// Create a ChatCompletion request using the client and the converted messages
-	resp, err := client.CreateChatCompletion(
-		context.Background(),
-		impl.ChatCompletionRequest{
-			Model:    c.Config.Model,
-			Messages: messagesInput,
-		},
-	)
-
-	// Check if there was an error in creating the ChatCompletion
-	if err != nil {
-		return nil, info, err
-	}
-
-	// Check if there are no choices in the response
-	if len(resp.Choices) == 0 {
-		return nil, info, errors.New("no choices found in the response")
-	}
-
-	// Extract the first choice from the response and create a new message object
-	result := chat.Message{
-		Content: resp.Choices[0].Message.Content,
-		Role:    resp.Choices[0].Message.Role,
-	}
-
-	info.CompletionTokens = resp.Usage.CompletionTokens
-	info.PromptTokens = resp.Usage.PromptTokens
-
-	// Return the new message object and nil error
-	return &result, info, nil
+	return openai.ExecuteChat(client, c.Config.Model, messages, options)
 }
