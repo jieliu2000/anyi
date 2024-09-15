@@ -25,6 +25,7 @@ func Example_flowWithDynamicConfig() {
 				Name: "smart_writer",
 				Steps: []anyi.StepConfig{
 					{
+						Name: "write_story",
 						Executor: &anyi.ExecutorConfig{
 							Type: "llm",
 							WithConfig: map[string]interface{}{
@@ -34,6 +35,7 @@ func Example_flowWithDynamicConfig() {
 					},
 
 					{
+						Name: "translate_story",
 						Executor: &anyi.ExecutorConfig{
 							Type: "llm",
 							WithConfig: map[string]interface{}{
