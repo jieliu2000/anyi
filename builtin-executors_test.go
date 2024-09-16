@@ -310,6 +310,28 @@ func TestRunForLLMStep(t *testing.T) {
 		assert.Equal(t, "output", newCtx.Text)
 	})
 
+	t.Run("template formatter success - with trim settings", func(t *testing.T) {
+		templateFromatter, _ := chat.NewPromptTemplateFormatter(" Hello, {{.Memory}} \"")
+		step := flow.Step{
+
+			ClientImpl: &test.MockClient{},
+		}
+		ctx := flow.FlowContext{
+			Memory: "world",
+			Flow: &flow.Flow{
+				ClientImpl: &test.MockClient{},
+			},
+		}
+		executor := &LLMStepExecutor{
+			TemplateFormatter: templateFromatter,
+			Trim:              " \"",
+		}
+		output, err := executor.Run(ctx, &step)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "Hello, world", output.Text)
+	})
+
 	t.Run("template formatter success", func(t *testing.T) {
 		templateFromatter, _ := chat.NewPromptTemplateFormatter("Hello, {{.Memory}}")
 		step := flow.Step{

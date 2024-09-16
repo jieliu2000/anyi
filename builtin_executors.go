@@ -2,6 +2,7 @@ package anyi
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/llm"
@@ -70,6 +71,7 @@ type LLMStepExecutor struct {
 	TemplateFormatter *chat.PromptyTemplateFormatter
 	SystemMessage     string `json:"systemMessage" yaml:"systemMessage" mapstructure:"systemMessage"`
 	OutputJSON        bool   `json:"outputJSON" yaml:"outputJSON" mapstructure:"outputJSON"`
+	Trim              string `json:"trim" yaml:"trim" mapstructure:"trim"`
 }
 
 func (executor *LLMStepExecutor) Init() error {
@@ -152,6 +154,9 @@ func (executor *LLMStepExecutor) Run(flowContext flow.FlowContext, step *flow.St
 	}
 
 	flowContext.Text = output.Content
+	if executor.Trim != "" {
+		flowContext.Text = strings.Trim(flowContext.Text, executor.Trim)
+	}
 	return &flowContext, nil
 }
 
