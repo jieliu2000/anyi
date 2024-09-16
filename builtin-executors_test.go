@@ -31,10 +31,10 @@ func (executor *MockStepExecutor) Run(flowContext flow.FlowContext, step *flow.S
 }
 
 func TestLLMStepExecutor_Init(t *testing.T) {
-	executor := &LLMStepExecutor{}
+	executor := &LLMExecutor{}
 	err := executor.Init()
 	assert.Error(t, err)
-	executor = &LLMStepExecutor{
+	executor = &LLMExecutor{
 		Template: "Hello, {{.name}}!",
 	}
 
@@ -43,7 +43,7 @@ func TestLLMStepExecutor_Init(t *testing.T) {
 	assert.NotNil(t, executor.TemplateFormatter)
 	assert.Equal(t, "Hello, {{.name}}!", executor.TemplateFormatter.TemplateString)
 
-	executor = &LLMStepExecutor{
+	executor = &LLMExecutor{
 		TemplateFile: "./internal/test/test_prompt2.tmpl",
 	}
 
@@ -53,13 +53,13 @@ func TestLLMStepExecutor_Init(t *testing.T) {
 }
 
 func TestDecratedStepExecutor_Init_NoExecutorProvided(t *testing.T) {
-	executor := DecoratedStepExecutor{}
+	executor := DecoratedExecutor{}
 	err := executor.Init()
 	assert.Error(t, err)
 }
 func TestDecratedStepExecutor_Init_NoPreOrPostRunProvided(t *testing.T) {
-	executor := DecoratedStepExecutor{
-		ExecutorImpl: &DecoratedStepExecutor{},
+	executor := DecoratedExecutor{
+		ExecutorImpl: &DecoratedExecutor{},
 	}
 	err := executor.Init()
 	assert.Error(t, err)
@@ -67,14 +67,14 @@ func TestDecratedStepExecutor_Init_NoPreOrPostRunProvided(t *testing.T) {
 }
 
 func TestDecratedStepExecutor_Init_NoExecutor(t *testing.T) {
-	executor := DecoratedStepExecutor{}
+	executor := DecoratedExecutor{}
 	err := executor.Init()
 	assert.Error(t, err)
 	assert.EqualError(t, err, "no executor provided")
 }
 func TestDecratedStepExecutor_Init(t *testing.T) {
 	mockExecutor := &MockStepExecutor{}
-	executor := DecoratedStepExecutor{
+	executor := DecoratedExecutor{
 		PreRun: func(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
 			return &flowContext, nil
 		},
@@ -87,7 +87,7 @@ func TestDecratedStepExecutor_Init(t *testing.T) {
 }
 
 func TestLLMStepExecutor_Init_NoTemplateAndNoTemplateFileProvided(t *testing.T) {
-	executor := LLMStepExecutor{}
+	executor := LLMExecutor{}
 	err := executor.Init()
 	assert.Error(t, err)
 }
@@ -97,7 +97,7 @@ func TestDecratedStepExecutor_Run(t *testing.T) {
 		preRunExecuted := false
 		postRunExecuted := false
 
-		executor := &DecoratedStepExecutor{
+		executor := &DecoratedExecutor{
 			PreRun: func(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
 				preRunExecuted = true
 				return &flowContext, nil
@@ -121,7 +121,7 @@ func TestDecratedStepExecutor_Run(t *testing.T) {
 	t.Run("pre-run and post-run are called when executor is provided", func(t *testing.T) {
 		preRunCalled := false
 		postRunCalled := false
-		executor := &DecoratedStepExecutor{
+		executor := &DecoratedExecutor{
 			ExecutorImpl: &MockStepExecutor{},
 			PreRun: func(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
 				preRunCalled = true
@@ -146,7 +146,7 @@ func TestDecratedStepExecutor_Run(t *testing.T) {
 }
 func TestDecratedStepExecutor_Run_WithErrors(t *testing.T) {
 	t.Run("pre-run returns an error", func(t *testing.T) {
-		executor := &DecoratedStepExecutor{
+		executor := &DecoratedExecutor{
 			ExecutorImpl: &MockStepExecutor{},
 			PreRun: func(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
 				return nil, errors.New("error")
@@ -162,7 +162,7 @@ func TestDecratedStepExecutor_Run_WithErrors(t *testing.T) {
 		assert.Equal(t, errors.New("error"), err)
 	})
 	t.Run("post-run returns an error", func(t *testing.T) {
-		executor := &DecoratedStepExecutor{
+		executor := &DecoratedExecutor{
 			ExecutorImpl: &MockStepExecutor{},
 			PostRun: func(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
 				return nil, errors.New("error")
@@ -178,7 +178,7 @@ func TestDecratedStepExecutor_Run_WithErrors(t *testing.T) {
 		assert.Equal(t, errors.New("error"), err)
 	})
 	t.Run("executor.WithExecutor.Run returns an error", func(t *testing.T) {
-		executor := &DecoratedStepExecutor{
+		executor := &DecoratedExecutor{
 			ExecutorImpl: &MockStepExecutor{
 				RunWithError: true,
 			},
@@ -195,7 +195,7 @@ func TestDecratedStepExecutor_Run_WithErrors(t *testing.T) {
 }
 func TestLLMStepExecutor_Run(t *testing.T) {
 	t.Run("step is nil", func(t *testing.T) {
-		executor := &LLMStepExecutor{}
+		executor := &LLMExecutor{}
 		flowContext := flow.FlowContext{
 			Text: "Hello, World!",
 			Flow: &flow.Flow{},
@@ -204,7 +204,7 @@ func TestLLMStepExecutor_Run(t *testing.T) {
 		assert.Error(t, err)
 	})
 	t.Run("step.clientImpl is nil", func(t *testing.T) {
-		executor := &LLMStepExecutor{}
+		executor := &LLMExecutor{}
 		flowContext := flow.FlowContext{
 			Text: "Hello, World!",
 			Flow: &flow.Flow{},
@@ -214,7 +214,7 @@ func TestLLMStepExecutor_Run(t *testing.T) {
 		assert.Error(t, err)
 	})
 	t.Run("template formatter is nil and template is provided", func(t *testing.T) {
-		executor := &LLMStepExecutor{
+		executor := &LLMExecutor{
 			Template: "Hello, {{.name}}!",
 		}
 		flowContext := flow.FlowContext{
@@ -226,7 +226,7 @@ func TestLLMStepExecutor_Run(t *testing.T) {
 		assert.Error(t, err)
 	})
 	t.Run("template formatter is nil and template file is provided", func(t *testing.T) {
-		executor := &LLMStepExecutor{
+		executor := &LLMExecutor{
 			TemplateFile: "testdata/template.tmpl",
 		}
 		flowContext := flow.FlowContext{
@@ -246,7 +246,7 @@ func TestNewLLMStepWithTemplateString(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, step)
 
-	executor := step.Executor.(*LLMStepExecutor)
+	executor := step.Executor.(*LLMExecutor)
 
 	assert.Equal(t, "system_message", executor.SystemMessage)
 
@@ -270,7 +270,7 @@ func TestRunForLLMStep(t *testing.T) {
 				ClientImpl: &test.MockClient{},
 			},
 		}
-		_, err := (&LLMStepExecutor{}).Run(ctx, nil)
+		_, err := (&LLMExecutor{}).Run(ctx, nil)
 		assert.Error(t, err, "no step provided")
 	})
 
@@ -283,7 +283,7 @@ func TestRunForLLMStep(t *testing.T) {
 				ClientImpl: nil,
 			},
 		}
-		_, err := (&LLMStepExecutor{}).Run(ctx, &step)
+		_, err := (&LLMExecutor{}).Run(ctx, &step)
 		assert.Error(t, err, "no client set for flow step")
 	})
 	t.Run("client chat error", func(t *testing.T) {
@@ -294,7 +294,7 @@ func TestRunForLLMStep(t *testing.T) {
 			},
 		}
 		ctx := flow.FlowContext{}
-		_, err := (&LLMStepExecutor{}).Run(ctx, &step)
+		_, err := (&LLMExecutor{}).Run(ctx, &step)
 		assert.Error(t, err, "client chat error")
 	})
 	t.Run("success", func(t *testing.T) {
@@ -305,7 +305,7 @@ func TestRunForLLMStep(t *testing.T) {
 			},
 		}
 		ctx := flow.FlowContext{}
-		newCtx, err := (&LLMStepExecutor{}).Run(ctx, &step)
+		newCtx, err := (&LLMExecutor{}).Run(ctx, &step)
 		assert.Nil(t, err)
 		assert.Equal(t, "output", newCtx.Text)
 	})
@@ -322,7 +322,7 @@ func TestRunForLLMStep(t *testing.T) {
 				ClientImpl: &test.MockClient{},
 			},
 		}
-		executor := &LLMStepExecutor{
+		executor := &LLMExecutor{
 			TemplateFormatter: templateFromatter,
 			Trim:              " \"",
 		}
@@ -344,7 +344,7 @@ func TestRunForLLMStep(t *testing.T) {
 				ClientImpl: &test.MockClient{},
 			},
 		}
-		executor := &LLMStepExecutor{
+		executor := &LLMExecutor{
 			TemplateFormatter: templateFromatter,
 		}
 		output, err := executor.Run(ctx, &step)
@@ -361,7 +361,7 @@ func TestRunForLLMStep(t *testing.T) {
 		ctx := flow.FlowContext{
 			Memory: "world",
 		}
-		executor := &LLMStepExecutor{
+		executor := &LLMExecutor{
 			TemplateFormatter: templateFromatter,
 		}
 		output, err := executor.Run(ctx, &step)
@@ -378,7 +378,7 @@ func TestNewLLMStepWithTemplateFile(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, step)
 
-	executor := step.Executor.(*LLMStepExecutor)
+	executor := step.Executor.(*LLMExecutor)
 	assert.Equal(t, "system_message", executor.SystemMessage)
 
 	formatter := executor.TemplateFormatter

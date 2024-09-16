@@ -9,7 +9,7 @@ import (
 	"github.com/jieliu2000/anyi/llm/chat"
 )
 
-type DecoratedStepExecutor struct {
+type DecoratedExecutor struct {
 	ExecutorImpl flow.StepExecutor                                                              `json:"-" yaml:"-" mapstructure:"-"`
 	PreRun       func(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) `json:"-" yaml:"-" mapstructure:"-"`
 	PostRun      func(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) `json:"-" yaml:"-" mapstructure:"-"`
@@ -20,7 +20,7 @@ type DecoratedStepExecutor struct {
 // It checks if an executor is provided and if pre or post run functions are set.
 // If any of the checks fail, an error is returned.
 // If all checks pass, it calls the Init method of the executor.
-func (executor *DecoratedStepExecutor) Init() error {
+func (executor *DecoratedExecutor) Init() error {
 	if executor.With != nil && executor.ExecutorImpl == nil {
 		impl, err := NewExecutorFromConfig(executor.With)
 		if err != nil {
@@ -45,7 +45,7 @@ func (executor *DecoratedStepExecutor) Init() error {
 // Return values:
 // - *flow.FlowContext: The updated flow context after executing the step.
 // - error: If an error occurs during execution, the corresponding error message is returned.
-func (executor *DecoratedStepExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
+func (executor *DecoratedExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
 	context := &flowContext
 	if executor.ExecutorImpl == nil {
 		return context, errors.New("no executor provided")
@@ -65,7 +65,7 @@ func (executor *DecoratedStepExecutor) Run(flowContext flow.FlowContext, step *f
 	return context, err
 }
 
-type LLMStepExecutor struct {
+type LLMExecutor struct {
 	Template          string `json:"template" yaml:"template" mapstructure:"template"`
 	TemplateFile      string `json:"templateFile" yaml:"templateFile" mapstructure:"templateFile"`
 	TemplateFormatter *chat.PromptyTemplateFormatter
@@ -74,7 +74,7 @@ type LLMStepExecutor struct {
 	Trim              string `json:"trim" yaml:"trim" mapstructure:"trim"`
 }
 
-func (executor *LLMStepExecutor) Init() error {
+func (executor *LLMExecutor) Init() error {
 	if executor.TemplateFormatter == nil && executor.Template != "" {
 		formatter, err := chat.NewPromptTemplateFormatter(executor.Template)
 		if err != nil {
@@ -94,7 +94,7 @@ func (executor *LLMStepExecutor) Init() error {
 	return errors.New("no required parameters. You need to set either template or templateFile")
 }
 
-func (executor *LLMStepExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
+func (executor *LLMExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
 	if step == nil {
 		return nil, errors.New("no step provided")
 	}
@@ -167,7 +167,7 @@ func NewLLMStepWithTemplateFile(templateFilePath string, systemMessage string, c
 	if err != nil {
 		return nil, err
 	}
-	executor := &LLMStepExecutor{
+	executor := &LLMExecutor{
 		TemplateFormatter: formatter,
 		SystemMessage:     systemMessage,
 	}
@@ -183,7 +183,7 @@ func NewLLMStepWithTemplate(tmplate string, systemMessage string, client llm.Cli
 		return nil, err
 	}
 
-	executor := &LLMStepExecutor{
+	executor := &LLMExecutor{
 		TemplateFormatter: formatter,
 		SystemMessage:     systemMessage,
 	}
