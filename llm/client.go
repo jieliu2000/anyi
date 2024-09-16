@@ -9,6 +9,7 @@ import (
 	"github.com/jieliu2000/anyi/llm/dashscope"
 	"github.com/jieliu2000/anyi/llm/ollama"
 	"github.com/jieliu2000/anyi/llm/openai"
+	"github.com/jieliu2000/anyi/llm/siliconcloud"
 	"github.com/jieliu2000/anyi/llm/tools"
 	"github.com/jieliu2000/anyi/llm/zhipu"
 	"github.com/mitchellh/mapstructure"
@@ -66,6 +67,8 @@ func NewModelConfigFromClientConfig(clientConfig *ClientConfig) (ModelConfig, er
 		modelConfig = dashscope.DefaultConfig("", "")
 	case "zhipu":
 		modelConfig = zhipu.DefaultConfig("", "")
+	case "siliconcloud":
+		modelConfig = siliconcloud.DefaultConfig("", "")
 	case "ollama":
 		modelConfig = ollama.DefaultConfig("")
 	default:
@@ -107,6 +110,9 @@ func NewClient(config ModelConfig) (Client, error) {
 
 	case *zhipu.ZhiPuModelConfig:
 		return zhipu.NewClient(config.(*zhipu.ZhiPuModelConfig))
+
+	case *siliconcloud.SiliconCloudConfig:
+		return siliconcloud.NewClient(config.(*siliconcloud.SiliconCloudConfig))
 
 	case *ollama.OllamaModelConfig:
 		return ollama.NewClient(config.(*ollama.OllamaModelConfig))

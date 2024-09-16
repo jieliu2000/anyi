@@ -19,9 +19,10 @@ Anyi, as a Go programming framework, offers the following features:
 
   - OpenAI
   - Azure OpenAI
-  - Dashscope
+  - Dashscope (https://dashscope.aliyun.com/)
   - Ollama
-  - Zhipu AI online service (bigmodel.cn)
+  - Zhipu AI online service (https://bigmodel.cn/)
+  - Silicon Cloud AI service (https://siliconflow.cn/)
 
 - **Multimodal Model Support**: In addition to supporting regular text-based conversations, Anyi also supports sending images to multimodal large models for processing.
 - **Multiple LLM Clients Support** Supports simultaneous access to multiple large language models from different sources. Different large model clients can be distinguished by their client names.
