@@ -2,6 +2,8 @@ package llm
 
 import (
 	"errors"
+	"os"
+	"strings"
 
 	"github.com/jieliu2000/anyi/internal/utils"
 	"github.com/jieliu2000/anyi/llm/azureopenai"
@@ -57,6 +59,7 @@ func NewModelConfigFromClientConfig(clientConfig *ClientConfig) (ModelConfig, er
 	if clientConfig == nil {
 		return nil, errors.New("client config is null")
 	}
+
 	var modelConfig ModelConfig
 	switch clientConfig.Type {
 	case "openai":
@@ -74,7 +77,25 @@ func NewModelConfigFromClientConfig(clientConfig *ClientConfig) (ModelConfig, er
 	default:
 		return nil, errors.New("unknown model")
 	}
-	err := mapstructure.Decode(clientConfig.Config, modelConfig)
+
+	propertyConfig := clientConfig.Config
+	//Find and replace environment variables in the config
+	for key, value := range propertyConfig {
+		switch v := value.(type) {
+		case string:
+			if strings.HasPrefix(v, "$") {
+				envValue := os.Getenv(strings.TrimPrefix(v, "$"))
+				if envValue != "" {
+					propertyConfig[key] = envValue
+				}
+			}
+		default:
+			break
+		}
+
+	}
+
+	err := mapstructure.Decode(propertyConfig, modelConfig)
 	return modelConfig, err
 }
 

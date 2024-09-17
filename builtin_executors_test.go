@@ -472,3 +472,70 @@ func TestConditionalFlowExecutor_Init(t *testing.T) {
 		assert.Error(t, err)
 	})
 }
+
+func TestConditionalFlowExecutor_Run(t *testing.T) {
+	t.Run("WithMatchingCondition", func(t *testing.T) {
+		RegisterFlow("flow1", &flow.Flow{
+			Steps: []flow.Step{
+				{
+					Executor: &test.MockExecutor{
+						ExpectedOutput: "bar",
+					},
+				},
+			},
+		})
+
+		executor := ConditionalFlowExecutor{
+			Switch: map[string]string{
+				"foo": "flow1",
+			},
+		}
+		flowContext := flow.FlowContext{
+			Text: "foo",
+		}
+		step := &flow.Step{}
+		context, err := executor.Run(flowContext, step)
+		assert.Nil(t, err)
+		assert.Equal(t, "bar", context.Text)
+	})
+	t.Run("WithNonMatchingCondition", func(t *testing.T) {
+		RegisterFlow("flow1", &flow.Flow{
+			Steps: []flow.Step{
+				{
+					Executor: &test.MockExecutor{
+						ExpectedOutput: "bar",
+					},
+				},
+			},
+		})
+
+		executor := &ConditionalFlowExecutor{
+			Switch: map[string]string{
+				"goodbye": "flow1",
+			},
+		}
+		flowContext := flow.FlowContext{
+			Text: "foo",
+		}
+		step := &flow.Step{}
+		_, err := executor.Run(flowContext, step)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "no matching flow found for condition")
+	})
+	t.Run("WithNonExistingFlow", func(t *testing.T) {
+		flowName := "test_flow"
+		condition := "hello"
+		executor := &ConditionalFlowExecutor{
+			Switch: map[string]string{
+				condition: flowName,
+			},
+		}
+		flowContext := flow.FlowContext{
+			Text: condition,
+		}
+		step := &flow.Step{}
+		_, err := executor.Run(flowContext, step)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "no flow found with the given name: test_flow")
+	})
+}

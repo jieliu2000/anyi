@@ -3,6 +3,7 @@ package test
 import (
 	"errors"
 
+	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/llm/chat"
 	"github.com/jieliu2000/anyi/llm/tools"
 )
@@ -35,4 +36,20 @@ func (m *MockClient) Chat(messages []chat.Message, options *chat.ChatOptions) (*
 
 func NewMockClient() *MockClient {
 	return &MockClient{}
+}
+
+type MockExecutor struct {
+	ExpectedOutput string
+}
+
+func (executor *MockExecutor) Init() error {
+	return nil
+}
+
+func (executor *MockExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
+
+	if executor.ExpectedOutput != "" {
+		flowContext.Text = executor.ExpectedOutput
+	}
+	return &flowContext, nil
 }
