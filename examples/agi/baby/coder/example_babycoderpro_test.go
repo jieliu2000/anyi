@@ -51,9 +51,8 @@ func (q *Queue[T]) Poll() *T {
 	}
 }
 
-func InitAnyi() {
-
-	config := anyi.AnyiConfig{
+func getConfig() anyi.AnyiConfig {
+	return anyi.AnyiConfig{
 		Clients: []llm.ClientConfig{
 			{
 				Name: "siliconcloud",
@@ -311,40 +310,13 @@ func InitAnyi() {
 					},
 				},
 			},
-			{
-				Name: "prioritizeTask",
-				Steps: []anyi.StepConfig{
-					{
-						Validator: &anyi.ValidatorConfig{
-							Type: "string",
-							WithConfig: map[string]interface{}{
-								"matchRegex": `(^\s*\-\s.*)|(^notask$)`,
-							},
-						},
-						Executor: &anyi.ExecutorConfig{
-							Type: "llm",
-							WithConfig: map[string]interface{}{
-								"template": `You are tasked with prioritizing the following tasks: 
-{{range $index, $task := .Tasks}}	- {{$task.Description}}
-{{end}}
-Consider the ultimate objective of your team: {{.Objective}}.
-
-Tasks should be sorted from highest to lowest priority, where higher-priority tasks are those that act as pre-requisites or are more essential for meeting the objective.
-Output one task per line in your response. The result must be an unordered bullet list in the format:
-
-- First task.
-- Second task.
-
-Use - as bullet symbol. Don't add any numbers or other symbols on each line.
-Do not include any headers before your ranked list or follow your list with any other output.`,
-							},
-						},
-					},
-				},
-			},
 		},
 	}
-	anyi.Config(&config)
+}
+
+func InitAnyi() {
+
+	anyi.ConfigFromFile("config.toml")
 }
 
 type TaskPlan struct {
