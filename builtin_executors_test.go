@@ -402,3 +402,73 @@ func TestNewLLMStepWithTemplateFile(t *testing.T) {
 	assert.Greater(t, len(output), 10)
 
 }
+
+func TestConditionalFlowExecutor_Init(t *testing.T) {
+	t.Run("should return error if switch is nil", func(t *testing.T) {
+		executor := &ConditionalFlowExecutor{
+			Switch: nil,
+		}
+		err := executor.Init()
+		assert.Error(t, err)
+	})
+	t.Run("should return error if switch is an empty map", func(t *testing.T) {
+		executor := &ConditionalFlowExecutor{
+			Switch: map[string]string{},
+		}
+		err := executor.Init()
+		assert.Error(t, err)
+	})
+	t.Run("should return error if switch value is not existing flow", func(t *testing.T) {
+
+		executor := &ConditionalFlowExecutor{
+			Switch: map[string]string{
+				"foo": "bar",
+			},
+		}
+		err := executor.Init()
+		assert.Error(t, err)
+	})
+	t.Run("should return success if all switch values are existing flows", func(t *testing.T) {
+
+		RegisterFlow("bar", &flow.Flow{})
+		RegisterFlow("qux", &flow.Flow{})
+
+		executor := &ConditionalFlowExecutor{
+			Switch: map[string]string{
+				"foo": "bar",
+				"baz": "qux",
+			},
+		}
+		err := executor.Init()
+		assert.NoError(t, err)
+	})
+
+	t.Run("should return success if all switch values are existing flows", func(t *testing.T) {
+
+		RegisterFlow("bar", &flow.Flow{})
+		RegisterFlow("qux", nil)
+
+		executor := &ConditionalFlowExecutor{
+			Switch: map[string]string{
+				"foo": "bar",
+				"baz": "qux",
+			},
+		}
+		err := executor.Init()
+		assert.Error(t, err)
+	})
+
+	t.Run("should return error if some switch values are not valid", func(t *testing.T) {
+
+		RegisterFlow("bar", &flow.Flow{})
+
+		executor := &ConditionalFlowExecutor{
+			Switch: map[string]string{
+				"foo": "bar",
+				"baz": "qux",
+			},
+		}
+		err := executor.Init()
+		assert.Error(t, err)
+	})
+}

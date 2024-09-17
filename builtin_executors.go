@@ -2,6 +2,7 @@ package anyi
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/jieliu2000/anyi/flow"
@@ -63,6 +64,48 @@ func (executor *DecoratedExecutor) Run(flowContext flow.FlowContext, step *flow.
 		context, err = executor.PostRun(*context, step)
 	}
 	return context, err
+}
+
+type ConditionalFlowExecutor struct {
+	Switch map[string]string `json:"switch" yaml:"switch" mapstructure:"switch"`
+	Trim   string            `json:"trim" yaml:"trim" mapstructure:"trim"`
+}
+
+func (executor *ConditionalFlowExecutor) Init() error {
+	if executor.Switch == nil || len(executor.Switch) == 0 {
+		return errors.New("no switch provided")
+	}
+	for _, value := range executor.Switch {
+		flow, err := GetFlow(value)
+		if err != nil {
+			return errors.Join(err, errors.New("failed to get flow "+value))
+		}
+		if flow == nil {
+			return errors.New("flow " + value + " not found")
+		}
+	}
+	return nil
+}
+
+func (executor *ConditionalFlowExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
+	condition := flowContext.Text
+	if executor.Trim != "" {
+		condition = strings.Trim(condition, executor.Trim)
+	}
+	flowName, ok := executor.Switch[condition]
+	if !ok || flowName == "" {
+		return &flowContext, fmt.Errorf("no matching flow found for condition %s", condition)
+	}
+
+	flow, err := GetFlow(flowName)
+	if err != nil {
+		return &flowContext, err
+	}
+	if flow == nil {
+		return &flowContext, fmt.Errorf("flow %s not found", flowName)
+	}
+
+	return flow.Run(flowContext)
 }
 
 type LLMExecutor struct {
