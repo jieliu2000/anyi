@@ -1,10 +1,14 @@
 [[clients]]
-name = "siliconcloud"
-type = "siliconcloud"
+name = "azureopenai"
+type = "azureopenai"
 
 [clients.config]
-apiKey = "$SILICONCLOUD_API_TOKEN"
-model = "Qwen/Qwen2-7B-Instruct"
+#apiKey = "$SILICONCLOUD_API_TOKEN"
+#model = "Qwen/Qwen2-7B-Instruct"
+#model = "phi3.5"
+modelDeploymentId = "$AZ_OPENAI_MODEL_DEPLOYMENT_ID"
+endpoint = "$AZ_OPENAI_ENDPOINT"
+apiKey = "$AZ_OPENAI_API_KEY"
 
 [[flows]]
 name = "taskExecuteFlow"
