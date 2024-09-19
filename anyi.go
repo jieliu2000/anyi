@@ -12,11 +12,12 @@ import (
 )
 
 type anyiRegistry struct {
-	Clients    map[string]llm.Client
-	Flows      map[string]*flow.Flow
-	Validators map[string]flow.StepValidator
-	Executors  map[string]flow.StepExecutor
-	Formatters map[string]chat.PromptFormatter
+	Clients           map[string]llm.Client
+	Flows             map[string]*flow.Flow
+	Validators        map[string]flow.StepValidator
+	Executors         map[string]flow.StepExecutor
+	Formatters        map[string]chat.PromptFormatter
+	defaultClientName string
 }
 
 var GlobalRegistry *anyiRegistry = &anyiRegistry{
@@ -30,8 +31,16 @@ var GlobalRegistry *anyiRegistry = &anyiRegistry{
 // RegisterDefaultClient registers the default client to the global registry.
 // Parameters:
 // - client llm.Client: The client to be registered as the default client.
-func RegisterDefaultClient(client llm.Client) {
-	GlobalRegistry.Clients["default"] = client
+func RegisterDefaultClient(name string, client llm.Client) error {
+	if name == "" {
+		name = "default"
+	}
+	err := RegisterClient(name, client)
+	if err != nil {
+		return err
+	}
+	GlobalRegistry.defaultClientName = name
+	return nil
 }
 
 // GetDefaultClient function retrieves the default client from the Anyi global registry. A default client is a client that meets any of the following conditions:
@@ -40,10 +49,16 @@ func RegisterDefaultClient(client llm.Client) {
 //
 // If no client is found, it returns an error indicating that no default client was found.
 func GetDefaultClient() (llm.Client, error) {
-	client, ok := GlobalRegistry.Clients["default"]
+
+	defaultName := GlobalRegistry.defaultClientName
+	if defaultName == "" {
+		defaultName = "default"
+	}
+
+	client, ok := GlobalRegistry.Clients[defaultName]
 	if !ok {
 		if len(GlobalRegistry.Clients) == 1 {
-			for _, client = range GlobalRegistry.Clients {
+			for _, client := range GlobalRegistry.Clients {
 				return client, nil
 			}
 		}

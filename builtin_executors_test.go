@@ -12,9 +12,10 @@ import (
 )
 
 type MockStepExecutor struct {
-	RunWithError  bool
-	InitCompleted bool
-	RunCompleted  bool
+	RunWithError   bool
+	InitCompleted  bool
+	RunCompleted   bool
+	ExpectedOutput string
 }
 
 func (executor *MockStepExecutor) Init() error {
@@ -26,6 +27,9 @@ func (executor *MockStepExecutor) Run(flowContext flow.FlowContext, step *flow.S
 	executor.RunCompleted = true
 	if executor.RunWithError {
 		return nil, errors.New("error")
+	}
+	if executor.ExpectedOutput != "" {
+		flowContext.Text = executor.ExpectedOutput
 	}
 	return &flowContext, nil
 }
@@ -478,7 +482,7 @@ func TestConditionalFlowExecutor_Run(t *testing.T) {
 		RegisterFlow("flow1", &flow.Flow{
 			Steps: []flow.Step{
 				{
-					Executor: &test.MockExecutor{
+					Executor: &MockStepExecutor{
 						ExpectedOutput: "bar",
 					},
 				},
@@ -502,7 +506,7 @@ func TestConditionalFlowExecutor_Run(t *testing.T) {
 		RegisterFlow("flow1", &flow.Flow{
 			Steps: []flow.Step{
 				{
-					Executor: &test.MockExecutor{
+					Executor: &MockStepExecutor{
 						ExpectedOutput: "bar",
 					},
 				},

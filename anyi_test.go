@@ -42,7 +42,7 @@ func TestGetDefaultClient(t *testing.T) {
 	})
 	t.Run("Set default client via RegisterDefaultClient", func(t *testing.T) {
 		client := &test.MockClient{}
-		RegisterDefaultClient(client)
+		RegisterDefaultClient("", client)
 		got, err := GetDefaultClient()
 		assert.NoError(t, err)
 		assert.Equal(t, client, got)

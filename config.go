@@ -60,7 +60,19 @@ func NewClientFromConfig(config *llm.ClientConfig) (llm.Client, error) {
 		return nil, err
 	}
 
-	return NewClient(config.Name, model)
+	client, err := NewClient(config.Name, model)
+	if err != nil {
+		return nil, err
+	}
+	if config.Default {
+		defaultClient, err := GetDefaultClient()
+		if err == nil || defaultClient != nil {
+			return nil, fmt.Errorf("default client is already set")
+		}
+
+		RegisterDefaultClient("", client)
+	}
+	return client, nil
 }
 
 func NewStepFromConfig(stepConfig *StepConfig) (*flow.Step, error) {

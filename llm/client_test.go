@@ -165,10 +165,11 @@ func TestNewModelConfigFromClientConfig_WithEnvironmentVariables(t *testing.T) {
 // To run this test case, set the OPENAI_API_KEY environment variable to "test_api_key".
 // You can do this via the command line with: export OPENAI_API_KEY="test_api_key"
 func TestNewModelConfigFromClientConfig_WithEnvironmentVariables_CrossPlatform(t *testing.T) {
+	os.Setenv("OPENAI_API_KEY", "test_api_key")
 	clientConfig := ClientConfig{
 		Type: "openai",
 		Config: map[string]interface{}{
-			"api_key": "$OPENAI_API_KEY",
+			"apiKey": "$OPENAI_API_KEY",
 		},
 	}
 	modelConfig, err := NewModelConfigFromClientConfig(&clientConfig)

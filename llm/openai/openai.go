@@ -107,5 +107,11 @@ func (c *OpenAIClient) ChatWithFunctions(messages []chat.Message, functions []to
 func (c *OpenAIClient) Chat(messages []chat.Message, options *chat.ChatOptions) (message *chat.Message, responseInfo chat.ResponseInfo, err error) {
 	client := c.clientImpl
 
+	if client == nil {
+		return nil, chat.ResponseInfo{}, errors.New("client cannot be null")
+	}
+	if c.Config == nil {
+		return nil, chat.ResponseInfo{}, errors.New("config cannot be null")
+	}
 	return ExecuteChat(client, c.Config.Model, messages, options)
 }

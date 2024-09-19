@@ -39,6 +39,8 @@ type ClientConfig struct {
 	// You can refer to the ModelConfig type of your model to see what properties you need to define hee.
 	// For example, for openai, you need to define properties based on openai.OpenAIModelConfig struct.
 	Config map[string]interface{} `mapstructure:"config" json:"config"`
+
+	Default bool `mapstructure:"default" json:"default"`
 }
 
 type ModelConfig interface {
