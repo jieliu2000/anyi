@@ -295,7 +295,7 @@ func Init() {
 	log.Debug("Initializing Anyi...")
 	RegisterExecutor("llm", &LLMExecutor{})
 	RegisterExecutor("condition", &ConditionalFlowExecutor{})
-	RegisterExecutor("run", &RunCommandExecutor{})
+	RegisterExecutor("exec", &RunCommandExecutor{})
 	RegisterValidator("string", &StringValidator{})
 	log.Debug("Anyi initialized successfully.")
 }
