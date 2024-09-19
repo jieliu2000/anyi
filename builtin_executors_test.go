@@ -543,3 +543,53 @@ func TestConditionalFlowExecutor_Run(t *testing.T) {
 		assert.Contains(t, err.Error(), "no flow found with the given name: test_flow")
 	})
 }
+
+func TestRunCommandExecutor_Run_Success(t *testing.T) {
+	executor := &RunCommandExecutor{}
+	flowContext := flow.FlowContext{
+		Text: "echo 'Hello, World!'",
+	}
+	step := &flow.Step{}
+	result, err := executor.Run(flowContext, step)
+	assert.Nil(t, err)
+	assert.Equal(t, flowContext, *result)
+}
+func TestRunCommandExecutor_Run_EmptyCommand(t *testing.T) {
+	executor := &RunCommandExecutor{}
+	flowContext := flow.FlowContext{
+		Text: "",
+	}
+	step := &flow.Step{}
+	_, err := executor.Run(flowContext, step)
+	assert.EqualError(t, err, "no command provided")
+}
+func TestRunCommandExecutor_Run_CommandError(t *testing.T) {
+	executor := &RunCommandExecutor{}
+	flowContext := flow.FlowContext{
+		Text: "some-non-existing-command",
+	}
+	step := &flow.Step{}
+	_, err := executor.Run(flowContext, step)
+	assert.Error(t, err)
+}
+func TestRunCommandExecutor_Run_Silent(t *testing.T) {
+	executor := &RunCommandExecutor{
+		Silent: true,
+	}
+	flowContext := flow.FlowContext{
+		Text: "echo 'Hello, World!'",
+	}
+	step := &flow.Step{}
+	_, err := executor.Run(flowContext, step)
+	assert.Nil(t, err)
+}
+
+func TestRunCommandExecutor_Run_OutputToContext(t *testing.T) {
+	executor := RunCommandExecutor{OutputToContext: true}
+	flowContext := flow.FlowContext{Text: "echo Hello, world!"}
+	step := &flow.Step{}
+	resultFlowContext, err := executor.Run(flowContext, step)
+	assert.Nil(t, err)
+
+	assert.Equal(t, "Hello, world!", resultFlowContext.Text)
+}

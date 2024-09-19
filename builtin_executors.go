@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/abdfnx/gosh"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/llm"
 	"github.com/jieliu2000/anyi/llm/chat"
@@ -71,6 +74,9 @@ type ConditionalFlowExecutor struct {
 	Trim   string            `json:"trim" yaml:"trim" mapstructure:"trim"`
 }
 
+// The Init function initializes the ConditionalFlowExecutor.
+// It checks the provided switches and retrieves the corresponding flows.
+// If any error occurs during the initialization process, an error is returned.
 func (executor *ConditionalFlowExecutor) Init() error {
 	if executor.Switch == nil || len(executor.Switch) == 0 {
 		return errors.New("no switch provided")
@@ -87,6 +93,13 @@ func (executor *ConditionalFlowExecutor) Init() error {
 	return nil
 }
 
+// Run is the function of ConditionalFlowExecutor, which is responsible for executing the flow based on the given condition.
+// Parameters:
+// - flowContext flow.FlowContext: The current flow context.
+// - step *flow.Step: The current step of the flow.
+// Return value:
+// - *flow.FlowContext: The updated flow context after execution.
+// - error: If an error occurs during execution, the corresponding error message is returned.
 func (executor *ConditionalFlowExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
 	condition := flowContext.Text
 	if executor.Trim != "" {
@@ -106,6 +119,46 @@ func (executor *ConditionalFlowExecutor) Run(flowContext flow.FlowContext, step 
 	}
 
 	return flow.Run(flowContext)
+}
+
+type RunCommandExecutor struct {
+	Silent          bool `json:"silent" yaml:"silent" mapstructure:"silent"`
+	OutputToContext bool `json:"outputToContext" yaml:"outputToContext" mapstructure:"outputToContext"`
+}
+
+func (executor *RunCommandExecutor) Init() error {
+	return nil
+}
+
+// Run executes the provided command in the Text field of the flow context.
+// Parameters:
+// - flowContext flow.FlowContext: The current flow context. The Text field of the flow context is used as the command to be executed.
+// - step *flow.Step: The current step in the flow.
+// Return values:
+// - *flow.FlowContext: This executor doesn't change anything in the flow context.
+// - error: Any error that occurred during command execution.
+func (executor *RunCommandExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
+	commandText := flowContext.Text
+	if commandText == "" {
+		return &flowContext, errors.New("no command provided")
+	}
+	if !executor.Silent {
+		log.Infof("Running command: %s", commandText)
+	}
+
+	err, out, _ := gosh.RunOutput(commandText)
+	outputString := strings.TrimSpace(string(out))
+
+	if err != nil {
+		return &flowContext, err
+	}
+	if !executor.Silent {
+		log.Infof("%s\n", outputString)
+	}
+	if executor.OutputToContext {
+		flowContext.Text = outputString
+	}
+	return &flowContext, nil
 }
 
 type LLMExecutor struct {
