@@ -7,7 +7,22 @@ import (
 	"github.com/jieliu2000/anyi/flow"
 )
 
-// StringValidator is a validator for string output. It can be used to check if the step's output matches a given regular expression or equals a specific string.
+type JsonValidator struct {
+}
+
+func (validator *JsonValidator) Init() error {
+	return nil
+}
+
+func (validator *JsonValidator) Validate(stepOutput string, Step *flow.Step) bool {
+	if stepOutput == "" {
+		return false
+	}
+	//check if the output is valid json
+	return false
+}
+
+// JsonValidator is a validator for string output. It can be used to check if the step's output matches a given regular expression or equals a specific string.
 // Note that the EqualTo and MatchRegex fields are mutually exclusive. If both are set, an error is returned during initialization.
 type StringValidator struct {
 	EqualTo    string `json:"eqaulTo" mapstructure:"eqaulTo" yaml:"eqaulTo"`
