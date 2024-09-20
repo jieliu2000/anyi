@@ -1,6 +1,7 @@
 package coder
 
 import (
+	"os"
 	"runtime"
 
 	log "github.com/sirupsen/logrus"
@@ -62,6 +63,9 @@ func InitAnyi() {
 	anyi.ConfigFromFile("config.toml")
 
 }
+
+const REPOSITORY = "playground"
+
 func Example_coderTaskAGI() {
 
 	log.SetLevel(log.DebugLevel)
@@ -98,6 +102,15 @@ Create a separate 'main.py' file that imports the 'TemperatureConverter' class, 
 		panic("error in unmarshalling")
 	}
 	plan.OS = runtime.GOOS
+
+	_, err = os.Stat(REPOSITORY)
+
+	if os.IsNotExist(err) {
+		err = os.Mkdir(REPOSITORY, 0755)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
 
 	for _, task := range plan.Tasks {
 		log.Infof("Task: %s", task.Description)

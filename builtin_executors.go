@@ -13,6 +13,30 @@ import (
 	"github.com/jieliu2000/shello"
 )
 
+type SetContextExecutor struct {
+	Text   string               `json:"text" yaml:"text" mapstructure:"text"`
+	Memory flow.ShortTermMemory `json:"memory" yaml:"memory" mapstructure:"memory"`
+
+	Force bool `json:"force" yaml:"force" mapstructure:"force"`
+}
+
+func (executor *SetContextExecutor) Init() error {
+	return nil
+}
+
+// Sets the text and memory of the flow context. If the Force flag is set to true, it will override the existing text and memory. Otherwise, it will only set the text and memory if they are not empty.
+func (executor *SetContextExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
+
+	if executor.Text != "" || executor.Force {
+		flowContext.Text = executor.Text
+	}
+
+	if executor.Memory != nil || executor.Force {
+		flowContext.Memory = executor.Memory
+	}
+	return &flowContext, nil
+}
+
 type DecoratedExecutor struct {
 	ExecutorImpl flow.StepExecutor                                                              `json:"-" yaml:"-" mapstructure:"-"`
 	PreRun       func(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) `json:"-" yaml:"-" mapstructure:"-"`
@@ -122,8 +146,9 @@ func (executor *ConditionalFlowExecutor) Run(flowContext flow.FlowContext, step 
 }
 
 type RunCommandExecutor struct {
-	Silent          bool `json:"silent" yaml:"silent" mapstructure:"silent"`
-	OutputToContext bool `json:"outputToContext" yaml:"outputToContext" mapstructure:"outputToContext"`
+	Silent          bool   `json:"silent" yaml:"silent" mapstructure:"silent"`
+	OutputToContext bool   `json:"outputToContext" yaml:"outputToContext" mapstructure:"outputToContext"`
+	Path            string `json:"path" yaml:"path" mapstructure:"path"`
 }
 
 func (executor *RunCommandExecutor) Init() error {
@@ -146,7 +171,7 @@ func (executor *RunCommandExecutor) Run(flowContext flow.FlowContext, step *flow
 		log.Infof("Running command: %s", commandText)
 	}
 
-	outputString, _, err := shello.RunOutput(commandText)
+	outputString, _, err := shello.RunOutputWithDir(commandText, executor.Path)
 
 	if err != nil {
 		return &flowContext, err

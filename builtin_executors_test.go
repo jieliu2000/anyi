@@ -527,7 +527,7 @@ func TestConditionalFlowExecutor_Run(t *testing.T) {
 		assert.Contains(t, err.Error(), "no matching flow found for condition")
 	})
 	t.Run("WithNonExistingFlow", func(t *testing.T) {
-		flowName := "test_flow"
+		flowName := "invalid_flow"
 		condition := "hello"
 		executor := &ConditionalFlowExecutor{
 			Switch: map[string]string{
@@ -540,7 +540,7 @@ func TestConditionalFlowExecutor_Run(t *testing.T) {
 		step := &flow.Step{}
 		_, err := executor.Run(flowContext, step)
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "no flow found with the given name: test_flow")
+		assert.Contains(t, err.Error(), "no flow found with the given name: invalid_flow")
 	})
 }
 
@@ -592,4 +592,73 @@ func TestRunCommandExecutor_Run_OutputToContext(t *testing.T) {
 	assert.Nil(t, err)
 
 	assert.Equal(t, "Hello, world!", resultFlowContext.Text)
+}
+
+func TestSetContextExecutor_Run(t *testing.T) {
+	// Test Case 1: Force is true, both Text and Memory are set
+	t.Run("Force true, sets Text and Memory", func(t *testing.T) {
+		executor := SetContextExecutor{
+			Text: "Hello, World!",
+			Memory: map[string]string{
+				"key": "value",
+			},
+
+			Force: true,
+		}
+		flowContext := flow.FlowContext{
+			Text: "Original Text",
+			Memory: map[string]string{
+				"foo": "bar",
+			},
+		}
+		step := &flow.Step{}
+		updatedContext, err := executor.Run(flowContext, step)
+		assert.NoError(t, err)
+		assert.Equal(t, executor.Text, updatedContext.Text)
+		memory := updatedContext.Memory.(map[string]string)
+		assert.Equal(t, "value", memory["key"])
+	})
+
+	// Test Case 2: Force is false, Text is empty, Memory is set
+	t.Run("Force false, Text empty, sets Memory", func(t *testing.T) {
+		executor := SetContextExecutor{
+			Text: "",
+			Memory: map[string]string{
+				"key": "value",
+			},
+			Force: false,
+		}
+		flowContext := flow.FlowContext{
+			Text: "Original Text",
+			Memory: map[string]string{
+				"foo": "bar",
+			},
+		}
+		step := &flow.Step{}
+		updatedContext, err := executor.Run(flowContext, step)
+		assert.NoError(t, err)
+		assert.Equal(t, "Original Text", updatedContext.Text)
+		memory := updatedContext.Memory.(map[string]string)
+		assert.Equal(t, "value", memory["key"])
+	})
+
+	// Test Case 3: Force is false, Memory is nil
+	t.Run("Force false, Memory nil", func(t *testing.T) {
+		executor := SetContextExecutor{
+			Memory: nil,
+			Force:  false,
+		}
+		flowContext := flow.FlowContext{
+			Text: "Original Text",
+			Memory: map[string]string{
+				"foo": "bar",
+			},
+		}
+		step := &flow.Step{}
+		updatedContext, err := executor.Run(flowContext, step)
+		assert.NoError(t, err)
+		assert.Equal(t, "Original Text", updatedContext.Text)
+		memory := updatedContext.Memory.(map[string]string)
+		assert.Equal(t, "bar", memory["foo"])
+	})
 }

@@ -78,6 +78,10 @@ command_executor_agent = "commandExecutorFlow"
 
 
 [[flows]]
+name = "codeWriterFlow"
+
+
+[[flows]]
 name = "commandExecutorFlow"
 
 [[flows.steps]]
@@ -100,6 +104,9 @@ name = "run_command"
 
 [flows.steps.executor]
 type = "exec"
+
+[flows.steps.executor.withConfig]
+path = "playground"
 
 [[flows]]
 name = "taskInitFlow"
