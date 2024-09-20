@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/abdfnx/gosh"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/llm"
 	"github.com/jieliu2000/anyi/llm/chat"
+	"github.com/jieliu2000/shello"
 )
 
 type DecoratedExecutor struct {
@@ -146,8 +146,7 @@ func (executor *RunCommandExecutor) Run(flowContext flow.FlowContext, step *flow
 		log.Infof("Running command: %s", commandText)
 	}
 
-	err, out, _ := gosh.RunOutput(commandText)
-	outputString := strings.TrimSpace(string(out))
+	outputString, _, err := shello.RunOutput(commandText)
 
 	if err != nil {
 		return &flowContext, err
