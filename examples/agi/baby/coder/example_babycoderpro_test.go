@@ -1,6 +1,8 @@
 package coder
 
 import (
+	"runtime"
+
 	log "github.com/sirupsen/logrus"
 
 	"github.com/jieliu2000/anyi"
@@ -52,6 +54,7 @@ type TaskPlan struct {
 	Tasks       []TaskData `json:"tasks"`
 	Objective   string     `json:"objective"`
 	CurrentTask *TaskData  `json:"currentTask"`
+	OS          string     `json:"os"`
 }
 
 func InitAnyi() {
@@ -94,6 +97,7 @@ Create a separate 'main.py' file that imports the 'TemperatureConverter' class, 
 		log.Fatal(err)
 		panic("error in unmarshalling")
 	}
+	plan.OS = runtime.GOOS
 
 	for _, task := range plan.Tasks {
 		log.Infof("Task: %s", task.Description)
