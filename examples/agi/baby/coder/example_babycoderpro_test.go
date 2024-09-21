@@ -124,9 +124,4 @@ Create a separate 'main.py' file that imports the 'TemperatureConverter' class, 
 
 		log.Info("Executed task successfully!, result:", context.Text)
 	}
-	// Output:
-	// Task: Create a Python program that consists of a single class named 'TemperatureConverter' in a file named 'temperature_converter.py'. The class should have the following methods:
-	// - celsius_to_fahrenheit(self, celsius: float) -> float: Converts Celsius temperature to Fahrenheit.
-	// - fahrenheit_to_celsius(self, fahrenheit: float) -> float: Converts Fahrenheit temperature to Celsius.
-	// Executed task successfully!, result: Done
 }
