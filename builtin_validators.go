@@ -1,6 +1,7 @@
 package anyi
 
 import (
+	"encoding/json"
 	"errors"
 	"regexp"
 
@@ -19,7 +20,9 @@ func (validator *JsonValidator) Validate(stepOutput string, Step *flow.Step) boo
 		return false
 	}
 	//check if the output is valid json
-	return false
+	var js json.RawMessage
+	err := json.Unmarshal([]byte(stepOutput), &js)
+	return err == nil
 }
 
 // JsonValidator is a validator for string output. It can be used to check if the step's output matches a given regular expression or equals a specific string.

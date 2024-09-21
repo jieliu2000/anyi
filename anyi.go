@@ -299,5 +299,7 @@ func Init() {
 	RegisterExecutor("setContext", &SetContextExecutor{})
 
 	RegisterValidator("string", &StringValidator{})
+	RegisterValidator("json", &JsonValidator{})
+
 	log.Debug("Anyi initialized successfully.")
 }

@@ -278,8 +278,11 @@ func TestInit(t *testing.T) {
 	Init()
 	// Verify
 	assert.NotNil(t, GlobalRegistry.Executors["llm"])
-	assert.NotNil(t, GlobalRegistry.Validators["string"])
 	assert.NotNil(t, GlobalRegistry.Executors["condition"])
 	assert.NotNil(t, GlobalRegistry.Executors["exec"])
+	assert.NotNil(t, GlobalRegistry.Executors["setContext"])
+
+	assert.NotNil(t, GlobalRegistry.Validators["json"])
+	assert.NotNil(t, GlobalRegistry.Validators["string"])
 
 }

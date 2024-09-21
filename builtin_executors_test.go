@@ -586,7 +586,7 @@ func TestRunCommandExecutor_Run_Silent(t *testing.T) {
 
 func TestRunCommandExecutor_Run_OutputToContext(t *testing.T) {
 	executor := RunCommandExecutor{OutputToContext: true}
-	flowContext := flow.FlowContext{Text: "echo Hello, world!"}
+	flowContext := flow.FlowContext{Text: "echo \"Hello, world!\""}
 	step := &flow.Step{}
 	resultFlowContext, err := executor.Run(flowContext, step)
 	assert.Nil(t, err)

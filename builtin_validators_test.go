@@ -96,3 +96,11 @@ func TestStringValidator_Validate_NilValues(t *testing.T) {
 
 	assert.False(t, validator.Validate("any output", step))
 }
+
+func TestJsonValidator_Validate(t *testing.T) {
+	validator := &JsonValidator{}
+	step := &flow.Step{}
+	assert.False(t, validator.Validate("", step))
+	assert.False(t, validator.Validate("not json string", step))
+	assert.True(t, validator.Validate(`{"key": "value"}`, step))
+}
