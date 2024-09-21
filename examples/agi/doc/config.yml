@@ -1,0 +1,11 @@
+---
+clients:
+  - name: ollama
+    type: ollama
+    config:
+      model: qwen2.5
+
+flows:
+  - name: plan_doc_structure
+  
+    
