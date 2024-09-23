@@ -56,11 +56,12 @@ type TaskPlan struct {
 	Objective   string     `json:"objective"`
 	CurrentTask *TaskData  `json:"currentTask"`
 	OS          string     `json:"os"`
+	ExtraData   any        `json:"extraData"`
 }
 
 func InitAnyi() {
 
-	anyi.ConfigFromFile("config.toml")
+	anyi.ConfigFromFile("config.yml")
 
 }
 
