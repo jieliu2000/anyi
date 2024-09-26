@@ -12,10 +12,10 @@ import (
 )
 
 type MockStepExecutor struct {
-	RunWithError   bool
-	InitCompleted  bool
-	RunCompleted   bool
-	ExpectedOutput string
+	ExecuteWithError bool
+	InitCompleted    bool
+	ExecuteCompleted bool
+	ExpectedOutput   string
 }
 
 func (executor *MockStepExecutor) Init() error {
@@ -23,9 +23,9 @@ func (executor *MockStepExecutor) Init() error {
 	return nil
 }
 
-func (executor *MockStepExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
-	executor.RunCompleted = true
-	if executor.RunWithError {
+func (executor *MockStepExecutor) Execute(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
+	executor.ExecuteCompleted = true
+	if executor.ExecuteWithError {
 		return nil, errors.New("error")
 	}
 	if executor.ExpectedOutput != "" {
@@ -117,7 +117,7 @@ func TestDecratedStepExecutor_Run(t *testing.T) {
 		step := &flow.Step{
 			Executor: &MockStepExecutor{},
 		}
-		_, err := executor.Run(flowContext, step)
+		_, err := executor.Execute(flowContext, step)
 		assert.Error(t, err, "no executor provided")
 		assert.False(t, preRunExecuted)
 		assert.False(t, postRunExecuted)
@@ -142,7 +142,7 @@ func TestDecratedStepExecutor_Run(t *testing.T) {
 		step := &flow.Step{
 			Executor: &MockStepExecutor{},
 		}
-		_, err := executor.Run(flowContext, step)
+		_, err := executor.Execute(flowContext, step)
 		assert.Nil(t, err)
 		assert.True(t, preRunCalled)
 		assert.True(t, postRunCalled)
@@ -162,7 +162,7 @@ func TestDecratedStepExecutor_Run_WithErrors(t *testing.T) {
 		step := &flow.Step{
 			Executor: executor,
 		}
-		_, err := executor.Run(flowContext, step)
+		_, err := executor.Execute(flowContext, step)
 		assert.Equal(t, errors.New("error"), err)
 	})
 	t.Run("post-run returns an error", func(t *testing.T) {
@@ -178,13 +178,13 @@ func TestDecratedStepExecutor_Run_WithErrors(t *testing.T) {
 		step := &flow.Step{
 			Executor: executor,
 		}
-		_, err := executor.Run(flowContext, step)
+		_, err := executor.Execute(flowContext, step)
 		assert.Equal(t, errors.New("error"), err)
 	})
-	t.Run("executor.WithExecutor.Run returns an error", func(t *testing.T) {
+	t.Run("executor.Withexecutor.Execute returns an error", func(t *testing.T) {
 		executor := &DecoratedExecutor{
 			ExecutorImpl: &MockStepExecutor{
-				RunWithError: true,
+				ExecuteWithError: true,
 			},
 		}
 		flowContext := flow.FlowContext{
@@ -193,7 +193,7 @@ func TestDecratedStepExecutor_Run_WithErrors(t *testing.T) {
 		step := &flow.Step{
 			Executor: executor,
 		}
-		_, err := executor.Run(flowContext, step)
+		_, err := executor.Execute(flowContext, step)
 		assert.Equal(t, errors.New("error"), err)
 	})
 }
@@ -204,7 +204,7 @@ func TestLLMStepExecutor_Run(t *testing.T) {
 			Text: "Hello, World!",
 			Flow: &flow.Flow{},
 		}
-		_, err := executor.Run(flowContext, nil)
+		_, err := executor.Execute(flowContext, nil)
 		assert.Error(t, err)
 	})
 	t.Run("step.clientImpl is nil", func(t *testing.T) {
@@ -214,7 +214,7 @@ func TestLLMStepExecutor_Run(t *testing.T) {
 			Flow: &flow.Flow{},
 		}
 		step := &flow.Step{}
-		_, err := executor.Run(flowContext, step)
+		_, err := executor.Execute(flowContext, step)
 		assert.Error(t, err)
 	})
 	t.Run("template formatter is nil and template is provided", func(t *testing.T) {
@@ -226,7 +226,7 @@ func TestLLMStepExecutor_Run(t *testing.T) {
 			Flow: &flow.Flow{},
 		}
 		step := &flow.Step{}
-		_, err := executor.Run(flowContext, step)
+		_, err := executor.Execute(flowContext, step)
 		assert.Error(t, err)
 	})
 	t.Run("template formatter is nil and template file is provided", func(t *testing.T) {
@@ -238,7 +238,7 @@ func TestLLMStepExecutor_Run(t *testing.T) {
 			Flow: &flow.Flow{},
 		}
 		step := &flow.Step{}
-		_, err := executor.Run(flowContext, step)
+		_, err := executor.Execute(flowContext, step)
 		assert.Error(t, err)
 	})
 
@@ -274,7 +274,7 @@ func TestRunForLLMStep(t *testing.T) {
 				ClientImpl: &test.MockClient{},
 			},
 		}
-		_, err := (&LLMExecutor{}).Run(ctx, nil)
+		_, err := (&LLMExecutor{}).Execute(ctx, nil)
 		assert.Error(t, err, "no step provided")
 	})
 
@@ -287,7 +287,7 @@ func TestRunForLLMStep(t *testing.T) {
 				ClientImpl: nil,
 			},
 		}
-		_, err := (&LLMExecutor{}).Run(ctx, &step)
+		_, err := (&LLMExecutor{}).Execute(ctx, &step)
 		assert.Error(t, err, "no client set for flow step")
 	})
 	t.Run("client chat error", func(t *testing.T) {
@@ -298,7 +298,7 @@ func TestRunForLLMStep(t *testing.T) {
 			},
 		}
 		ctx := flow.FlowContext{}
-		_, err := (&LLMExecutor{}).Run(ctx, &step)
+		_, err := (&LLMExecutor{}).Execute(ctx, &step)
 		assert.Error(t, err, "client chat error")
 	})
 	t.Run("success", func(t *testing.T) {
@@ -309,7 +309,7 @@ func TestRunForLLMStep(t *testing.T) {
 			},
 		}
 		ctx := flow.FlowContext{}
-		newCtx, err := (&LLMExecutor{}).Run(ctx, &step)
+		newCtx, err := (&LLMExecutor{}).Execute(ctx, &step)
 		assert.Nil(t, err)
 		assert.Equal(t, "output", newCtx.Text)
 	})
@@ -330,7 +330,7 @@ func TestRunForLLMStep(t *testing.T) {
 			TemplateFormatter: templateFromatter,
 			Trim:              " \"",
 		}
-		output, err := executor.Run(ctx, &step)
+		output, err := executor.Execute(ctx, &step)
 
 		assert.NoError(t, err)
 		assert.Equal(t, "Hello, world", output.Text)
@@ -351,7 +351,7 @@ func TestRunForLLMStep(t *testing.T) {
 		executor := &LLMExecutor{
 			TemplateFormatter: templateFromatter,
 		}
-		output, err := executor.Run(ctx, &step)
+		output, err := executor.Execute(ctx, &step)
 
 		assert.NoError(t, err)
 		assert.Equal(t, "Hello, world", output.Text)
@@ -368,7 +368,7 @@ func TestRunForLLMStep(t *testing.T) {
 		executor := &LLMExecutor{
 			TemplateFormatter: templateFromatter,
 		}
-		output, err := executor.Run(ctx, &step)
+		output, err := executor.Execute(ctx, &step)
 		assert.Error(t, err)
 		assert.Nil(t, output)
 
@@ -498,7 +498,7 @@ func TestConditionalFlowExecutor_Run(t *testing.T) {
 			Text: "foo",
 		}
 		step := &flow.Step{}
-		context, err := executor.Run(flowContext, step)
+		context, err := executor.Execute(flowContext, step)
 		assert.Nil(t, err)
 		assert.Equal(t, "bar", context.Text)
 	})
@@ -522,7 +522,7 @@ func TestConditionalFlowExecutor_Run(t *testing.T) {
 			Text: "foo",
 		}
 		step := &flow.Step{}
-		_, err := executor.Run(flowContext, step)
+		_, err := executor.Execute(flowContext, step)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "no matching flow found for condition")
 	})
@@ -538,7 +538,7 @@ func TestConditionalFlowExecutor_Run(t *testing.T) {
 			Text: condition,
 		}
 		step := &flow.Step{}
-		_, err := executor.Run(flowContext, step)
+		_, err := executor.Execute(flowContext, step)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "no flow found with the given name: invalid_flow")
 	})
@@ -550,7 +550,7 @@ func TestRunCommandExecutor_Run_Success(t *testing.T) {
 		Text: "echo 'Hello, World!'",
 	}
 	step := &flow.Step{}
-	result, err := executor.Run(flowContext, step)
+	result, err := executor.Execute(flowContext, step)
 	assert.Nil(t, err)
 	assert.Equal(t, flowContext, *result)
 }
@@ -560,7 +560,7 @@ func TestRunCommandExecutor_Run_EmptyCommand(t *testing.T) {
 		Text: "",
 	}
 	step := &flow.Step{}
-	_, err := executor.Run(flowContext, step)
+	_, err := executor.Execute(flowContext, step)
 	assert.EqualError(t, err, "no command provided")
 }
 func TestRunCommandExecutor_Run_CommandError(t *testing.T) {
@@ -569,7 +569,7 @@ func TestRunCommandExecutor_Run_CommandError(t *testing.T) {
 		Text: "some-non-existing-command",
 	}
 	step := &flow.Step{}
-	_, err := executor.Run(flowContext, step)
+	_, err := executor.Execute(flowContext, step)
 	assert.Error(t, err)
 }
 func TestRunCommandExecutor_Run_Silent(t *testing.T) {
@@ -580,7 +580,7 @@ func TestRunCommandExecutor_Run_Silent(t *testing.T) {
 		Text: "echo 'Hello, World!'",
 	}
 	step := &flow.Step{}
-	_, err := executor.Run(flowContext, step)
+	_, err := executor.Execute(flowContext, step)
 	assert.Nil(t, err)
 }
 
@@ -588,7 +588,7 @@ func TestRunCommandExecutor_Run_OutputToContext(t *testing.T) {
 	executor := RunCommandExecutor{OutputToContext: true}
 	flowContext := flow.FlowContext{Text: "echo \"Hello, world!\""}
 	step := &flow.Step{}
-	resultFlowContext, err := executor.Run(flowContext, step)
+	resultFlowContext, err := executor.Execute(flowContext, step)
 	assert.Nil(t, err)
 
 	assert.Equal(t, "Hello, world!", resultFlowContext.Text)
@@ -612,7 +612,7 @@ func TestSetContextExecutor_Run(t *testing.T) {
 			},
 		}
 		step := &flow.Step{}
-		updatedContext, err := executor.Run(flowContext, step)
+		updatedContext, err := executor.Execute(flowContext, step)
 		assert.NoError(t, err)
 		assert.Equal(t, executor.Text, updatedContext.Text)
 		memory := updatedContext.Memory.(map[string]string)
@@ -635,7 +635,7 @@ func TestSetContextExecutor_Run(t *testing.T) {
 			},
 		}
 		step := &flow.Step{}
-		updatedContext, err := executor.Run(flowContext, step)
+		updatedContext, err := executor.Execute(flowContext, step)
 		assert.NoError(t, err)
 		assert.Equal(t, "Original Text", updatedContext.Text)
 		memory := updatedContext.Memory.(map[string]string)
@@ -655,7 +655,7 @@ func TestSetContextExecutor_Run(t *testing.T) {
 			},
 		}
 		step := &flow.Step{}
-		updatedContext, err := executor.Run(flowContext, step)
+		updatedContext, err := executor.Execute(flowContext, step)
 		assert.NoError(t, err)
 		assert.Equal(t, "Original Text", updatedContext.Text)
 		memory := updatedContext.Memory.(map[string]string)

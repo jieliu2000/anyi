@@ -22,7 +22,7 @@ type Flow struct {
 }
 type StepExecutor interface {
 	Init() error
-	Run(flowContext FlowContext, Step *Step) (*FlowContext, error)
+	Execute(flowContext FlowContext, Step *Step) (*FlowContext, error)
 }
 
 // StepValidator is the interface for validators of step output.
@@ -116,7 +116,7 @@ func tryStep(step *Step, flowContext FlowContext) (*FlowContext, error) {
 
 	log.Debug("Running step ", step, " with flowContext:", flowContext, ".")
 	// Run the step and get the updated flowContext
-	result, err := step.Executor.Run(flowContext, step)
+	result, err := step.Executor.Execute(flowContext, step)
 	step.runTimes++
 	if err != nil {
 		return result, err

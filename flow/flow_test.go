@@ -10,9 +10,9 @@ import (
 )
 
 type MockStepExecutor struct {
-	RunWithError  bool
-	InitCompleted bool
-	RunCompleted  bool
+	ExecuteWithError bool
+	InitCompleted    bool
+	ExecuteCompleted bool
 }
 
 func (executor *MockStepExecutor) Init() error {
@@ -20,9 +20,9 @@ func (executor *MockStepExecutor) Init() error {
 	return nil
 }
 
-func (executor *MockStepExecutor) Run(flowContext FlowContext, step *Step) (*FlowContext, error) {
-	executor.RunCompleted = true
-	if executor.RunWithError {
+func (executor *MockStepExecutor) Execute(flowContext FlowContext, Step *Step) (*FlowContext, error) {
+	executor.ExecuteCompleted = true
+	if executor.ExecuteWithError {
 		return nil, errors.New("error")
 	}
 	return &flowContext, nil
@@ -92,7 +92,7 @@ type MockValidator struct {
 	Mock func(output string, step *Step) bool
 }
 
-func (m MockExecutor) Run(flowContext FlowContext, step *Step) (*FlowContext, error) {
+func (m MockExecutor) Execute(flowContext FlowContext, step *Step) (*FlowContext, error) {
 	return m.Mock(flowContext, step)
 }
 

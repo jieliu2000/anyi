@@ -3,7 +3,7 @@ clients:
   - name: ollama
     type: ollama
     config:
-      model: qwen2.5
+      model: qwen2.5:32b
 
 flows:
   - name: taskExecuteFlow

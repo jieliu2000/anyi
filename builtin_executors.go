@@ -25,7 +25,7 @@ func (executor *SetContextExecutor) Init() error {
 }
 
 // Sets the text and memory of the flow context. If the Force flag is set to true, it will override the existing text and memory. Otherwise, it will only set the text and memory if they are not empty.
-func (executor *SetContextExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
+func (executor *SetContextExecutor) Execute(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
 
 	if executor.Text != "" || executor.Force {
 		flowContext.Text = executor.Text
@@ -73,7 +73,7 @@ func (executor *DecoratedExecutor) Init() error {
 // Return values:
 // - *flow.FlowContext: The updated flow context after executing the step.
 // - error: If an error occurs during execution, the corresponding error message is returned.
-func (executor *DecoratedExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
+func (executor *DecoratedExecutor) Execute(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
 	context := &flowContext
 	if executor.ExecutorImpl == nil {
 		return context, errors.New("no executor provided")
@@ -85,7 +85,7 @@ func (executor *DecoratedExecutor) Run(flowContext flow.FlowContext, step *flow.
 			return context, err
 		}
 	}
-	context, err := executor.ExecutorImpl.Run(*context, step)
+	context, err := executor.ExecutorImpl.Execute(*context, step)
 	if executor.PostRun != nil {
 
 		context, err = executor.PostRun(*context, step)
@@ -124,7 +124,7 @@ func (executor *ConditionalFlowExecutor) Init() error {
 // Return value:
 // - *flow.FlowContext: The updated flow context after execution.
 // - error: If an error occurs during execution, the corresponding error message is returned.
-func (executor *ConditionalFlowExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
+func (executor *ConditionalFlowExecutor) Execute(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
 	condition := flowContext.Text
 	if executor.Trim != "" {
 		condition = strings.Trim(condition, executor.Trim)
@@ -146,9 +146,10 @@ func (executor *ConditionalFlowExecutor) Run(flowContext flow.FlowContext, step 
 }
 
 type RunCommandExecutor struct {
-	Silent          bool   `json:"silent" yaml:"silent" mapstructure:"silent"`
-	OutputToContext bool   `json:"outputToContext" yaml:"outputToContext" mapstructure:"outputToContext"`
-	Path            string `json:"path" yaml:"path" mapstructure:"path"`
+	Silent          bool     `json:"silent" yaml:"silent" mapstructure:"silent"`
+	OutputToContext bool     `json:"outputToContext" yaml:"outputToContext" mapstructure:"outputToContext"`
+	Path            string   `json:"path" yaml:"path" mapstructure:"path"`
+	Commands        []string `json:"run" yaml:"run" mapstructure:"run"`
 }
 
 func (executor *RunCommandExecutor) Init() error {
@@ -162,7 +163,7 @@ func (executor *RunCommandExecutor) Init() error {
 // Return values:
 // - *flow.FlowContext: This executor doesn't change anything in the flow context.
 // - error: Any error that occurred during command execution.
-func (executor *RunCommandExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
+func (executor *RunCommandExecutor) Execute(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
 	commandText := flowContext.Text
 	if commandText == "" {
 		return &flowContext, errors.New("no command provided")
@@ -214,7 +215,7 @@ func (executor *LLMExecutor) Init() error {
 	return errors.New("no required parameters. You need to set either template or templateFile")
 }
 
-func (executor *LLMExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
+func (executor *LLMExecutor) Execute(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
 	if step == nil {
 		return nil, errors.New("no step provided")
 	}

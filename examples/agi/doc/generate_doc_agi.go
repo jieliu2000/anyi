@@ -11,11 +11,11 @@ import (
 )
 
 type TaskPlan struct {
-	Tasks       []TaskData `json:"tasks"`
-	Objective   string     `json:"objective"`
-	CurrentTask *TaskData  `json:"currentTask"`
-	OS          string     `json:"os"`
-	Instructions []string `json:"instructions"`
+	Tasks        []TaskData `json:"tasks"`
+	Objective    string     `json:"objective"`
+	CurrentTask  *TaskData  `json:"currentTask"`
+	OS           string     `json:"os"`
+	Instructions []string   `json:"instructions"`
 }
 
 type TaskData struct {
@@ -32,6 +32,8 @@ func InitAnyi() {
 	anyi.ConfigFromFile("config.toml")
 
 }
+
+var REPOSITORY = "docs"
 
 func main() {
 
@@ -57,7 +59,7 @@ func main() {
 		log.Fatal(err)
 	}
 	context := &flow.FlowContext{
-		Text: "Go through the project and plan how to write the documentation, including "
+		Text:   "Go through the project and plan how to write the documentation, including ",
 		Memory: documentationPlan,
 	}
 	context, err = initialFlow.Run(*context)
@@ -92,6 +94,9 @@ func main() {
 			Memory: &documentationPlan,
 		}
 		context, err = executeFlow.Run(*context)
+		if err != nil {
+			log.Fatal(err)
+		}
 
 		log.Info("Executed task successfully!, result:", context.Text)
 	}
