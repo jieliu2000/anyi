@@ -16,8 +16,7 @@ import (
 type SetContextExecutor struct {
 	Text   string               `json:"text" yaml:"text" mapstructure:"text"`
 	Memory flow.ShortTermMemory `json:"memory" yaml:"memory" mapstructure:"memory"`
-
-	Force bool `json:"force" yaml:"force" mapstructure:"force"`
+	Force  bool                 `json:"force" yaml:"force" mapstructure:"force"`
 }
 
 func (executor *SetContextExecutor) Init() error {
@@ -146,17 +145,20 @@ func (executor *ConditionalFlowExecutor) Execute(flowContext flow.FlowContext, s
 }
 
 type RunCommandExecutor struct {
-	Silent          bool     `json:"silent" yaml:"silent" mapstructure:"silent"`
-	OutputToContext bool     `json:"outputToContext" yaml:"outputToContext" mapstructure:"outputToContext"`
-	Path            string   `json:"path" yaml:"path" mapstructure:"path"`
-	Commands        []string `json:"run" yaml:"run" mapstructure:"run"`
+	Silent          bool   `json:"silent" yaml:"silent" mapstructure:"silent"`
+	OutputToContext bool   `json:"outputToContext" yaml:"outputToContext" mapstructure:"outputToContext"`
+	Path            string `json:"path" yaml:"path" mapstructure:"path"`
+	Run             string `json:"run" yaml:"run" mapstructure:"run"`
 }
 
 func (executor *RunCommandExecutor) Init() error {
 	return nil
 }
 
-// Run executes the provided command in the Text field of the flow context.
+// Run executes the provided command in the shell. The executor might executor commands from these sources:
+// - The Run field of the executor.
+// - If the Run field of the executor is empty, the Text field of the flow context is used as the command to be executed.
+// If you need to executor mulitple commands, set the Run field of the executor or the Text field of the flow context to a multiple line string.
 // Parameters:
 // - flowContext flow.FlowContext: The current flow context. The Text field of the flow context is used as the command to be executed.
 // - step *flow.Step: The current step in the flow.
@@ -165,6 +167,9 @@ func (executor *RunCommandExecutor) Init() error {
 // - error: Any error that occurred during command execution.
 func (executor *RunCommandExecutor) Execute(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
 	commandText := flowContext.Text
+	if executor.Run != "" {
+		commandText = executor.Run
+	}
 	if commandText == "" {
 		return &flowContext, errors.New("no command provided")
 	}
