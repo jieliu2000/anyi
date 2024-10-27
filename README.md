@@ -35,7 +35,7 @@ Anyi, as a Go programming framework, offers the following features:
 
 ## Documentation and Examples
 
-For detailed usage guides, please refer to [Anyi Usage Guide and Examples](/docs/zh/tutorial.md). Below are some quick start instructions.
+For detailed usage guides, please refer to [Anyi Usage Guide and Examples](/docs/en/tutorial.md). Below are some quick start instructions.
 
 ## Quick start
 

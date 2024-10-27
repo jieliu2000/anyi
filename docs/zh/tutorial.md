@@ -1,5 +1,7 @@
 # Anyi使用向导和示例
 
+| [English](../en/tutorial.md) | [中文](../zh/tutorial.md) |
+
 ## 安装
 
 ```bash
