@@ -233,9 +233,16 @@ func TestGetFlow(t *testing.T) {
 
 func TestNewFlowContext(t *testing.T) {
 	input := "test"
-	flowContext := NewFlowContext(input)
+	flowContext := NewFlowContextWithText(input)
+
 	assert.IsType(t, &flow.FlowContext{}, flowContext)
 	assert.Equal(t, input, flowContext.Text)
+	assert.Nil(t, flowContext.Memory)
+
+	flowContext = NewFlowContextWithMemory(5)
+	assert.Equal(t, 5, flowContext.Memory)
+	assert.Equal(t, "", flowContext.Text)
+
 }
 
 func TestNewFlow(t *testing.T) {

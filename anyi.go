@@ -174,28 +174,33 @@ func NewMessage(role string, content string) chat.Message {
 	}
 }
 
-func NewFlowContext(input string) *flow.FlowContext {
+// NewFlowContextWithText creates a new FlowContext with the provided text.
+// Parameters:
+// - text string: The text content for the FlowContext.
+// return value:
+// - *flow.FlowContext: A new FlowContext instance with the provided text.
+func NewFlowContextWithText(text string) *flow.FlowContext {
+	return NewFlowContext(text, nil)
+}
+
+// NewFlowContextWithMemory creates a new FlowContext with the specified input string and short-term memory.
+// Parameters:
+// - text string: The input string for the FlowContext. Leave it empty if you don't need any text information in the flow context.
+// - memory flow.ShortTermMemory: The short-term memory for the FlowContext. This is actually an any type parameter. You can pass any type of memory object you want.
+
+// Return value:
+// - *flow.FlowContext: A pointer to the newly created FlowContext.
+func NewFlowContext(text string, memory flow.ShortTermMemory) *flow.FlowContext {
 	flowContext := flow.FlowContext{
-		Text: input,
+		Text:   text,
+		Memory: memory,
 	}
 
 	return &flowContext
 }
 
-// NewFlowContextWithMemory creates a new FlowContext with the specified input string and short-term memory.
-// Parameters:
-// - input string: The input string for the FlowContext. Leave it empty if you don't need any text information in the flow context.
-// - memory flow.ShortTermMemory: The short-term memory for the FlowContext. This is actually an any type parameter. You can pass any type of memory object you want.
-
-// Return value:
-// - *flow.FlowContext: A pointer to the newly created FlowContext.
-func NewFlowContextWithMemory(input string, memory flow.ShortTermMemory) *flow.FlowContext {
-	flowContext := flow.FlowContext{
-		Text:   input,
-		Memory: memory,
-	}
-
-	return &flowContext
+func NewFlowContextWithMemory(memory flow.ShortTermMemory) *flow.FlowContext {
+	return NewFlowContext("", memory)
 }
 
 func GetFormatter(name string) chat.PromptFormatter {
