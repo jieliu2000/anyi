@@ -184,3 +184,172 @@ If you want to access an Ollama API not hosted on localhost or if you've changed
 config := ollama.NewConfig("mistral", "http://your-ollama-server:11434")
 client, err := llm.NewClient(config)
 ```
+
+### Large Language Model Chat
+
+In Anyi, the entry point for a standard LLM chat invocation is the `client.Chat()` function. This function takes a parameter of type `[]chat.Message`, which represents the chat messages received by the large model.
+
+The aforementioned `chat` package is `"github.com/jieliu2000/anyi/llm/chat"`. You can import it with the following code:
+
+```go
+import "github.com/jieliu2000/anyi/llm/chat"
+```
+
+#### `chat.Message` Struct
+
+The `chat.Message` struct is defined as follows:
+
+```go
+type Message struct {
+	Content      string        `json:"content,omitempty"`
+	Role         string        `json:"role"`
+	ContentParts []ContentPart `json:"contentParts,omitempty"`
+}
+```
+
+Here, `Content` is the message content, `Role` is the role of the message sender, and `ContentParts` is an attribute set up for calling images in multimodal large models. We will discuss how to use the `ContentParts` property to pass images to large models later on. If you only need to chat using text messages with a large model, the `Content` attribute will suffice, and you can completely ignore the `ContentParts` attribute.
+
+_* For details on how to use the `ContentParts` property, refer to [Multimodal Large Model Invocation](#multimodal-large-model-invocation)_
+
+As demonstrated previously, you can create messages by directly assigning values to the properties of `chat.Message`, or you can create messages using the `chat.NewMessage()` function.
+
+The following code demonstrates directly creating a user message and invoking a large model chat:
+
+```go
+messages := []chat.Message{
+	{Role: "user", Content: "5+1=?"},
+}
+message, responseInfo, err := client.Chat(messages, nil)
+```
+
+The following code shows creating a user message using the `chat.NewMessage()` function and invoking a large model chat:
+
+```go
+messages := []chat.Message{
+	chat.NewMessage("user", "Hello, world!"),
+}
+message, responseInfo, err := client.Chat(messages, nil)
+```
+
+#### Return Values of Large Model Invocation
+
+The `client.Chat()` function has three return values:
+
+- The first one is a pointer of type `*chat.Message`, representing the chat message returned by the large model. Since this is a pointer, if an error occurs during the call to the large model, this return value will be set to nil.
+- The second one is a value of type `chat.ResponseInfo`, indicating response information from the large model, such as the number of tokens.
+- The third one is a value of type `error`, representing any errors that occurred while calling the large model.
+
+You may have noticed that the return value of the `client.Chat()` function is also a pointer of type `chat.Message`. This is part of our design to simplify Anyi's code. Typically, the `Role` attribute of the returned Message will be `"assistant"`, and the `Content` attribute will contain the response from the large model.
+
+Currently, `chat.ResponseInfo` is defined as follows:
+```go
+type ResponseInfo struct {
+	PromptTokens     int
+	CompletionTokens int
+}
+```
+As you can see, the properties within the `chat.ResponseInfo` struct are quite straightforward, each representing various token counts returned by the large model. In the future, we plan to add more attributes to this struct to support more detailed invocation information from large models.
+
+Given that Anyi supports multiple large model interfaces and that each interface may return different information, not all attributes of the `chat.ResponseInfo` struct may be populated after each large model call. You should handle the return values according to the specific large model interface used.
+
+### Multimodal Large Model Invocation
+
+In Anyi, the invocation entry for the multimodal large model remains the `client.Chat()` function. Unlike single-modal large models, when invoking a multimodal large model, you need to use the `ContentParts` property in the `chat.Message` struct to pass images to the large model.
+
+#### The Simplest Multimodal Large Model Invocation
+
+In the `github.com/jieliu2000/anyi/llm/chat` package, we provide two simple functions for creating the `chat.Message` struct required for multimodal large model invocations. They are:
+
+* `chat.NewImageMessageFromUrl()` is used to create a `chat.Message` struct that passes a network image URL to the large model.
+* `chat.NewImageMessageFromFile()` is used to create a `chat.Message` struct that passes a local image file to the large model.
+
+These two functions are very useful when you only need to pass a prompt string and one image to the visual large model. If you need to pass multiple images, you will need to manually create the `chat.Message` struct and then manually set the `ContentParts` property.
+
+The following code demonstrates how to use the `chat.NewImageMessageFromUrl()` function to create the `chat.Message` struct required for multimodal large model invocation (using Dashscope):
+
+```go
+package main
+
+import (
+	"log"
+	"os"
+
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm/dashscope"
+	"github.com/jieliu2000/anyi/llm/chat"
+)
+
+func main() {
+	// Make sure you set DASHSCOPE_API_KEY environment variable to your Dashscope API key.
+	config := dashscope.DefaultConfig(os.Getenv("DASHSCOPE_API_KEY"), "qwen-vl-plus")
+	client, err := anyi.NewClient("dashscope", config)
+
+	if err!= nil {
+		log.Fatalf("Failed to create client: %v", err)
+	}
+
+	messages := []chat.Message{
+		chat.NewImageMessageFromUrl("user", "What's this?", "https://dashscope.oss-cn-beijing.aliyuncs.com/images/dog_and_girl.jpeg"),
+	}
+
+	message, responseInfo, err := client.Chat(messages, nil)
+
+	if err!= nil {
+		log.Fatalf("Failed to chat: %v", err)
+		panic(err)
+	}
+
+	log.Printf("Response: %s", message.Content)
+	log.Printf("Prompt tokens: %v", responseInfo.PromptTokens)
+}
+```
+In the above code, we used the `chat.NewImageMessageFromUrl()` function to create a `chat.Message` struct that passes a network image URL to the large model. The first parameter of the `chat.NewImageMessageFromUrl()` function is the message role, the second parameter is the text message content, and the third parameter is the image URL.
+
+It should be noted that in the above code, the `ContentParts` property in the finally created `chat.Message` struct is an array of length **2** (not just one ContentPart). The first element in the array is a `ContentPart` struct of text type, and its text content is `"What's this?"`; the second element is a `ContentPart` struct of image type, and its image URL is `https://dashscope.oss-cn-beijing.aliyuncs.com/`.
+
+And the `Content` property of the `chat.Message` struct is an empty string. That is to say, the text message in the parameters of `chat.NewImageMessageFromUrl()` is reflected in the `ContentParts` property, not in the `Content` property of `chat.Message`. This is also a significant difference between multimodal large model invocations and single-modal large model invocations in Anyi.
+
+`chat.NewImageMessageFromUrl()` is used to create a `chat.Message` struct that passes a network image URL to the large model.
+
+The `chat.NewImageMessageFromFile()` function is similar to the `chat.NewImageMessageFromUrl()` function, except that it creates a `chat.Message` struct from a local image file. The following is an example code using the `chat.NewImageMessageFromFile()` function:
+
+```go
+messages := []chat.Message{
+	chat.NewImageMessageFromFile("user", "What number is in the image?", "../internal/test/number_six.png"),
+	}
+```
+As can be seen, the first parameter of the `chat.NewImageMessageFromFile()` function is the message role, the second parameter is the text message content, and the third parameter is the image file path.
+
+The `ContentParts` property in the `chat.Message` struct created by the `chat.NewImageMessageFromFile()` function is an array of length **2** (not just one ContentPart). The first element in the array is a `ContentPart` struct of text type, and its text content is `"What's this?"`; the second element is a `ContentPart` struct of image type, and its `ImageUrl` property is the base64-encoded URL of the passed image file.
+
+The `chat.NewImageMessageFromFile()` function will try to read the file. If the read fails, it will return a `chat.Message` value that only contains the `Role` property, and its `Content` property and `ContentParts` property are both empty.
+
+#### Reading Images to the Large Model via the `chat.ContentParts` Property
+
+In multimodal large model invocations, the `ContentParts` property in the `chat.Message` struct is an array, and each element in the array is a `ContentPart` struct. The `ContentPart` struct is defined as follows:
+
+```go
+type ContentPart struct {
+	Text        string `json:"text"`
+	ImageUrl    string `json:"imageUrl"`
+	ImageDetail string `json:"imageDetail"`
+}
+```
+The `ContentPart` struct contains three properties: `Text`, `ImageUrl`, and `ImageDetail`. The `Text` property is used to pass text messages to the large model, the `ImageUrl` property is used to pass image URLs to the large model, and the `ImageDetail` property is used to pass the level of detail of the image.
+
+It should be noted that the **`Text` and `ImageUrl` properties are mutually exclusive**. That is, if you set both the `Text` and `ImageUrl` properties for the `ContentPart` struct at the same time, the `ImageUrl` property will be ignored. If you want to pass an image, set the `Text` property to an empty string.
+
+The ImageUrl can be a network image URL or a base64-encoded URL of an image. Anyi provides the `chat.NewImagePartFromFile()` function to convert a local image into a `ContentPart` struct, and also provides the `chat.NewImagePartFromUrl()` function to convert a network image URL into a `ContentPart` struct.
+
+The ImageDetail property is used to pass the level of detail of the image. For example, `"low"`, `"medium"`, `"high"`, and `"auto"` are used to represent the level of detail of the image. If you are not sure which value to use, you can directly set this parameter to an empty string.
+
+The following code demonstrates how to use the `chat.NewImagePartFromUrl()` function to convert a network image URL into a `ContentPart` struct:
+
+```go
+imageUrl := "https://example.com/image.jpg"
+contentPart, err := chat.NewImagePartFromUrl(imageUrl, "")
+```
+The `chat.NewImagePartFromUrl()` function does not verify the image. However, when using the `client.Chat()` function to invoke the large model, Anyi will take different actions according to the situations of different large models:
+
+* In most cases, if the large model API supports passing image information via URL, Anyi will not check whether the image URL is valid, but directly pass the image URL to the large model API. In this case, you need to ensure that the image URL you provide is valid.
+* For APIs such as ollama, which do not support passing images via URL, in this case, Anyi will read the image according to the URL and convert the image into the format required by the large model API (such as base64 encoding) and pass it out. Obviously, if the URL points to an inaccessible or invalid image, the `client.Chat()` function will return an error before actually interacting with the large model. 
