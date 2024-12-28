@@ -185,6 +185,38 @@ config := ollama.NewConfig("mistral", "http://your-ollama-server:11434")
 client, err := llm.NewClient(config)
 ```
 
+#### 智谱AI开放平台API (bigmodel.cn)
+
+##### 默认配置访问智谱AI开放平台API
+
+```go
+// Make sure you set ZHIPU_API_KEY environment variable to your Zhipu API key.
+config := zhipu.DefaultConfig(os.Getenv("ZHIPU_API_KEY"), "glm-4-flash")
+client, err := llm.NewClient(config)
+```
+其中`glm-4-flash`是模型名称。zhipu包为`"github.com/jieliu2000/anyi/llm/zhipu"`。可以通过以下代码导入：
+
+```go
+import "github.com/jieliu2000/anyi/llm/zhipu"
+```
+
+#### SiliconCloud AI平台 (siliconflow.cn)
+
+##### 默认配置访问SiliconCloud AI平台
+
+```go
+// Make sure you set SILICONCLOUD_API_KEY environment variable to your Siliconcloud API key.
+config := siliconcloud.DefaultConfig(os.Getenv("SILICONCLOUD_API_KEY"), "glm-4-flash")
+client, err := llm.NewClient(config)
+```
+其中`glm-4-flash`是模型名称。siliconcloud包为`"github.com/jieliu2000/anyi/llm/siliconcloud"`。可以通过以下代码导入：
+
+```go
+import "github.com/jieliu2000/anyi/llm/siliconcloud"
+```
+
+
+
 ### 大模型聊天调用
 
 在Anyi中，普通大模型聊天调用的入口是`client.Chat()`函数。这个函数使用一个`[]chat.Message`类型的参数，表示大模型接收的聊天消息。
