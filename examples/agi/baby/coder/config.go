@@ -185,7 +185,7 @@ func GetConfig() anyi.AnyiConfig {
                 "tasks": [
                     {
                     "id": 1,
-                    "description": "Run a commmand to create a folder named 'project' in the current directory",
+                    "description": "Run a command to create a folder named 'project' in the current directory",
                     "file_path": "./project",
                     },
                     {
