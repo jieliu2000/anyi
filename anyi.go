@@ -182,6 +182,22 @@ func NewFlowContext(input string) *flow.FlowContext {
 	return &flowContext
 }
 
+// NewFlowContextWithMemory creates a new FlowContext with the specified input string and short-term memory.
+// Parameters:
+// - input string: The input string for the FlowContext. Leave it empty if you don't need any text information in the flow context.
+// - memory flow.ShortTermMemory: The short-term memory for the FlowContext. This is actually an any type parameter. You can pass any type of memory object you want.
+
+// Return value:
+// - *flow.FlowContext: A pointer to the newly created FlowContext.
+func NewFlowContextWithMemory(input string, memory flow.ShortTermMemory) *flow.FlowContext {
+	flowContext := flow.FlowContext{
+		Text:   input,
+		Memory: memory,
+	}
+
+	return &flowContext
+}
+
 func GetFormatter(name string) chat.PromptFormatter {
 	return GlobalRegistry.Formatters[name]
 }
