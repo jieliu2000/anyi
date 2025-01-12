@@ -130,11 +130,11 @@ func GetExecutor(name string) (flow.StepExecutor, error) {
 	if name == "" {
 		return nil, errors.New("name cannot be empty")
 	}
-	executorType := GlobalRegistry.Executors[name]
-	if executorType == nil {
+	executor := GlobalRegistry.Executors[name]
+	if executor == nil {
 		return nil, errors.New("no executor found with the given name: " + name)
 	}
-	return executorType, nil
+	return executor, nil
 }
 
 func GetClient(name string) (llm.Client, error) {
