@@ -114,7 +114,7 @@ func NewStepWithValidator(stepConfig any, executor StepExecutor, validator StepV
 func tryStep(step *Step, flowContext FlowContext) (*FlowContext, error) {
 	var err error
 
-	log.Debug("Running step ", step, " with flowContext:", flowContext, ".")
+	log.Debug("Running step ", step, ".")
 	// Run the step and get the updated flowContext
 	result, err := step.Executor.Run(flowContext, step)
 	step.runTimes++
@@ -153,14 +153,14 @@ func (flow *Flow) Run(initialFlowContext FlowContext) (*FlowContext, error) {
 	flowContext := &initialFlowContext
 	flowContext.Flow = flow
 
-	log.Debug("Starting run flow ", flow.Name, " with initial context: ", flowContext, ".")
+	log.Debug("Starting run flow ", flow.Name, " with initial context.")
 	// For each step in the flow
 	for _, step := range flow.Steps {
 		// Run the step and get the updated flowContext
 
 		result, err := tryStep(&step, *flowContext)
 
-		log.Debug("Step running finished. Result: ", result, ". Error:", err, ".")
+		log.Debug("Step running finished. Error:", err, ".")
 		if err != nil {
 			return nil, err
 		}

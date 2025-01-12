@@ -131,7 +131,7 @@ func ExecuteChat(client *impl.Client, model string, messages []chat.Message, opt
 			}
 		}
 	}
-	log.Debugf("Sending request %v", request)
+	log.Debugf("Sending request now")
 	resp, err := client.CreateChatCompletion(
 		context.Background(),
 		request,
