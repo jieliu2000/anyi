@@ -165,12 +165,12 @@ func NewExecutorFromConfig(executorConfig *ExecutorConfig) (flow.StepExecutor, e
 		return nil, errors.New("executor type is not set")
 	}
 
-	executorType, err := GetExecutor(executorConfig.Type)
+	metaExecutor, err := GetExecutor(executorConfig.Type)
 	if err != nil {
 		return nil, err
 	}
 
-	executor := reflect.New(reflect.TypeOf(executorType).Elem()).Interface().(flow.StepExecutor)
+	executor := metaExecutor
 
 	if executor == nil {
 		return nil, fmt.Errorf("executor type %s is not found", executorConfig.Type)
