@@ -209,6 +209,38 @@ config := ollama.NewConfig("mistral", "http://your-ollama-server:11434")
 client, err := llm.NewClient(config)
 ```
 
+#### Zhipu AI Open Platform (bigmodel.cn)
+
+##### Accessing Zhipu AI with Default Configuration
+
+```go
+// Make sure you set ZHIPU_API_KEY environment variable to your Zhipu API key.
+config := zhipu.DefaultConfig(os.Getenv("ZHIPU_API_KEY"), "glm-4-flash")
+client, err := llm.NewClient(config)
+```
+
+The zhipu package path is:
+
+```go
+import "github.com/jieliu2000/anyi/llm/zhipu"
+```
+
+#### SiliconCloud AI Platform (siliconflow.cn)
+
+##### Accessing SiliconCloud AI Platform
+
+```go
+// Make sure you set SILICONCLOUD_API_KEY environment variable to your Siliconcloud API key.
+config := siliconcloud.DefaultConfig(os.Getenv("SILICONCLOUD_API_KEY"), "glm-4-flash")
+client, err := llm.NewClient(config)
+```
+
+The siliconcloud package path is:
+
+```go
+import "github.com/jieliu2000/anyi/llm/siliconcloud"
+```
+
 ### Large Language Model Chat
 
 In Anyi, the entry point for a standard LLM chat invocation is the `client.Chat()` function. This function takes a parameter of type `[]chat.Message`, which represents the chat messages received by the large model.
@@ -383,35 +415,3 @@ The `chat.NewImagePartFromUrl()` function does not verify the image. However, wh
 
 - In most cases, if the large model API supports passing image information via URL, Anyi will not check whether the image URL is valid, but directly pass the image URL to the large model API. In this case, you need to ensure that the image URL you provide is valid.
 - For APIs such as ollama, which do not support passing images via URL, in this case, Anyi will read the image according to the URL and convert the image into the format required by the large model API (such as base64 encoding) and pass it out. Obviously, if the URL points to an inaccessible or invalid image, the `client.Chat()` function will return an error before actually interacting with the large model.
-
-#### Zhipu AI Open Platform (bigmodel.cn)
-
-##### Accessing Zhipu AI with Default Configuration
-
-```go
-// Make sure you set ZHIPU_API_KEY environment variable to your Zhipu API key.
-config := zhipu.DefaultConfig(os.Getenv("ZHIPU_API_KEY"), "glm-4-flash")
-client, err := llm.NewClient(config)
-```
-
-The zhipu package path is:
-
-```go
-import "github.com/jieliu2000/anyi/llm/zhipu"
-```
-
-#### SiliconCloud AI Platform (siliconflow.cn)
-
-##### Accessing SiliconCloud AI Platform
-
-```go
-// Make sure you set SILICONCLOUD_API_KEY environment variable to your Siliconcloud API key.
-config := siliconcloud.DefaultConfig(os.Getenv("SILICONCLOUD_API_KEY"), "glm-4-flash")
-client, err := llm.NewClient(config)
-```
-
-The siliconcloud package path is:
-
-```go
-import "github.com/jieliu2000/anyi/llm/siliconcloud"
-```
