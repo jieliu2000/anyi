@@ -1,9 +1,30 @@
 # Anyi Tutorials and Examples
 
+| [English](../en/tutorial.md) | [中文](../zh/tutorial.md) |
+
+## Table of Contents
+
+- [Installation](#installation)
+- [Accessing Large Language Models](#accessing-large-language-models)
+  - [Client Creation](#creating-clients)
+  - [Client Configuration](#client-configuration)
+    - [OpenAI](#openai)
+    - [Azure OpenAI](#azure-openai)
+    - [Dashscope](#dashscope)
+    - [Ollama](#ollama)
+    - [Zhipu AI Open Platform](#zhipu-ai-open-platform-bigmodelcn)
+    - [SiliconCloud AI Platform](#siliconcloud-ai-platform-siliconflowcn)
+- [Large Language Model Chat](#large-language-model-chat)
+  - [Message Structure](#chatmessage-struct)
+  - [Return Values](#return-values-of-large-model-invocation)
+- [Multimodal Large Model Invocation](#multimodal-large-model-invocation)
+  - [Basic Usage](#the-simplest-multimodal-large-model-invocation)
+  - [ContentParts Property](#reading-images-to-the-large-model-via-the-chatcontentparts-property)
+
 ## Installation
 
 ```bash
-go get -u  github.com/jieliu2000/anyi  
+go get -u  github.com/jieliu2000/anyi
 ```
 
 ## Accessing Large Language Models
@@ -53,6 +74,7 @@ In the above code, we create the OpenAI configuration using the `openai.DefaultC
 ### Creating Clients
 
 Clients can be created in Anyi using the following two methods:
+
 - Directly using the `anyi.NewClient()` function, passing the model name and configuration.
 - Using the `llm.NewClient()` function, where `llm` is a submodule of `github.com/jieliu2000/anyi/llm`.
 
@@ -91,9 +113,10 @@ client, err := anyi.NewClient("gpt4o", config)
 ```
 
 You can reference the model name from any of the following documents:
-* OpenAI documentation
-* [completion.go in the go-openai project](https://github.com/sashabaranov/go-openai/blob/master/completion.go)
-* Constant definitions in [openai.go](../../llm/openai/openai.go) in Anyi
+
+- OpenAI documentation
+- [completion.go in the go-openai project](https://github.com/sashabaranov/go-openai/blob/master/completion.go)
+- Constant definitions in [openai.go](../../llm/openai/openai.go) in Anyi
 
 ##### Using a Different baseURL
 
@@ -109,9 +132,10 @@ Here, `gpt-4o-mini` is the model name, and `https://api.openai.com/v1` is the ba
 #### Azure OpenAI
 
 The configuration method for Azure OpenAI differs from OpenAI. To use Azure OpenAI, you need to set the following parameters:
-* Azure OpenAI API Key
-* Azure OpenAI Model Deployment ID
-* Azure OpenAI Endpoint
+
+- Azure OpenAI API Key
+- Azure OpenAI Model Deployment ID
+- Azure OpenAI Endpoint
 
 The following code demonstrates how to use Azure OpenAI in Anyi:
 
@@ -209,7 +233,7 @@ type Message struct {
 
 Here, `Content` is the message content, `Role` is the role of the message sender, and `ContentParts` is an attribute set up for calling images in multimodal large models. We will discuss how to use the `ContentParts` property to pass images to large models later on. If you only need to chat using text messages with a large model, the `Content` attribute will suffice, and you can completely ignore the `ContentParts` attribute.
 
-_* For details on how to use the `ContentParts` property, refer to [Multimodal Large Model Invocation](#multimodal-large-model-invocation)_
+_\* For details on how to use the `ContentParts` property, refer to [Multimodal Large Model Invocation](#multimodal-large-model-invocation)_
 
 As demonstrated previously, you can create messages by directly assigning values to the properties of `chat.Message`, or you can create messages using the `chat.NewMessage()` function.
 
@@ -242,12 +266,14 @@ The `client.Chat()` function has three return values:
 You may have noticed that the return value of the `client.Chat()` function is also a pointer of type `chat.Message`. This is part of our design to simplify Anyi's code. Typically, the `Role` attribute of the returned Message will be `"assistant"`, and the `Content` attribute will contain the response from the large model.
 
 Currently, `chat.ResponseInfo` is defined as follows:
+
 ```go
 type ResponseInfo struct {
 	PromptTokens     int
 	CompletionTokens int
 }
 ```
+
 As you can see, the properties within the `chat.ResponseInfo` struct are quite straightforward, each representing various token counts returned by the large model. In the future, we plan to add more attributes to this struct to support more detailed invocation information from large models.
 
 Given that Anyi supports multiple large model interfaces and that each interface may return different information, not all attributes of the `chat.ResponseInfo` struct may be populated after each large model call. You should handle the return values according to the specific large model interface used.
@@ -260,8 +286,8 @@ In Anyi, the invocation entry for the multimodal large model remains the `client
 
 In the `github.com/jieliu2000/anyi/llm/chat` package, we provide two simple functions for creating the `chat.Message` struct required for multimodal large model invocations. They are:
 
-* `chat.NewImageMessageFromUrl()` is used to create a `chat.Message` struct that passes a network image URL to the large model.
-* `chat.NewImageMessageFromFile()` is used to create a `chat.Message` struct that passes a local image file to the large model.
+- `chat.NewImageMessageFromUrl()` is used to create a `chat.Message` struct that passes a network image URL to the large model.
+- `chat.NewImageMessageFromFile()` is used to create a `chat.Message` struct that passes a local image file to the large model.
 
 These two functions are very useful when you only need to pass a prompt string and one image to the visual large model. If you need to pass multiple images, you will need to manually create the `chat.Message` struct and then manually set the `ContentParts` property.
 
@@ -303,6 +329,7 @@ func main() {
 	log.Printf("Prompt tokens: %v", responseInfo.PromptTokens)
 }
 ```
+
 In the above code, we used the `chat.NewImageMessageFromUrl()` function to create a `chat.Message` struct that passes a network image URL to the large model. The first parameter of the `chat.NewImageMessageFromUrl()` function is the message role, the second parameter is the text message content, and the third parameter is the image URL.
 
 It should be noted that in the above code, the `ContentParts` property in the finally created `chat.Message` struct is an array of length **2** (not just one ContentPart). The first element in the array is a `ContentPart` struct of text type, and its text content is `"What's this?"`; the second element is a `ContentPart` struct of image type, and its image URL is `https://dashscope.oss-cn-beijing.aliyuncs.com/`.
@@ -318,6 +345,7 @@ messages := []chat.Message{
 	chat.NewImageMessageFromFile("user", "What number is in the image?", "../internal/test/number_six.png"),
 	}
 ```
+
 As can be seen, the first parameter of the `chat.NewImageMessageFromFile()` function is the message role, the second parameter is the text message content, and the third parameter is the image file path.
 
 The `ContentParts` property in the `chat.Message` struct created by the `chat.NewImageMessageFromFile()` function is an array of length **2** (not just one ContentPart). The first element in the array is a `ContentPart` struct of text type, and its text content is `"What's this?"`; the second element is a `ContentPart` struct of image type, and its `ImageUrl` property is the base64-encoded URL of the passed image file.
@@ -335,6 +363,7 @@ type ContentPart struct {
 	ImageDetail string `json:"imageDetail"`
 }
 ```
+
 The `ContentPart` struct contains three properties: `Text`, `ImageUrl`, and `ImageDetail`. The `Text` property is used to pass text messages to the large model, the `ImageUrl` property is used to pass image URLs to the large model, and the `ImageDetail` property is used to pass the level of detail of the image.
 
 It should be noted that the **`Text` and `ImageUrl` properties are mutually exclusive**. That is, if you set both the `Text` and `ImageUrl` properties for the `ContentPart` struct at the same time, the `ImageUrl` property will be ignored. If you want to pass an image, set the `Text` property to an empty string.
@@ -349,7 +378,40 @@ The following code demonstrates how to use the `chat.NewImagePartFromUrl()` func
 imageUrl := "https://example.com/image.jpg"
 contentPart, err := chat.NewImagePartFromUrl(imageUrl, "")
 ```
+
 The `chat.NewImagePartFromUrl()` function does not verify the image. However, when using the `client.Chat()` function to invoke the large model, Anyi will take different actions according to the situations of different large models:
 
-* In most cases, if the large model API supports passing image information via URL, Anyi will not check whether the image URL is valid, but directly pass the image URL to the large model API. In this case, you need to ensure that the image URL you provide is valid.
-* For APIs such as ollama, which do not support passing images via URL, in this case, Anyi will read the image according to the URL and convert the image into the format required by the large model API (such as base64 encoding) and pass it out. Obviously, if the URL points to an inaccessible or invalid image, the `client.Chat()` function will return an error before actually interacting with the large model. 
+- In most cases, if the large model API supports passing image information via URL, Anyi will not check whether the image URL is valid, but directly pass the image URL to the large model API. In this case, you need to ensure that the image URL you provide is valid.
+- For APIs such as ollama, which do not support passing images via URL, in this case, Anyi will read the image according to the URL and convert the image into the format required by the large model API (such as base64 encoding) and pass it out. Obviously, if the URL points to an inaccessible or invalid image, the `client.Chat()` function will return an error before actually interacting with the large model.
+
+#### Zhipu AI Open Platform (bigmodel.cn)
+
+##### Accessing Zhipu AI with Default Configuration
+
+```go
+// Make sure you set ZHIPU_API_KEY environment variable to your Zhipu API key.
+config := zhipu.DefaultConfig(os.Getenv("ZHIPU_API_KEY"), "glm-4-flash")
+client, err := llm.NewClient(config)
+```
+
+The zhipu package path is:
+
+```go
+import "github.com/jieliu2000/anyi/llm/zhipu"
+```
+
+#### SiliconCloud AI Platform (siliconflow.cn)
+
+##### Accessing SiliconCloud AI Platform
+
+```go
+// Make sure you set SILICONCLOUD_API_KEY environment variable to your Siliconcloud API key.
+config := siliconcloud.DefaultConfig(os.Getenv("SILICONCLOUD_API_KEY"), "glm-4-flash")
+client, err := llm.NewClient(config)
+```
+
+The siliconcloud package path is:
+
+```go
+import "github.com/jieliu2000/anyi/llm/siliconcloud"
+```
