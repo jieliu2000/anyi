@@ -71,9 +71,10 @@ type ShortTermMemory any
 // The Text field provides the input and output string for a step. For example, before the step runs, the "Text" field is the input string (which might be formatted by the template formatter). After the step runs, the "Text" field is the output string.
 // The Data field could be any data you want to pass between steps.
 type FlowContext struct {
-	Text   string
-	Memory ShortTermMemory
-	Flow   *Flow
+	Text      string
+	Memory    ShortTermMemory
+	Flow      *Flow
+	ImageURLs []string
 }
 
 func (fc *FlowContext) UnmarshalJsonText(entity any) error {

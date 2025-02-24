@@ -258,10 +258,29 @@ func (executor *LLMExecutor) Run(flowContext flow.FlowContext, step *flow.Step) 
 		messages = append(messages, chat.NewSystemMessage(executor.SystemMessage))
 	}
 
+	if len(flowContext.ImageURLs) > 0 {
+		msg := chat.Message{
+			Role: "user",
+		}
+
+		if input != "" {
+			msg.ContentParts = append(msg.ContentParts, chat.ContentPart{
+				Text: input,
+			})
+		}
+
+		for _, imgURL := range flowContext.ImageURLs {
+			msg.ContentParts = append(msg.ContentParts, chat.ContentPart{
+				ImageUrl: imgURL,
+			})
+		}
+
+		messages = append(messages, msg)
+	} else {
+		messages = append(messages, chat.NewUserMessage(input))
+	}
+
 	var options *chat.ChatOptions
-
-	messages = append(messages, chat.NewUserMessage(input))
-
 	if executor.OutputJSON {
 		options = &chat.ChatOptions{
 			Format: "json",
