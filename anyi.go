@@ -3,6 +3,7 @@ package anyi
 import (
 	"errors"
 	"fmt"
+	"reflect"
 
 	log "github.com/sirupsen/logrus"
 
@@ -123,6 +124,15 @@ func GetValidator(name string) (flow.StepValidator, error) {
 	if validatorType == nil {
 		return nil, errors.New("no validator found with the given name: " + name)
 	}
+
+	val := reflect.ValueOf(validatorType)
+	if val.Kind() == reflect.Ptr {
+		elem := val.Elem()
+		newVal := reflect.New(elem.Type())
+		newVal.Elem().Set(elem)
+		return newVal.Interface().(flow.StepValidator), nil
+	}
+
 	return validatorType, nil
 }
 
@@ -133,6 +143,14 @@ func GetExecutor(name string) (flow.StepExecutor, error) {
 	executor := GlobalRegistry.Executors[name]
 	if executor == nil {
 		return nil, errors.New("no executor found with the given name: " + name)
+	}
+
+	val := reflect.ValueOf(executor)
+	if val.Kind() == reflect.Ptr {
+		elem := val.Elem()
+		newVal := reflect.New(elem.Type())
+		newVal.Elem().Set(elem)
+		return newVal.Interface().(flow.StepExecutor), nil
 	}
 	return executor, nil
 }

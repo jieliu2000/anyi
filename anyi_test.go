@@ -293,3 +293,90 @@ func TestInit(t *testing.T) {
 	assert.NotNil(t, GlobalRegistry.Validators["string"])
 
 }
+
+func TestGetExecutor(t *testing.T) {
+	t.Run("PointerTypeExecutor", func(t *testing.T) {
+		// 注册指针类型的executor（需要完整参数）
+		exec := &LLMExecutor{
+			Template:      "test template", // 必须设置模板
+			SystemMessage: "test system",
+			OutputJSON:    true,
+		}
+		name := "pointer_llm_exec"
+		RegisterExecutor(name, exec)
+
+		// 第一次获取
+		got1, err := GetExecutor(name)
+		assert.NoError(t, err)
+		assert.IsType(t, &LLMExecutor{}, got1)
+		assert.Equal(t, "test template", got1.(*LLMExecutor).Template)
+
+		// 验证返回的是新实例
+		got2, err := GetExecutor(name)
+		assert.NoError(t, err)
+		assert.NotSame(t, got1, got2, "应该返回新的实例指针")
+	})
+
+	t.Run("ValueTypeExecutor", func(t *testing.T) {
+		// 注册值类型的executor（需要完整参数）
+		name := "value_llm_exec"
+		RegisterExecutor(name, &LLMExecutor{
+			TemplateFile:  "test.tmpl", // 使用模板文件
+			SystemMessage: "value system",
+		})
+
+		// 获取executor
+		got, err := GetExecutor(name)
+		assert.NoError(t, err)
+		assert.IsType(t, &LLMExecutor{}, got)
+		assert.Equal(t, "value system", got.(*LLMExecutor).SystemMessage)
+	})
+
+	t.Run("NonExistingExecutor", func(t *testing.T) {
+		_, err := GetExecutor("not_exist")
+		assert.Error(t, err)
+		assert.EqualError(t, err, "no executor found with the given name: not_exist")
+	})
+}
+
+func TestGetValidator(t *testing.T) {
+	t.Run("PointerTypeValidator", func(t *testing.T) {
+		// 注册指针类型的validator
+		val := &StringValidator{
+			EqualTo: "test",
+		}
+		name := "pointer_string_val"
+		RegisterValidator(name, val)
+
+		// 第一次获取
+		got1, err := GetValidator(name)
+		assert.NoError(t, err)
+		assert.IsType(t, &StringValidator{}, got1)
+		assert.Equal(t, "test", got1.(*StringValidator).EqualTo)
+
+		// 验证返回的是同一个实例（假设validator是单例模式）
+		got2, err := GetValidator(name)
+		assert.NoError(t, err)
+		assert.NotSame(t, got1, got2, "应该返回新的实例指针")
+	})
+
+	t.Run("ValueTypeValidator", func(t *testing.T) {
+		// 注册值类型的validator
+		name := "value_string_val"
+		RegisterValidator(name, &StringValidator{
+			EqualTo: "test",
+		})
+
+		// 获取validator
+		got, err := GetValidator(name)
+		assert.NoError(t, err)
+		assert.IsType(t, &StringValidator{}, got)
+		assert.Equal(t, "test", got.(*StringValidator).EqualTo)
+	})
+
+	t.Run("NonExistingValidator", func(t *testing.T) {
+		_, err := GetValidator("not_exist_val")
+		assert.Error(t, err)
+		assert.EqualError(t, err, "no validator found with the given name: not_exist_val")
+	})
+}
