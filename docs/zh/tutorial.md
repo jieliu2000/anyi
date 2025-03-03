@@ -13,6 +13,7 @@
     - [Dashscope](#dashscope)
     - [Ollama](#ollama)
     - [智谱 AI 开放平台 API](#智谱ai开放平台api-bigmodelcn)
+    - [DeepSeek](#deepseek)
     - [SiliconCloud AI 平台](#siliconcloud-ai平台-siliconflowcn)
 - [大模型聊天调用](#大模型聊天调用)
   - [Message 结构体](#chatmessage结构体)
@@ -224,6 +225,22 @@ zhipu 包路径为：
 
 ```go
 import "github.com/jieliu2000/anyi/llm/zhipu"
+```
+
+#### DeepSeek
+
+##### 默认配置访问 DeepSeek
+
+```go
+// 请确保已设置DEEPSEEK_API_KEY环境变量
+config := deepseek.DefaultConfig(os.Getenv("DEEPSEEK_API_KEY"), "deepseek-chat")
+client, err := llm.NewClient(config)
+```
+
+deepseek 包路径为：
+
+```go
+import "github.com/jieliu2000/anyi/llm/deepseek"
 ```
 
 #### SiliconCloud AI 平台 (siliconflow.cn)

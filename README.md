@@ -21,6 +21,7 @@ Anyi, as a Go programming framework, offers the following features:
   - Azure OpenAI
   - Dashscope (https://dashscope.aliyun.com/)
   - Ollama
+  - DeepSeek
   - Zhipu AI online service (https://bigmodel.cn/)
   - Silicon Cloud AI service (https://siliconflow.cn/)
 

@@ -20,7 +20,8 @@ Anyi 作为一个 Go 语言的编程框架，提供以下特性：
   - OpenAI
   - Azure OpenAI
   - 阿里云模型服务灵积(Dashscope)
-  - Ollama 本地大模型访问，通过 ollama，Anyi 可以实现对多种本地部署大模型的访问.
+  - Ollama 本地大模型访问，通过 ollama，Anyi 可以实现对多种本地部署大模型的访问。
+  - DeepSeek
   - 智谱 AI 云服务(bigmodel.cn)
   - Silicon Cloud 云服务（https://siliconflow.cn/）
 

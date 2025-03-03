@@ -13,6 +13,7 @@
     - [Dashscope](#dashscope)
     - [Ollama](#ollama)
     - [Zhipu AI Open Platform](#zhipu-ai-open-platform-bigmodelcn)
+    - [DeepSeek AI](#deepseek)
     - [SiliconCloud AI Platform](#siliconcloud-ai-platform-siliconflowcn)
 - [Large Language Model Chat](#large-language-model-chat)
   - [Message Structure](#chatmessage-struct)
@@ -223,6 +224,22 @@ The zhipu package path is:
 
 ```go
 import "github.com/jieliu2000/anyi/llm/zhipu"
+```
+
+#### DeepSeek
+
+##### Default Configuration for DeepSeek
+
+```go
+// Make sure you set DEEPSEEK_API_KEY environment variable
+config := deepseek.DefaultConfig(os.Getenv("DEEPSEEK_API_KEY"), "deepseek-chat")
+client, err := llm.NewClient(config)
+```
+
+DeepSeek package path:
+
+```go
+import "github.com/jieliu2000/anyi/llm/deepseek"
 ```
 
 #### SiliconCloud AI Platform (siliconflow.cn)
