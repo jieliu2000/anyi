@@ -237,6 +237,8 @@ config := deepseek.DefaultConfig(os.Getenv("DEEPSEEK_API_KEY"), "deepseek-chat")
 client, err := llm.NewClient(config)
 ```
 
+关于 DeepSeek 的模型信息，可以在[DeepSeek 官网文档](https://api-docs.deepseek.com/zh-cn/quick_start/pricing)中查看。
+
 deepseek 包路径为：
 
 ```go

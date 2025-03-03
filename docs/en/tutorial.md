@@ -236,6 +236,8 @@ config := deepseek.DefaultConfig(os.Getenv("DEEPSEEK_API_KEY"), "deepseek-chat")
 client, err := llm.NewClient(config)
 ```
 
+Check [DeepSeek Documentation](https://api-docs.deepseek.com/zh-cn/quick_start/pricing) to get more information about the model name and price.
+
 DeepSeek package path:
 
 ```go
