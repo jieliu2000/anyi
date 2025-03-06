@@ -67,9 +67,9 @@ func NewClientFromConfig(config *llm.ClientConfig) (llm.Client, error) {
 	if config.Default {
 		defaultClient, err := GetDefaultClient()
 		if err == nil || defaultClient != nil {
-			return nil, fmt.Errorf("default client is already set")
+			log.Error("Default client is already set: ", GlobalRegistry.defaultClientName)
+			log.Error("New default client: ", config.Name)
 		}
-
 		RegisterDefaultClient("", client)
 	}
 	return client, nil
