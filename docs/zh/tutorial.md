@@ -736,15 +736,17 @@ func main() {
 
 ```go
 options := &chat.ChatOptions{
-	Temperature: 0.7,               // 控制随机性(0.0-2.0)
-	MaxTokens:   1000,              // 最大响应长度
-	TopP:        0.9,               // 核采样参数
-	Stream:      true,              // 启用流式响应
-	Stop:        []string{"停止"},   // 自定义停止序列
+	Format: "json", // 指定输出格式为JSON（适用于请求结构化数据）
 }
 
 response, info, err := client.Chat(messages, options)
 ```
+
+目前Anyi框架提供的`ChatOptions`比较精简，主要支持以下功能：
+
+1. **Format**：当设置为"json"时，指示模型以JSON格式返回响应。这在需要结构化数据时非常有用。
+
+不同的LLM提供商可能会使用这些选项实现不同的行为，具体取决于底层API的功能。
 
 ## 多模态模型使用
 
@@ -1752,7 +1754,6 @@ executor := &anyi.LLMExecutor{
 package main
 
 import (
-	"errors"
 	"log"
 	"os"
 	"time"
@@ -1761,17 +1762,6 @@ import (
 	"github.com/jieliu2000/anyi/llm/openai"
 	"github.com/jieliu2000/anyi/llm/chat"
 )
-
-// 自定义错误类型
-type LLMError struct {
-	StatusCode int
-	Message    string
-	Retryable  bool
-}
-
-func (e *LLMError) Error() string {
-	return e.Message
-}
 
 func main() {
 	// 创建客户端
@@ -1782,7 +1772,7 @@ func main() {
 	}
 	
 	// 准备消息
-messages := []chat.Message{
+	messages := []chat.Message{
 		{Role: "user", Content: "解释量子力学的基本原理"},
 	}
 	
@@ -1801,18 +1791,11 @@ messages := []chat.Message{
 			break
 		}
 		
-		// 检查错误类型
-		var llmErr *LLMError
-		if errors.As(err, &llmErr) {
-			if !llmErr.Retryable {
-				// 不可重试的错误，直接退出
-				log.Fatalf("遇到不可重试的错误: %v", err)
-			}
-		}
-		
+		// 检查错误是否可重试（如网络错误、超时等）
 		if i < maxRetries-1 {
 			log.Printf("第%d次尝试失败: %v，将在%v后重试", i+1, err, backoff)
 			time.Sleep(backoff)
+			
 			backoff *= 2 // 指数退避
 		}
 	}
@@ -1823,7 +1806,7 @@ messages := []chat.Message{
 	
 	// 处理成功的响应
 	log.Printf("响应: %s", response.Content)
-	log.Printf("使用的模型: %s", info.Model)
+	log.Printf("使用的令牌数量: %d", info.PromptTokens + info.CompletionTokens)
 	
 	// 错误记录和监控
 	// 在实际应用中，您应该实现更复杂的错误记录和监控系统
@@ -1929,28 +1912,49 @@ messages := []chat.Message{
 ### 1. 如何处理 API 密钥过期问题？
 
 ```go
-// 实现动态刷新 API 密钥的处理器
-func refreshAPIKeyHandler(client *llm.Client) {
-    // 监听错误
-    if err.Error() contains "API key expired" {
-        // 获取新的 API 密钥
-        newAPIKey := getNewAPIKey()
-        // 更新客户端配置
-        client.UpdateAPIKey(newAPIKey)
+// API密钥过期处理方法
+func handleApiKeyExpiration(err error) {
+    // 检测API密钥过期错误
+    if strings.Contains(err.Error(), "API key expired") || strings.Contains(err.Error(), "invalid_api_key") {
+        // 获取新的API密钥（通过您自己的方法）
+        newApiKey := getNewApiKey()
+        
+        // 创建新的客户端配置并替换旧客户端
+        newConfig := openai.DefaultConfig(newApiKey)
+        client, _ := anyi.NewClient("openai", newConfig) // 使用相同名称替换旧客户端
     }
 }
 ```
 
 ### 2. 如何确保工作流在网络不稳定时也能正常工作？
 
-Anyi 内置了重试机制。您可以为每个步骤设置 `MaxRetryTimes` 属性，并实现指数退避策略：
+Anyi 内置了重试机制。您可以为每个步骤设置 `MaxRetryTimes` 属性来实现自动重试：
 
 ```go
+// 设置最大重试次数
 step1.MaxRetryTimes = 3
-step1.RetryBackoffStrategy = flow.ExponentialBackoff{
-    InitialDelay: 1 * time.Second,
-    MaxDelay: 10 * time.Second,
-    Factor: 2,
+
+// 在执行步骤时实现手动重试逻辑
+func executeWithRetry(client llm.Client, messages []chat.Message) (*chat.Message, error) {
+    maxRetries := 3
+    backoff := 1 * time.Second
+    
+    var response *chat.Message
+    var err error
+    
+    for i := 0; i < maxRetries; i++ {
+        response, _, err = client.Chat(messages, nil)
+        if err == nil {
+            return response, nil
+        }
+        
+        // 网络错误通常可以重试
+        log.Printf("尝试 %d 失败: %v, 将在 %v 后重试", i+1, err, backoff)
+        time.Sleep(backoff)
+        backoff *= 2 // 指数退避策略
+    }
+    
+    return nil, fmt.Errorf("在 %d 次尝试后仍然失败: %v", maxRetries, err)
 }
 ```
 

@@ -616,15 +616,17 @@ You can customize chat behavior using `chat.ChatOptions`:
 
 ```go
 options := &chat.ChatOptions{
-	Temperature: 0.7,               // Controls randomness (0.0-2.0)
-	MaxTokens:   1000,              // Maximum response length
-	TopP:        0.9,               // Nucleus sampling parameter
-	Stream:      true,              // Enable streaming responses
-	Stop:        []string{"STOP"},  // Custom stop sequences
+	Format: "json", // Specify JSON format for output (useful for structured data)
 }
 
 response, info, err := client.Chat(messages, options)
 ```
+
+Currently, the Anyi framework provides a streamlined `ChatOptions` with the following functionality:
+
+1. **Format**: When set to "json", it instructs the model to return its response in JSON format. This is particularly useful when structured data is required.
+
+Different LLM providers may implement these options with varying behaviors, depending on the capabilities of their underlying APIs.
 
 ## Multimodal Model Usage
 
@@ -1354,13 +1356,12 @@ executor := &anyi.LLMExecutor{
 
 ### Error Handling
 
-Robust error handling is critical in applications that interact with LLMs. Here are some patterns for implementing effective error handling in Anyi:
+Robust error handling is crucial in applications that interact with LLMs. Here are some patterns for implementing effective error handling in Anyi:
 
 ```go
 package main
 
 import (
-	"errors"
 	"log"
 	"os"
 	"time"
@@ -1369,17 +1370,6 @@ import (
 	"github.com/jieliu2000/anyi/llm/openai"
 	"github.com/jieliu2000/anyi/llm/chat"
 )
-
-// Custom error type
-type LLMError struct {
-	StatusCode int
-	Message    string
-	Retryable  bool
-}
-
-func (e *LLMError) Error() string {
-	return e.Message
-}
 
 func main() {
 	// Create client
@@ -1390,7 +1380,7 @@ func main() {
 	}
 	
 	// Prepare messages
-messages := []chat.Message{
+	messages := []chat.Message{
 		{Role: "user", Content: "Explain the basic principles of quantum mechanics"},
 	}
 	
@@ -1405,19 +1395,11 @@ messages := []chat.Message{
 		response, info, err = client.Chat(messages, nil)
 		
 		if err == nil {
-			// Successfully got a response, break the loop
+			// Successfully got response, break the loop
 			break
 		}
 		
-		// Check error type
-		var llmErr *LLMError
-		if errors.As(err, &llmErr) {
-			if !llmErr.Retryable {
-				// Non-retryable error, exit immediately
-				log.Fatalf("Encountered non-retryable error: %v", err)
-			}
-		}
-		
+		// Check if error is retryable (like network errors, timeouts, etc.)
 		if i < maxRetries-1 {
 			log.Printf("Attempt %d failed: %v, retrying in %v", i+1, err, backoff)
 			time.Sleep(backoff)
@@ -1426,16 +1408,58 @@ messages := []chat.Message{
 	}
 	
 	if err != nil {
-		log.Fatalf("Failed after %d attempts: %v", maxRetries, err)
+		log.Fatalf("Still failed after %d attempts: %v", maxRetries, err)
 	}
 	
 	// Process successful response
 	log.Printf("Response: %s", response.Content)
-	log.Printf("Model used: %s", info.Model)
+	log.Printf("Tokens used: %d", info.PromptTokens + info.CompletionTokens)
 	
 	// Error logging and monitoring
-	// In a real application, you'd implement more sophisticated error logging and monitoring
+	// In a real application, you should implement more sophisticated error logging and monitoring
 	// For example, sending errors to a log management system or monitoring service
+}
+```
+
+### 4. How to integrate Anyi with existing Go web frameworks?
+
+Anyi can seamlessly integrate with any Go web framework such as Gin, Echo, or Fiber. Here's an example with Gin:
+
+```go
+import (
+    "github.com/gin-gonic/gin"
+    "github.com/jieliu2000/anyi"
+)
+
+func setupRouter() *gin.Engine {
+    r := gin.Default()
+    
+    // Initialize Anyi client
+    // ...
+    
+    r.POST("/ask", func(c *gin.Context) {
+        var req struct {
+            Question string `json:"question"`
+        }
+        if err := c.BindJSON(&req); err != nil {
+            c.JSON(400, gin.H{"error": err.Error()})
+            return
+        }
+        
+        // Use Anyi client to process the request
+        response, _, err := client.Chat([]chat.Message{
+            {Role: "user", Content: req.Question},
+        }, nil)
+        
+        if err != nil {
+            c.JSON(500, gin.H{"error": err.Error()})
+            return
+        }
+        
+        c.JSON(200, gin.H{"answer": response.Content})
+    })
+    
+    return r
 }
 ```
 
@@ -1537,28 +1561,49 @@ By following these best practices, you can build AI applications that are not on
 ### 1. How to handle API key expiration issues?
 
 ```go
-// Implement a handler for API key refresh
-func refreshAPIKeyHandler(client *llm.Client) {
-    // Listen for errors
-    if err.Error() contains "API key expired" {
-        // Obtain a new API key
-        newAPIKey := getNewAPIKey()
-        // Update the client configuration
-        client.UpdateAPIKey(newAPIKey)
+// API key expiration handling method
+func handleApiKeyExpiration(err error) {
+    // Detect API key expiration errors
+    if strings.Contains(err.Error(), "API key expired") || strings.Contains(err.Error(), "invalid_api_key") {
+        // Get a new API key (through your own method)
+        newApiKey := getNewApiKey()
+        
+        // Create a new client config and replace the old client
+        newConfig := openai.DefaultConfig(newApiKey)
+        client, _ := anyi.NewClient("openai", newConfig) // Replace old client with same name
     }
 }
 ```
 
 ### 2. How to ensure workflows work properly in unstable network conditions?
 
-Anyi has built-in retry mechanisms. You can set the `MaxRetryTimes` property for each step and implement exponential backoff:
+Anyi has built-in retry mechanisms. You can set the `MaxRetryTimes` property for each step to implement automatic retries:
 
 ```go
+// Set maximum retry count
 step1.MaxRetryTimes = 3
-step1.RetryBackoffStrategy = flow.ExponentialBackoff{
-    InitialDelay: 1 * time.Second,
-    MaxDelay: 10 * time.Second,
-    Factor: 2,
+
+// Implement manual retry logic when executing steps
+func executeWithRetry(client llm.Client, messages []chat.Message) (*chat.Message, error) {
+    maxRetries := 3
+    backoff := 1 * time.Second
+    
+    var response *chat.Message
+    var err error
+    
+    for i := 0; i < maxRetries; i++ {
+        response, _, err = client.Chat(messages, nil)
+        if err == nil {
+            return response, nil
+        }
+        
+        // Network errors can typically be retried
+        log.Printf("Attempt %d failed: %v, retrying in %v", i+1, err, backoff)
+        time.Sleep(backoff)
+        backoff *= 2 // Exponential backoff strategy
+    }
+    
+    return nil, fmt.Errorf("still failed after %d attempts: %v", maxRetries, err)
 }
 ```
 
