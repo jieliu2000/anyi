@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/jieliu2000/anyi/internal/utils"
+	"github.com/jieliu2000/anyi/llm/anthropic"
 	"github.com/jieliu2000/anyi/llm/azureopenai"
 	"github.com/jieliu2000/anyi/llm/chat"
 	"github.com/jieliu2000/anyi/llm/dashscope"
@@ -33,6 +34,7 @@ type ClientConfig struct {
 	//	* "azureopenai" - Azure OpenAI model
 	//	* "dashscope" - DashScope model
 	//	* "ollama" - Ollama model
+	//  * "anthropic" - Anthropic model
 	Type string `mapstructure:"type" json:"type"`
 
 	// The model config. The type of this field depends on the model. We define this property as map[string]interface{} for extensibility.
@@ -76,6 +78,8 @@ func NewModelConfigFromClientConfig(clientConfig *ClientConfig) (ModelConfig, er
 		modelConfig = siliconcloud.DefaultConfig("", "")
 	case "ollama":
 		modelConfig = ollama.DefaultConfig("")
+	case "anthropic":
+		modelConfig = anthropic.DefaultConfig("")
 	default:
 		return nil, errors.New("unknown model")
 	}
@@ -139,6 +143,9 @@ func NewClient(config ModelConfig) (Client, error) {
 
 	case *ollama.OllamaModelConfig:
 		return ollama.NewClient(config.(*ollama.OllamaModelConfig))
+
+	case *anthropic.AnthropicModelConfig:
+		return anthropic.NewClient(config.(*anthropic.AnthropicModelConfig))
 	}
 	return nil, errors.New("unknown model config")
 }

@@ -31,14 +31,13 @@ Anyi特别适合以下场景：
 
 ## 📋 支持的LLM提供商
 
-- **智谱AI** - GLM系列模型
+- **DeepSeek** - DeepSeek Chat和DeepSeek Coder等模型
 - **阿里云灵积** - 通义千问系列模型
 - **Ollama** - 本地部署开源模型（如Llama、Qwen等）
-- **百川AI** - 百川大模型
 - **OpenAI** - GPT系列模型
 - **Azure OpenAI** - 微软托管的OpenAI模型
-- **Anthropic** - Claude系列模型
-- **DeepSeek** - DeepSeek模型
+- **Anthropic** - Claude系列模型（包括Claude 3 Opus、Sonnet和Haiku）
+- **智谱AI** - GLM系列模型
 - **SiliconCloud** - SiliconFlow模型
 
 ## 🚀 快速开始
@@ -61,16 +60,15 @@ import (
 	"os"
 
 	"github.com/jieliu2000/anyi"
-	"github.com/jieliu2000/anyi/llm/zhipu"  // 导入你偏好的提供商
+	"github.com/jieliu2000/anyi/llm/deepseek"  // 导入你偏好的提供商
 	"github.com/jieliu2000/anyi/llm/chat"
 )
 
 func main() {
 	// 创建客户端 - 只需更改导入和配置即可使用不同的提供商
-	config := zhipu.DefaultConfig("glm-4")
-	config.APIKey = os.Getenv("ZHIPU_API_KEY")
+	config := deepseek.DefaultConfig(os.Getenv("DEEPSEEK_API_KEY"), "deepseek-chat")
 	
-	client, err := anyi.NewClient("glm4", config)
+	client, err := anyi.NewClient("deepseek", config)
 	if err != nil {
 		log.Fatalf("创建客户端失败: %v", err)
 	}
@@ -100,14 +98,13 @@ import (
 	"log"
 	"os"
 	"github.com/jieliu2000/anyi"
-	"github.com/jieliu2000/anyi/llm/zhipu"
+	"github.com/jieliu2000/anyi/llm/dashscope"
 )
 
 func main() {
 	// 创建客户端
-	config := zhipu.DefaultConfig("glm-4")
-	config.APIKey = os.Getenv("ZHIPU_API_KEY")
-	client, err := anyi.NewClient("glm4", config)
+	config := dashscope.DefaultConfig(os.Getenv("DASHSCOPE_API_KEY"), "qwen-max")
+	client, err := anyi.NewClient("qwen", config)
 	if err != nil {
 		log.Fatalf("创建客户端失败: %v", err)
 	}
@@ -145,21 +142,21 @@ Anyi支持配置驱动开发，允许你在外部文件中定义LLM客户端和�
 ```yaml
 # config.yaml
 clients:
-  - name: "glm4"
-    type: "zhipu"
+  - name: "ollama"
+    type: "ollama"
     config:
-      model: "glm-4"
-      apiKey: "$ZHIPU_API_KEY"  # 引用环境变量
+      model: "llama3"
+      ollamaApiURL: "http://localhost:11434/api"  # 本地Ollama服务
   
   - name: "qwen"
     type: "dashscope"
     config:
       model: "qwen-max"
-      apiKey: "$DASHSCOPE_API_KEY"
+      apiKey: "$DASHSCOPE_API_KEY"  # 引用环境变量
 
 flows:
   - name: "故事流程"
-    clientName: "glm4"  # 工作流默认客户端
+    clientName: "ollama"  # 工作流默认客户端
     steps:
       - name: "故事生成"
         executor:
