@@ -81,7 +81,7 @@ func NewModelConfigFromClientConfig(clientConfig *ClientConfig) (ModelConfig, er
 	case "anthropic":
 		modelConfig = anthropic.DefaultConfig("")
 	default:
-		return nil, errors.New("unknown model")
+		return nil, errors.New("unknown client type:" + clientConfig.Type)
 	}
 
 	propertyConfig := clientConfig.Config
