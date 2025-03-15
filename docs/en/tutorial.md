@@ -1421,7 +1421,32 @@ func main() {
 }
 ```
 
-### 4. How to integrate Anyi with existing Go web frameworks?
+### 2. How to handle large texts that exceed token limits?
+
+```go
+// Implement chunked text processing
+func processLargeText(text string, client *llm.Client) (string, error) {
+    // Split text into smaller chunks
+    chunks := splitIntoChunks(text, 1000) // About 1000 words per chunk
+    
+    var results []string
+    // Process each chunk
+    for _, chunk := range chunks {
+        response, _, err := client.Chat([]chat.Message{
+            {Role: "user", Content: "Process the following text: " + chunk},
+        }, nil)
+        if err != nil {
+            return "", err
+        }
+        results = append(results, response.Content)
+    }
+    
+    // Combine the results
+    return combineResults(results), nil
+}
+```
+
+### 3. How to integrate Anyi with existing Go web frameworks?
 
 Anyi can seamlessly integrate with any Go web framework such as Gin, Echo, or Fiber. Here's an example with Gin:
 
@@ -1558,56 +1583,16 @@ By following these best practices, you can build AI applications that are not on
 
 ## Frequently Asked Questions (FAQ)
 
-### 1. How to handle API key expiration issues?
-
-```go
-// API key expiration handling method
-func handleApiKeyExpiration(err error) {
-    // Detect API key expiration errors
-    if strings.Contains(err.Error(), "API key expired") || strings.Contains(err.Error(), "invalid_api_key") {
-        // Get a new API key (through your own method)
-        newApiKey := getNewApiKey()
-        
-        // Create a new client config and replace the old client
-        newConfig := openai.DefaultConfig(newApiKey)
-        client, _ := anyi.NewClient("openai", newConfig) // Replace old client with same name
-    }
-}
-```
-
-### 2. How to ensure workflows work properly in unstable network conditions?
+### 1. How to ensure workflows work properly in unstable network conditions?
 
 Anyi has built-in retry mechanisms. You can set the `MaxRetryTimes` property for each step to implement automatic retries:
 
 ```go
 // Set maximum retry count
 step1.MaxRetryTimes = 3
-
-// Implement manual retry logic when executing steps
-func executeWithRetry(client llm.Client, messages []chat.Message) (*chat.Message, error) {
-    maxRetries := 3
-    backoff := 1 * time.Second
-    
-    var response *chat.Message
-    var err error
-    
-    for i := 0; i < maxRetries; i++ {
-        response, _, err = client.Chat(messages, nil)
-        if err == nil {
-            return response, nil
-        }
-        
-        // Network errors can typically be retried
-        log.Printf("Attempt %d failed: %v, retrying in %v", i+1, err, backoff)
-        time.Sleep(backoff)
-        backoff *= 2 // Exponential backoff strategy
-    }
-    
-    return nil, fmt.Errorf("still failed after %d attempts: %v", maxRetries, err)
-}
 ```
 
-### 3. How to handle large texts that exceed token limits?
+### 2. How to handle large texts that exceed token limits?
 
 ```go
 // Implement chunked text processing
@@ -1632,7 +1617,7 @@ func processLargeText(text string, client *llm.Client) (string, error) {
 }
 ```
 
-### 4. How to integrate Anyi with existing Go web frameworks?
+### 3. How to integrate Anyi with existing Go web frameworks?
 
 Anyi can seamlessly integrate with any Go web framework such as Gin, Echo, or Fiber. Here's an example with Gin:
 

@@ -150,11 +150,11 @@ clients:
       model: "gpt-4"
       apiKey: "$OPENAI_API_KEY"  # References environment variable
   
-  - name: "claude"
-    type: "anthropic"
+  - name: "ollama"
+    type: "ollama"
     config:
-      model: "claude-3-opus-20240229"
-      apiKey: "$ANTHROPIC_API_KEY"
+      model: "llama3"
+      baseURL: "http://localhost:11434"  # Default Ollama server address
 
 flows:
   - name: "story_flow"
@@ -174,7 +174,7 @@ flows:
           withconfig:
             template: "Create an engaging title for the following story:\n\n{{.Text}}"
             systemMessage: "You are an editor skilled at creating titles."
-        clientName: "claude"  # Override client for this step
+        clientName: "ollama"  # Override client for this step
 ```
 
 Load and use this configuration:

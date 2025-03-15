@@ -1933,29 +1933,6 @@ Anyi 内置了重试机制。您可以为每个步骤设置 `MaxRetryTimes` 属�
 ```go
 // 设置最大重试次数
 step1.MaxRetryTimes = 3
-
-// 在执行步骤时实现手动重试逻辑
-func executeWithRetry(client llm.Client, messages []chat.Message) (*chat.Message, error) {
-    maxRetries := 3
-    backoff := 1 * time.Second
-    
-    var response *chat.Message
-    var err error
-    
-    for i := 0; i < maxRetries; i++ {
-        response, _, err = client.Chat(messages, nil)
-        if err == nil {
-            return response, nil
-        }
-        
-        // 网络错误通常可以重试
-        log.Printf("尝试 %d 失败: %v, 将在 %v 后重试", i+1, err, backoff)
-        time.Sleep(backoff)
-        backoff *= 2 // 指数退避策略
-    }
-    
-    return nil, fmt.Errorf("在 %d 次尝试后仍然失败: %v", maxRetries, err)
-}
 ```
 
 ### 3. 对于超大文本处理，如何避免 Token 限制？
