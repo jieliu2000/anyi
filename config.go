@@ -245,3 +245,16 @@ func ConfigFromFile(configFile string) error {
 	}
 	return Config(anyiConfig)
 }
+
+// ConfigFromString loads configuration from a string content
+// Parameters:
+// - configContent string: The configuration content as a string
+// - configType string: The configuration type (e.g. "yaml", "json", "toml"). If empty, the format will be auto-detected.
+func ConfigFromString(configContent string, configType string) error {
+	anyiConfig, err := utils.UnmarshallConfigFromString(configContent, configType, &AnyiConfig{})
+
+	if err != nil {
+		return err
+	}
+	return Config(anyiConfig)
+}

@@ -1,6 +1,7 @@
 package anyi
 
 import (
+	"os"
 	"testing"
 
 	"github.com/jieliu2000/anyi/flow"
@@ -410,4 +411,179 @@ func TestNewValidatorFromConfig(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestConfigFromString tests loading configuration from a string with specified format
+func TestConfigFromString(t *testing.T) {
+	// Setup test
+	RegisterExecutor("string-executor", &MockExecutor{})
+
+	t.Run("Success: Load YAML configuration from string", func(t *testing.T) {
+		yamlContent := `
+clients:
+  - name: string-client
+    type: openai
+    config:
+      apiKey: test-key
+flows:
+  - name: string-flow
+    steps:
+      - name: string-step
+        executor:
+          type: string-executor
+`
+		// Execute
+		err := ConfigFromString(yamlContent, "yaml")
+
+		// Verify
+		assert.NoError(t, err)
+
+		// Verify the flow was registered
+		flow, err := GetFlow("string-flow")
+		assert.NoError(t, err)
+		assert.NotNil(t, flow)
+		assert.Equal(t, "string-flow", flow.Name)
+	})
+
+	t.Run("Success: Load JSON configuration from string", func(t *testing.T) {
+		jsonContent := `{
+  "clients": [
+    {
+      "name": "json-client",
+      "type": "ollama",
+      "config": {
+        "model": "test-model"
+      }
+    }
+  ],
+  "flows": [
+    {
+      "name": "json-flow",
+      "steps": [
+        {
+          "name": "json-step",
+          "executor": {
+            "type": "string-executor"
+          }
+        }
+      ]
+    }
+  ]
+}`
+		// Execute
+		err := ConfigFromString(jsonContent, "json")
+
+		// Verify
+		assert.NoError(t, err)
+
+		// Verify the flow was registered
+		flow, err := GetFlow("json-flow")
+		assert.NoError(t, err)
+		assert.NotNil(t, flow)
+		assert.Equal(t, "json-flow", flow.Name)
+	})
+
+	t.Run("Failure: Invalid configuration content", func(t *testing.T) {
+		invalidContent := `
+clients: - broken yaml
+flows: []
+`
+		// Execute
+		err := ConfigFromString(invalidContent, "yaml")
+
+		// Verify
+		assert.Error(t, err)
+	})
+
+	t.Run("Failure: Invalid configuration structure", func(t *testing.T) {
+		invalidStructContent := `
+clients:
+  - name: invalid-client
+    type: openai
+flows:
+  - name: invalid-flow
+    steps:
+      - name: invalid-step
+        executor:
+          type: non-existent-executor
+`
+		// Execute
+		err := ConfigFromString(invalidStructContent, "yaml")
+
+		// Verify
+		assert.Error(t, err)
+	})
+}
+
+// TestConfigFromFile tests loading configuration from a file
+func TestConfigFromFile(t *testing.T) {
+	// Setup test
+	RegisterExecutor("file-executor", &MockExecutor{})
+
+	// Create a temporary test config file
+	yamlContent := `
+clients:
+  - name: file-client
+    type: openai
+    config:
+      apiKey: test-key-file
+flows:
+  - name: file-flow
+    steps:
+      - name: file-step
+        executor:
+          type: file-executor
+`
+	tmpFile, err := os.CreateTemp("", "config-*.yaml")
+	assert.NoError(t, err)
+	defer os.Remove(tmpFile.Name())
+
+	_, err = tmpFile.WriteString(yamlContent)
+	assert.NoError(t, err)
+	err = tmpFile.Close()
+	assert.NoError(t, err)
+
+	t.Run("Success: Load configuration from file", func(t *testing.T) {
+		// Execute
+		err := ConfigFromFile(tmpFile.Name())
+
+		// Verify
+		assert.NoError(t, err)
+
+		// Verify the flow was registered
+		flow, err := GetFlow("file-flow")
+		assert.NoError(t, err)
+		assert.NotNil(t, flow)
+		assert.Equal(t, "file-flow", flow.Name)
+	})
+
+	t.Run("Failure: File does not exist", func(t *testing.T) {
+		// Execute
+		err := ConfigFromFile("non-existent-file.yaml")
+
+		// Verify
+		assert.Error(t, err)
+	})
+
+	// Create an invalid config file
+	invalidContent := `
+clients: - broken yaml
+flows: []
+`
+	invalidFile, err := os.CreateTemp("", "invalid-*.yaml")
+	assert.NoError(t, err)
+	defer os.Remove(invalidFile.Name())
+
+	_, err = invalidFile.WriteString(invalidContent)
+	assert.NoError(t, err)
+	err = invalidFile.Close()
+	assert.NoError(t, err)
+
+	t.Run("Failure: Invalid configuration file format", func(t *testing.T) {
+		// Execute
+		err := ConfigFromFile(invalidFile.Name())
+
+		// Verify
+		assert.Error(t, err)
+	})
 }
