@@ -1,44 +1,45 @@
-# Anyi - Open Source Autonomouse AI Agent Framework
-
-| [English](README.md) | [中文](README-zh.md) |
+# Anyi - Open Source Autonomous AI Agent Framework
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/jieliu2000/anyi.svg)](https://pkg.go.dev/github.com/jieliu2000/anyi)
 [![Go Report Card](https://goreportcard.com/badge/github.com/jieliu2000/anyi)](https://goreportcard.com/report/github.com/jieliu2000/anyi)
 
+| [English](README.md) | [中文](README-zh.md) |
+
 ## Introduction
 
-Anyi is an open source AI Agent framework designed to help you build AI Agents that can be integrated with real-world work. We also provide APIs for accessing large language models.
+Anyi is an open-source Autonomous AI Agent framework written in [Go](https://go.dev/), designed to help you build AI agents that integrate with real-world workflows. We also provide APIs for accessing large language models.
 
-Anyi requires [Go](https://go.dev/) version [1.20](https://go.dev/doc/devel/release#go1.20) or higher.
+Anyi requires Go version [1.20](https://go.dev/doc/devel/release#go1.20) or higher.
 
 ## Features
 
-Anyi, as a Go programming framework, offers the following features:
+As a Go programming framework, Anyi offers the following features:
 
-- **Access to Large Language Models**: Allows access to large language models through a uniform interface, using different configurations to access various large models. Currently supported large model interfaces include:
+- **LLM Access**: Access different large language models through the same interface with different configurations. Currently supported LLM interfaces include:
 
   - OpenAI
   - Azure OpenAI
-  - Dashscope (https://dashscope.aliyun.com/)
-  - Ollama
+  - Anthropic
+  - Ollama (for local model deployment)
   - DeepSeek
-  - Zhipu AI online service (https://bigmodel.cn/)
-  - Silicon Cloud AI service (https://siliconflow.cn/)
+  - Zhipu AI Cloud Service (bigmodel.cn)
+  - Silicon Cloud Service (https://siliconflow.cn/)
+  - Aliyun Model Service Lingji (Dashscope)
 
-- **Multimodal Model Support**: In addition to supporting regular text-based conversations, Anyi also supports sending images to multimodal large models for processing.
-- **Multiple LLM Clients Support** Supports simultaneous access to multiple large language models from different sources. Different large model clients can be distinguished by their client names.
-- **Prompt Generation Based on Go Templates**: Supports generating prompts based on Go language ([text/template](https://pkg.go.dev/text/template)).
-- **Workflow Support**: Allows chaining multiple conversation tasks into workflows.
-- **Step Validation in Workflows**: Repeats steps whose outputs do not meet expectations until the output is as expected. If the number of retries exceeds a predefined limit, an error is returned.
-- **Using Different Large Model Clients in Workflow Steps**: Different workflow steps can use different large model clients.
-- **Defining Multiple Workflows**: Allows defining multiple workflows and accessing them by workflow name.
-- **Configuration-Based Workflow Definition**: Allows dynamic configuration of workflows through program code or static configuration files.
+- **Multimodal Model Support**: In addition to text-based chat, Anyi supports sending images to multimodal LLMs
+- **Multi-client Support**: Access multiple LLMs from different sources simultaneously, with different LLM clients distinguished by name
+- **Go Template-based Prompt Generation**: Support for prompt generation based on Go language [text/template](https://pkg.go.dev/text/template)
+- **Workflow Support**: Chain multiple conversation tasks to form a workflow
+- **Workflow Step Validation**: If a step's output doesn't meet expectations, the step repeats until the output is valid. If execution exceeds a set limit, an error is returned
+- **Multi-client Workflow Steps**: Different steps in a workflow can use different LLM clients
+- **Multiple Workflow Definitions**: Define multiple workflows and access them by name
+- **Configuration-based Workflow Definition**: Define workflows dynamically through code or via static configuration files (YAML, JSON, TOML formats)
 
 ## Documentation and Examples
 
-For detailed usage guides, please refer to [Anyi Usage Guide and Examples](/docs/en/tutorial.md). Below are some quick start instructions.
+For detailed usage guides, please refer to [Anyi Tutorial and Examples](/docs/tutorial.md). Below are some simple getting started guides.
 
-## Quick start
+## Quick Start
 
 ### Installation
 
@@ -46,9 +47,9 @@ For detailed usage guides, please refer to [Anyi Usage Guide and Examples](/docs
 go get -u github.com/jieliu2000/anyi
 ```
 
-### Accessing LLMs with Anyi
+### LLM Access Example
 
-Here is a simple example of using Anyi to access OpenAI:
+Here's a simple example of using Anyi to access OpenAI:
 
 ```go
 package main
@@ -63,52 +64,50 @@ import (
 )
 
 func main() {
-	// For more documentation and examples, see github.com/jieliu2000/anyi/llm package documentation.
-	// Make sure you set OPENAI_API_KEY environment variable to your OpenAI API key.
-	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
-	client, err := anyi.NewClient("openai", config)
-
+	// Make sure you have set the OPENAI_API_KEY environment variable
+	config := openai.DefaultConfig("gpt-4")
+	config.APIKey = os.Getenv("OPENAI_API_KEY")
+	
+	client, err := anyi.NewClient("gpt4", config)
 	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)
 	}
 
 	messages := []chat.Message{
-		{Role: "user", Content: "5+1=?"},
+		{Role: "user", Content: "What is 5+1?"},
 	}
-	message, _, _:= client.Chat(messages, nil)
+	message, _, _ := client.Chat(messages, nil)
 
 	log.Printf("Response: %s\n", message.Content)
 }
-
 ```
 
-In the above example, an OpenAI Anyi configuration is created via `openai.DefaultConfig`. Then this config instance is passed to `anyi.NewClient` to create an OpenAI client, and finally a chat request is sent via `client.Chat`.
+In the example above, we first create an OpenAI configuration through `openai.DefaultConfig`, then pass this configuration to `anyi.NewClient` to create a client, and finally send a chat request through `client.Chat`.
 
-### Define and execute workflows
+### Workflow Example
 
-Anyi allows you to define workflows, which can then be accessed via their workflow name. Each workflow contains one or multiple steps, and each step can define its own executor and validator.
+Anyi allows you to define workflows (Flow) and access different workflows by name. Each workflow can contain multiple steps (Step), and each step can define its own executor and validator.
 
-Workflows can be created in the following three ways:
+Workflows can be created in three ways:
 
-- **Directly creating instances** of `flow.Flow`, `flow.Step`, `flow.StepExecutor`, `flow.StepValidator` within the program.
-- **Dynamic configuration**: Creating an instance of `anyi.AnyiConfig` via `anyi.AnyiConfig`, and then initializing Anyi with the `anyi.Config` method. Anyi will create objects such as `Client`, `Flow`, etc., according to the configuration.
-- **Static configuration**: Creating through a configuration file, where the format of the configuration file can be toml, yaml, json, or other formats supported by [viper](https://github.com/spf13/viper). Anyi initializes static configuration using the `anyi.ConfigFromFile` method.
+- **Direct Instance Creation**: Create `flow.Flow`, `flow.Step`, `flow.StepExecutor`, `flow.StepValidator` instances directly in code
+- **Dynamic Configuration**: Create an `anyi.AnyiConfig` instance and initialize Anyi using the `anyi.Config` method
+- **Static Configuration File**: Create through configuration files, which can be in YAML, JSON, TOML or any format supported by [viper](https://github.com/spf13/viper)
 
-Anyi allows for **hybrid configuration**, meaning you can mix and use the three methods mentioned above within your program to create various objects such as clients, steps, executors and workflows themselves.
+Anyi allows **mixed configuration**, meaning you can combine the three methods above to create various objects and workflows.
 
-In Anyi's workflows, objects such as Flow, Step, StepExecutor, StepValidator all exchange information through the `flow.FlowContext` object. The declaration of the `flow.FlowContext` struct is as follows:
+In Anyi workflows, information is passed through the `flow.FlowContext` object:
 
 ```go
 type FlowContext struct {
-	Text   string
-	Memory ShortTermMemory
-	Flow   *Flow
+	Text      string           // For passing text information
+	Memory    ShortTermMemory  // For passing structured information, type 'any'
+	Flow      *Flow            // Stores a reference to the Flow
+	ImageURLs []string         // For image inputs to multimodal models
 }
 ```
 
-The Text attribute is used to pass text information, while the Memory attribute is used to pass other structured information. In the current version, `ShortTermMemory` is actually of type `any`, thus allowing you to set it to any instance of any type. The Flow attribute is used to keep a reference to the Flow.
-
-Below is an example of defining a workflow using dynamic configuration with Anyi:
+Here's an example of defining a workflow with dynamic configuration:
 
 ```go
 package main
@@ -128,7 +127,7 @@ func main() {
 				Name: "openai",
 				Type: "openai",
 				Config: map[string]interface{}{
-					"model":  openai.GPT4o,
+					"model":  "gpt-4",
 					"apiKey": os.Getenv("OPENAI_API_KEY"),
 				},
 			},
@@ -151,7 +150,7 @@ func main() {
 						Executor: &anyi.ExecutorConfig{
 							Type: "llm",
 							WithConfig: map[string]interface{}{
-								"template": `Translate the text enclosed in ''' into French. Do not include any additional output except for the translation. Text to translate: '''{{.Text}}'''. Translation result:`,
+								"template": `Translate the following text enclosed in triple backticks to French. Provide only the translation with no additional output. Text to translate: '''{{.Text}}'''. Translation:`,
 							},
 						},
 					},
@@ -165,7 +164,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	context, err := flow.RunWithInput("the moon")
+	context, err := flow.RunWithInput("the Moon")
 	if err != nil {
 		panic(err)
 	}
@@ -173,25 +172,144 @@ func main() {
 }
 ```
 
-In the example above, an `AnyiConfig` configuration is first created that includes `Clients` and `Flows` properties. As the names suggest, `Clients` is used to define an array of Anyi client configurations, while `Flows` is used to define an array of workflow configurations.
+In this example:
+1. We define an OpenAI client (as the default client)
+2. Create a "smart_writer" workflow with two steps:
+   - "write_scifi_novel": Generates a science fiction story
+   - "translate_novel": Translates the story to French
+3. Information is passed between steps via the Text property of FlowContext
+4. The final translation result is output
 
-In `Clients` configuration, there is only one openai `Client` configuration included. Since there is only one `Client` named `openai` in the program, Anyi registers this client as the **default Client**. Anyi allows registering multiple Clients, and in Flows and Steps, you can specify which `Client` should execute the task. If none is specified, Anyi will use the _default Client_.
+## Configuration File Support
 
-In `Flows` configuration, a Flow named `smart_writer` is defined. This workflow contains two steps (Steps):
+Anyi supports creating and managing LLM clients and workflows through configuration files, which is ideal for building deployable AI applications.
 
-- The first step "write_scifi_novel" uses an Executor of the llm type. llm is a built-in type of Executor in Anyi that can call LLM models using **direct prompts** or **prompts based on templates**. In the example above, the `template` parameter specifies the prompt template for calling the LLM model. This template uses Go language text templates ([text/template](https://pkg.go.dev/text/template)).
-  The template uses {{.Text}} as a parameter, where `.Text` is a property of `flow.FlowContext`. In Anyi's llm executor, Anyi sets the `.Text` property of `flow.FlowContext` based on the user's initial input. If the Executor outputs text content, Anyi sets the `.Text` property of `flow.FlowContext` as the output.
+### Advantages of Configuration Files
 
-- The second step "translate_novel" also uses an Executor of the llm type but with a different prompt template.
+1. **Separation of Configuration and Code**: Adjust AI application behavior without modifying code
+2. **Environment Adaptation**: Prepare different configuration files for different environments (development, testing, production)
+3. **Centralized Management**: Define configurations for all clients and workflows in one file
+4. **Version Control**: Configurations can be tracked in version control systems
 
-After configuring Anyi with `anyi.Config(&config)`, you can get the workflow named `smart_writer` created by Anyi through `anyi.GetFlow("smart_writer")`. Then run the workflow with `flow.RunWithInput("the moon")`.
+### Supported Formats
 
-Before running the Flow, the parameter "the moon" passed to RunWithInput is set to the `.Text` property of `flow.FlowContext`, which is then passed to the Executor of the first Step ("write_scifi_novel").
+Anyi supports multiple configuration file formats:
+- **YAML** (most commonly used, good readability)
+- **JSON** (good compatibility, suitable for program generation)
+- **TOML** (well-structured, suitable for complex configurations)
 
-The Executor of the first step "write_scifi_novel" generates a prompt based on the prompt template and user input, then calls the LLM model for computation. The output of this step, which is the generated content of the story, is set to the `.Text` property of returned `flow.FlowContext` and then passed to the next step "translate_novel" for translation.
+Configuration files can be loaded using the `ConfigFromFile` method, or from a string using the `ConfigFromString` method.
 
-Similarly, the second step also uses Go language templates, where {{.Text}} in the template is replaced with the `.Text` property of `flow.FlowContext`, which is the output content from "write_scifi_novel". Afterward, Anyi calls the LLM model for translation and sets the translation result back to the `.Text` property of `flow.FlowContext`. Finally, Anyi returns a reference to `flow.FlowContext` as the result of the Flow execution.
+### Example Configuration File Using OpenAI
+
+Here's a complete example configuration file (YAML format) using OpenAI:
+
+```yaml
+# anyi-openai-config.yaml
+clients:
+  - name: "gpt-4"
+    type: "openai"
+    config:
+      model: "gpt-4"
+      apiKey: "$OPENAI_API_KEY"
+  
+  - name: "gpt-3.5"
+    type: "openai"
+    config:
+      model: "gpt-3.5-turbo"
+      apiKey: "$OPENAI_API_KEY"
+
+flows:
+  - name: "qa-flow"
+    clientName: "gpt-4"  # Default to using GPT-4
+    steps:
+      - name: "answer-question"
+        executor:
+          type: "llm"
+          withconfig:
+            template: "Please answer the following question in detail: {{.Text}}. Your answer should be comprehensive, accurate, and provide reasoning."
+            systemMessage: "You are a professional knowledge assistant, skilled at providing accurate, detailed answers."
+        maxRetryTimes: 2
+      
+  - name: "creative-writing"
+    clientName: "gpt-3.5"  # Use GPT-3.5 for creative tasks
+    steps:
+      - name: "generate-story"
+        executor:
+          type: "llm"
+          withconfig:
+            template: "Write a short story about {{.Text}} with a clear beginning, middle, and end."
+            systemMessage: "You are a creative fiction writer."
+      
+      - name: "summarize-story"
+        executor:
+          type: "llm"
+          withconfig:
+            template: "Summarize the following story in three sentences:\n\n{{.Text}}"
+        clientName: "gpt-4"  # This step specifically uses GPT-4
+        validator:
+          type: "string"
+          withconfig:
+            matchRegex: "^.{30,500}$"  # Ensure the summary is of reasonable length
+```
+
+### Loading and Using Configuration Files
+
+```go
+package main
+
+import (
+	"fmt"
+	"log"
+
+	"github.com/jieliu2000/anyi"
+)
+
+func main() {
+	// Load configuration file
+	err := anyi.ConfigFromFile("./anyi-openai-config.yaml")
+	if err != nil {
+		log.Fatalf("Failed to load configuration: %v", err)
+	}
+
+	// Get and run the QA workflow
+	qaFlow, err := anyi.GetFlow("qa-flow")
+	if err != nil {
+		log.Fatalf("Failed to get workflow: %v", err)
+	}
+	
+	result, err := qaFlow.RunWithInput("What is the history of artificial intelligence?")
+	if err != nil {
+		log.Fatalf("Workflow execution failed: %v", err)
+	}
+
+	fmt.Println("QA Result:", result.Text)
+}
+```
+
+### Configuration File Best Practices
+
+1. **Environment Variable Substitution**: Use `$VARIABLE_NAME` in configuration files to reference environment variables, protecting sensitive information
+2. **Modular Configuration Files**: Split configurations into multiple files by functionality for easier management
+3. **Validator Usage**: Add validators for critical steps to ensure outputs meet expectations
+4. **Step Retries**: Set reasonable `maxRetryTimes` values for unstable steps
+
+## Built-in Components
+
+Anyi provides various built-in components to help build AI applications:
+
+### Built-in Executors
+
+- **LLMExecutor**: LLM-based executor, supporting template prompts and direct prompts
+- **ConditionalFlowExecutor**: Condition-based executor that selects different sub-workflows based on conditions
+- **RunCommandExecutor**: System command executor for executing system commands
+- **SetContextExecutor**: Context setting executor that can set properties in the workflow context
+
+### Built-in Validators
+
+- **StringValidator**: String validator supporting equality comparison and regex matching
+- **JsonValidator**: JSON validator that verifies if output is valid JSON
 
 ## License
 
-Anyi is licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for the full license text.
+Anyi is licensed under the [Apache License 2.0](LICENSE).

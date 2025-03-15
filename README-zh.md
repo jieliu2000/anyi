@@ -1,4 +1,4 @@
-# Anyi(安易) - 开源的 AI 智能体(AI Agent)框架
+# Anyi(安易) - 开源的自主式 AI 智能体(Autonomous AI Agent)框架
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/jieliu2000/anyi.svg)](https://pkg.go.dev/github.com/jieliu2000/anyi)
 [![Go Report Card](https://goreportcard.com/badge/github.com/jieliu2000/anyi)](https://goreportcard.com/report/github.com/jieliu2000/anyi)
@@ -7,7 +7,7 @@
 
 ## 介绍
 
-Anyi(安易)是一个开源的[Go 语言](https://go.dev/)AI 智能体(AI Agent)框架，旨在帮助你构建可以和实际工作相结合的 AI 智能体。我们也提供对大语言模型访问的 API。
+Anyi(安易)是一个开源的[Go 语言](https://go.dev/)自主式 AI 智能体(Autonomous AI Agent)框架，旨在帮助你构建可以和实际工作相结合的 AI 智能体。我们也提供对大语言模型访问的 API。
 
 Anyi 需要 Go 语言[1.20](https://go.dev/doc/devel/release#go1.20)或更高版本。
 
@@ -15,26 +15,26 @@ Anyi 需要 Go 语言[1.20](https://go.dev/doc/devel/release#go1.20)或更高版
 
 Anyi 作为一个 Go 语言的编程框架，提供以下特性：
 
-- 对大语言模型的访问，允许通过同样的接口使用不同的配置访问不同大语言模型，目前支持的大语言模型接口包括：
+- **对大语言模型的访问**：允许通过同样的接口使用不同的配置访问不同大语言模型，目前支持的大语言模型接口包括：
 
   - OpenAI
   - Azure OpenAI
   - 阿里云模型服务灵积(Dashscope)
-  - Ollama 本地大模型访问，通过 ollama，Anyi 可以实现对多种本地部署大模型的访问。
+  - Ollama 本地大模型访问，通过 ollama，Anyi 可以实现对多种本地部署大模型的访问
   - DeepSeek
   - 智谱 AI 云服务(bigmodel.cn)
   - Silicon Cloud 云服务（https://siliconflow.cn/）
 
-- 对以上大语言模型，除了支持普通文本聊天外，Anyi 还支持对多模态大语言模型发送图片进行访问。
-- 支持同时访问多个不同来源的大语言模型，不同大语言模型客户端可以通过客户端名字进行区分。
-- 支持基于 Go 语言模板([text/template](https://pkg.go.dev/text/template))的提示词生成
-- 工作流支持：允许将多个对话任务串联起来，形成一个工作流
-- 工作流步骤校验：如果一个步骤的输出不符合预期，则反复执行该步骤直到输出符合预期。如果执行次数超过设定次数，则返回一个错误。
-- 工作流中不同的步骤允许使用不同的大语言模型客户端
-- 允许定义多个工作流，并根据工作流名称访问不同的工作流
-- 基于配置的工作流定义：允许通过程序代码动态配置工作流，或者通过静态配置文件配置工作流
+- **多模态模型支持**：除了支持普通文本聊天外，Anyi 还支持对多模态大语言模型发送图片进行访问
+- **多客户端支持**：支持同时访问多个不同来源的大语言模型，不同大语言模型客户端可以通过客户端名字进行区分
+- **基于 Go 模板的提示词生成**：支持基于 Go 语言模板([text/template](https://pkg.go.dev/text/template))的提示词生成
+- **工作流支持**：允许将多个对话任务串联起来，形成一个工作流
+- **工作流步骤校验**：如果一个步骤的输出不符合预期，则反复执行该步骤直到输出符合预期。如果执行次数超过设定次数，则返回一个错误
+- **多客户端工作流步骤**：工作流中不同的步骤允许使用不同的大语言模型客户端
+- **多工作流定义**：允许定义多个工作流，并根据工作流名称访问不同的工作流
+- **基于配置的工作流定义**：允许通过程序代码动态配置工作流，或者通过静态配置文件（支持 YAML、JSON、TOML 格式）配置工作流
 
-## 代码和示例
+## 文档和示例
 
 详细的使用向导请参照[Anyi 使用向导和示例](/docs/zh/tutorial.md)。下面部分是一些简单的上手指南。
 
@@ -46,9 +46,9 @@ Anyi 作为一个 Go 语言的编程框架，提供以下特性：
 go get -u github.com/jieliu2000/anyi
 ```
 
-### Anyi 访问大语言模型示例
+### 访问大语言模型示例
 
-以下为使用 Anyi 访问 OpenAI 的一个简单示例：
+以下为使用 Anyi 访问 Ollama 的一个简单示例：
 
 ```go
 package main
@@ -58,14 +58,13 @@ import (
 	"os"
 
 	"github.com/jieliu2000/anyi"
-	"github.com/jieliu2000/anyi/llm/openai"
+	"github.com/jieliu2000/anyi/llm/ollama"
 	"github.com/jieliu2000/anyi/llm/chat"
 )
 
 func main() {
 	// 确保你已经安装运行了ollama并通过ollama拉取了qwen2:7b模型
 	config := ollama.DefaultConfig("qwen2:7b")
-	client, err := llm.NewClient(config)
 	client, err := anyi.NewClient("qwen2-7b", config)
 
 	if err != nil {
@@ -79,36 +78,34 @@ func main() {
 
 	log.Printf("Response: %s\n", message.Content)
 }
-
 ```
 
-在上面的示例中，首先通过`dashscope.DefaultConfig` 创建一个 Dashscope 的 Anyi 配置，然后将该配置传递给 `anyi.NewClient` 创建一个 OpenAI 客户端，最后通过 `client.Chat` 发送一个聊天请求。
+在上面的示例中，首先通过`ollama.DefaultConfig`创建一个 Ollama 的配置，然后将该配置传递给`anyi.NewClient`创建一个客户端，最后通过`client.Chat`发送一个聊天请求。
 
-### Anyi 工作流示例
+### 工作流示例
 
-Anyi 允许你定义工作流(Flow)，然后通过工作流名称访问不同的工作流。每个工作流可以包含多个步骤(Step)，每个步骤(Step)可以定义自己的执行器（Executor）和校验器（Validator）。
+Anyi 允许你定义工作流(Flow)，然后通过工作流名称访问不同的工作流。每个工作流可以包含多个步骤(Step)，每个步骤可以定义自己的执行器（Executor）和校验器（Validator）。
 
 工作流可以通过以下三种方式创建：
 
-- 直接在程序中创建`flow.Flow`, `flow.Step`，`flow.StepExecutor`, `flow.StepValidator` 等实例
-- 动态配置：创建一个`anyi.AnyiConfig` 实例，然后通过 `anyi.Config` 方法初始化 Anyi，Anyi 会根据配置创建`Client`，`Flow`等对象
-- 静态配置：通过配置文件创建，配置文件格式可以为 toml, yaml, json 等[viper](https://github.com/spf13/viper)支持的格式。之后通过`anyi.ConfigFromFile`方法初始化 Anyi
+- **直接创建实例**：在程序中直接创建`flow.Flow`、`flow.Step`、`flow.StepExecutor`、`flow.StepValidator`等实例
+- **动态配置**：创建一个`anyi.AnyiConfig`实例，然后通过`anyi.Config`方法初始化 Anyi
+- **静态配置文件**：通过配置文件创建，配置文件格式可以为 YAML、JSON、TOML 等[viper](https://github.com/spf13/viper)支持的格式
 
 Anyi 允许你进行**混合配置**，也就是说你可以在程序中混合使用上面的三种方式创建工作流中的各种对象和工作流本身。
 
-在 Anyi 的工作流中，Flow, Step, StepExecutor, StepValidator 等对象都通过`flow.FlowContext`对象进行信息传递。`flow.FlowContext`对象的声明如下：
+在 Anyi 的工作流中，信息通过`flow.FlowContext`对象进行传递：
 
 ```go
 type FlowContext struct {
-	Text   string
-	Memory ShortTermMemory
-	Flow   *Flow
+	Text      string           // 用于传递文本信息
+	Memory    ShortTermMemory  // 传递结构化信息，类型为 any
+	Flow      *Flow            // 保存对 Flow 的引用
+	ImageURLs []string         // 用于多模态模型的图片输入
 }
 ```
 
-其中 Text 属性用来传递文本信息，Memory 属性用来传递其他结构化信息，在当前版本中 ShortTermMemory 实际上是 any 类型，因此允许你设置为任何类型的实例，Flow 属性是用来保存对 Flow 的引用。
-
-以下为使用 Anyi 动态配置定义一个工作流的示例：
+以下是使用 Anyi 动态配置定义一个工作流的示例：
 
 ```go
 package main
@@ -135,7 +132,7 @@ func main() {
 		},
 		Flows: []anyi.FlowConfig{
 			{
-				Name: "smart_writer",
+				Name: "creative_writer",
 				Steps: []anyi.StepConfig{
 					{
 						Name: "write_scifi_novel",
@@ -161,7 +158,7 @@ func main() {
 	}
 
 	anyi.Config(&config)
-	flow, err := anyi.GetFlow("smart_writer")
+	flow, err := anyi.GetFlow("creative_writer")
 	if err != nil {
 		panic(err)
 	}
@@ -173,33 +170,143 @@ func main() {
 }
 ```
 
-在上面的示例中，首先创建了一个 `AnyiConfig` 配置，该配置包含`Clients`和`Flows`两个属性。正如其名字，`Clients`是用来定义 Anyi 客户端的数组，而`Flows`是用来定义工作流的数组。
+在这个示例中：
+1. 定义了一个 dashscope 客户端（作为默认客户端）
+2. 创建了名为 "creative_writer" 的工作流，包含两个步骤：
+   - "write_scifi_novel"：生成科幻小说
+   - "translate_novel"：将小说翻译成法语
+3. 步骤之间通过 FlowContext 的 Text 属性传递信息
+4. 最终将翻译结果输出
 
-```go
-	config := anyi.AnyiConfig{
-		Clients: []llm.ClientConfig{
-			//...
-		},
-		Flows: []anyi.FlowConfig{
-			//...
-		},
-	}
+## 配置文件支持
+
+Anyi 支持通过配置文件来创建和管理 LLM 客户端和工作流，这种方式非常适合构建可部署的 AI 应用。
+
+### 配置文件的优势
+
+1. **配置与代码分离**：可以在不修改代码的情况下调整 AI 应用的行为
+2. **环境适配**：可以为不同环境（开发、测试、生产）准备不同的配置文件
+3. **集中管理**：可以在一个配置文件中定义所有客户端和工作流的配置
+4. **版本控制**：配置可以纳入版本控制系统，便于追踪变更
+
+### 支持的格式
+
+Anyi 支持多种配置文件格式：
+- **YAML**（最常用，易读性好）
+- **JSON**（兼容性好，适合程序生成）
+- **TOML**（结构化好，适合复杂配置）
+
+配置文件可以通过`ConfigFromFile`方法加载，或使用`ConfigFromString`方法从字符串加载。
+
+### 使用 Ollama 的示例配置文件
+
+以下是一个完整的使用 Ollama 的配置文件示例（YAML 格式）：
+
+```yaml
+# anyi-ollama-config.yaml
+clients:
+  - name: "local-llama2"
+    type: "ollama"
+    config:
+      model: "llama2"
+      ollamaApiURL: "http://localhost:11434/api"
+  
+  - name: "local-qwen"
+    type: "ollama"
+    config:
+      model: "qwen2:7b"
+      ollamaApiURL: "http://localhost:11434/api"
+
+flows:
+  - name: "qa-flow"
+    clientName: "local-qwen"  # 默认使用 qwen 模型
+    steps:
+      - name: "answer-question"
+        executor:
+          type: "llm"
+          withconfig:
+            template: "请详细回答以下问题: {{.Text}}。回答要全面、准确，并给出理由。"
+            systemMessage: "你是一个专业的知识问答助手，擅长提供准确、详细的回答。"
+        maxRetryTimes: 2
+      
+  - name: "creative-writing"
+    clientName: "local-llama2"  # 使用 llama2 模型
+    steps:
+      - name: "generate-story"
+        executor:
+          type: "llm"
+          withconfig:
+            template: "写一个关于{{.Text}}的短篇故事，故事应该有起承转合的结构。"
+            systemMessage: "你是一个富有创造力的故事作家。"
+      
+      - name: "summarize-story"
+        executor:
+          type: "llm"
+          withconfig:
+            template: "请用三句话总结以下故事的主要内容：\n\n{{.Text}}"
+        clientName: "local-qwen"  # 这个步骤特别指定使用 qwen 模型
+        validator:
+          type: "string"
+          withconfig:
+            matchRegex: "^.{30,500}$"  # 确保总结的长度在合理范围内
 ```
 
-在`Clients`中，仅包含一个 dashscope `Client` 配置。由于程序中仅有一个 `Client` 也就是名为 `dashscope` 的 `Client`，Anyi 会将这个客户端注册为**默认的 Client**。Anyi 允许注册多个 Clients，在 Flow, Step 中都可以指定使用哪个 `Client` 执行任务。如果没有指定，Anyi 就会使用默认的 Client。
+### 加载和使用配置文件
 
-在`Flows`中，定义了一个名称为 `smart_writer` 的 Flow。该工作流包含两个步骤（`Step`）:
+```go
+package main
 
-- 第一个步骤"write_scifi_novel"使用了一个 llm 类型的 Executor。llm 是 Anyi 内建的一种执行器类型，可以使用直接提示词或者基于模板的提示词调用 LLM 模型。在上面的示例中，`template` 参数指定了调用 LLM 的提示词模板，这个模板是使用 Go 语言的文本模板([text/template](https://pkg.go.dev/text/template))。
-  模板中使用了{{.Text}}作为模板的参数，`.Text`是`flow.FlowContext`中的属性。在 Anyi 的 llm 执行器中，Anyi 会根据用户的初始输入设置`flow.FlowContext`的 Text 属性。之后如果执行器输出文本内容，Anyi 会将`flow.FlowContext`的 Text 属性作为输出返回。
+import (
+	"fmt"
+	"log"
 
-- 第二个步骤"translate_novel"也是使用了 llm 类型的 Executor，但是用了不同的提示词模板。
+	"github.com/jieliu2000/anyi"
+)
 
-在通过`anyi.Config(&config)`配置 Anyi 以后，通过 `anyi.GetFlow("smart_writer")` 可以获取到 Anyi 创建的名为`smart_writer`的工作流。然后通过 `flow.RunWithInput("月球")` 运行该工作流，在 Flow 运行之前，RunWithInput 的参数"月球"会被设置到`flow.FlowContext`的 Text 属性中，并在之后传递给第一个 Step("write_scifi_novel")的 Executor 中。、
+func main() {
+	// 加载配置文件
+	err := anyi.ConfigFromFile("./anyi-ollama-config.yaml")
+	if err != nil {
+		log.Fatalf("配置加载失败: %v", err)
+	}
 
-第一个步骤"write_scifi_novel"的 Executor 会根据提示词模板和用户输入生成一个提示词，然后调用 LLM 模型进行计算。该步骤的输出是文本内容也就是小说内容会被设置到`flow.FlowContext`的 Text 属性中，之后会传递给下一个步骤"translate_novel"去进行翻译。
+	// 获取并运行问答流程
+	qaFlow, err := anyi.GetFlow("qa-flow")
+	if err != nil {
+		log.Fatalf("获取流程失败: %v", err)
+	}
+	
+	result, err := qaFlow.RunWithInput("人工智能的发展历程是怎样的？")
+	if err != nil {
+		log.Fatalf("流程执行失败: %v", err)
+	}
 
-同样第二个步骤也使用了 go 语言的模板，在模板中的{{.Text}}会被替换为`flow.FlowContext`的 Text 属性，也就是"write_scifi_novel"的输出内容。之后，Anyi 会调用 LLM 模型进行翻译，并再次将翻译结果设置到`flow.FlowContext`的 Text 属性中。最后，Anyi 会将`flow.FlowContext`的引用作为 Flow 运行结果返回。
+	fmt.Println("问答结果:", result.Text)
+}
+```
+
+### 配置文件最佳实践
+
+1. **环境变量替换**：在配置文件中可以使用 `$VARIABLE_NAME` 引用环境变量，保护敏感信息
+2. **配置文件模块化**：根据功能将配置拆分为多个文件，便于管理
+3. **验证器使用**：为关键步骤添加验证器，确保输出符合预期
+4. **步骤重试**：为不稳定的步骤设置合理的 `maxRetryTimes` 值
+
+## 内置组件
+
+Anyi 提供了多种内置组件来帮助你构建 AI 应用：
+
+### 内置执行器
+
+- **LLMExecutor**：基于 LLM 的执行器，支持模板提示词和直接提示词
+- **ConditionalFlowExecutor**：条件流执行器，可以基于条件选择不同的子工作流执行
+- **RunCommandExecutor**：系统命令执行器，可以执行系统命令
+- **SetContextExecutor**：上下文设置执行器，可以设置工作流上下文的属性
+
+### 内置校验器
+
+- **StringValidator**：字符串校验器，支持相等比较和正则表达式匹配
+- **JsonValidator**：JSON 校验器，验证输出是否为有效的 JSON 格式
 
 ## 许可证
 
