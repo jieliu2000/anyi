@@ -38,7 +38,6 @@
 - [内置组件](#内置组件)
   - [执行器](#执行器)
   - [验证器](#验证器)
-  - [格式化器](#格式化器)
 - [高级用法](#高级用法)
   - [多客户端管理](#多客户端管理)
   - [提示词模板](#提示词模板)
@@ -1466,10 +1465,10 @@ Anyi提供了几种内置组件，您可以将其用作AI应用程序的构建�
 
 ### 验证器
 
-验证器是Anyi工作流系统中的关键组件，确保输出在继续下一步之前满足特定标准。它们充当质量控制机制，可以：
-- 防止低质量或无效输出在工作流中传播
-- 当输出不符合要求时自动触发重试
-- 强制执行数据架构和格式要求
+验证器是Anyi工作流系统中至关重要的组件，它们确保在进入下一步之前，输出满足特定标准。它们作为质量控制机制，可以：
+- 防止低质量或无效的输出在工作流中传播
+- 在输出不符合要求时自动触发重试
+- 强制实施数据模式和格式要求
 - 实现业务规则和逻辑检查
 
 #### 内置验证器类型
@@ -1506,86 +1505,6 @@ Anyi提供了几种内置组件，您可以将其用作AI应用程序的构建�
 - 将验证器与重试逻辑结合使用
 - 考虑为特定业务规则创建自定义验证器
 - 记录验证失败以识别常见问题
-
-### 格式化器
-
-Anyi包含格式化器，帮助在工作流中处理和转换文本。格式化器可以标准化输出格式、提取特定信息、在不同表示之间转换数据，以及应用一致的样式和格式。
-
-以下是使用Go模板格式化器的示例：
-
-```go
-package main
-
-import (
-	"log"
-	"os"
-	"text/template"
-
-	"github.com/jieliu2000/anyi"
-	"github.com/jieliu2000/anyi/llm/openai"
-	"github.com/jieliu2000/anyi/flow"
-)
-
-func main() {
-	// 创建客户端
-	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
-	client, err := anyi.NewClient("openai", config)
-	if err != nil {
-		log.Fatalf("创建客户端失败: %v", err)
-	}
-	
-	// 创建一个格式化器
-	templateText := `
-产品名称: {{.ProductName}}
-价格: {{.Price}}
-评分: {{.Rating}}/5
-描述: {{.Description}}
-`
-	tmpl, err := template.New("product").Parse(templateText)
-	if err != nil {
-		log.Fatalf("创建模板失败: %v", err)
-	}
-	
-	// 创建设置上下文的步骤（在实际场景中可能从数据库或API获取）
-	setContextStep := &flow.SetContextExecutor{
-		SetContext: map[string]interface{}{
-			"ProductName": "智能音箱",
-			"Price":       "¥299",
-			"Rating":      4.5,
-			"Description": "高品质音质，支持语音控制的智能音箱",
-		},
-	}
-	
-	// 创建格式化步骤
-	formatStep := &flow.TemplateFormatExecutor{
-		Template: tmpl,
-	}
-	
-	// 创建工作流步骤
-	step1 := flow.Step{
-		Name:     "设置产品数据",
-		Executor: setContextStep,
-	}
-	
-	step2 := flow.Step{
-		Name:     "格式化产品信息",
-		Executor: formatStep,
-	}
-	
-	// 创建并运行工作流
-	myFlow, err := anyi.NewFlow("产品信息工作流", client, step1, step2)
-	if err != nil {
-		log.Fatalf("创建工作流失败: %v", err)
-	}
-	
-	result, err := myFlow.RunWithInput("")
-	if err != nil {
-		log.Fatalf("工作流执行失败: %v", err)
-	}
-	
-	log.Printf("格式化后的产品信息:\n%s", result.Text)
-}
-```
 
 ## 高级用法
 
