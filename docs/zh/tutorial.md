@@ -4,6 +4,7 @@
 
 ## 目录
 
+- [快速入门](#快速入门)
 - [简介](#简介)
 - [安装](#安装)
 - [大语言模型访问](#大语言模型访问)
@@ -11,6 +12,7 @@
   - [客户端配置](#客户端配置)
     - [智谱AI](#智谱ai)
     - [阿里云灵积](#阿里云灵积)
+    - [DeepSeek](#deepseek)
     - [Ollama](#ollama)
     - [其他提供商](#其他提供商)
 - [聊天API使用](#聊天api使用)
@@ -46,6 +48,54 @@
   - [成本管理](#成本管理)
   - [安全考虑](#安全考虑)
 
+## 快速入门
+
+如果您想快速上手 Anyi 框架，以下是最基本的步骤：
+
+```bash
+# 安装 Anyi
+go get -u github.com/jieliu2000/anyi
+```
+
+### 基本用法示例
+
+```go
+package main
+
+import (
+	"fmt"
+	"log"
+	"os"
+
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm/zhipu"
+	"github.com/jieliu2000/anyi/llm/chat"
+)
+
+func main() {
+	// 1. 创建客户端
+	config := zhipu.DefaultConfig(os.Getenv("ZHIPU_API_KEY"), "glm-4")
+	client, err := anyi.NewClient("glm4", config)
+	if err != nil {
+		log.Fatalf("创建客户端失败: %v", err)
+	}
+
+	// 2. 发送简单请求
+	messages := []chat.Message{
+		{Role: "user", Content: "请简要介绍一下量子计算"},
+	}
+	
+	response, _, err := client.Chat(messages, nil)
+	if err != nil {
+		log.Fatalf("请求失败: %v", err)
+	}
+	
+	fmt.Println("回答:", response.Content)
+}
+```
+
+这个简单的例子展示了 Anyi 的核心功能：创建客户端并发送请求。有关更详细的说明，请继续阅读完整指南。
+
 ## 简介
 
 Anyi(安易)是一个开源的Go语言自主式AI智能体框架，旨在帮助开发者构建与实际工作场景无缝集成的AI解决方案。本指南提供详细的编程说明和示例，帮助您有效地使用Anyi框架。
@@ -76,23 +126,6 @@ go get -u github.com/jieliu2000/anyi
 
 Anyi需要Go 1.20或更高版本。
 
-### 验证安装
-
-您可以通过创建一个简单的程序来验证Anyi安装是否成功：
-
-```go
-package main
-
-import (
-	"fmt"
-	"github.com/jieliu2000/anyi"
-)
-
-func main() {
-	fmt.Println("Anyi版本:", anyi.Version)
-}
-```
-
 ## 大语言模型访问
 
 Anyi提供了统一的方式与各种大语言模型（LLM）进行交互，通过一致的接口实现。这种方法使您能够在不更改应用程序逻辑的情况下轻松切换不同的提供商。
@@ -101,7 +134,7 @@ Anyi提供了统一的方式与各种大语言模型（LLM）进行交互，通�
 
 在深入代码之前，了解Anyi如何组织LLM访问非常重要：
 
-1. **提供商**：每个LLM服务（智谱AI、阿里云灵积等）都有专用的提供商模块
+1. **提供商**：每个LLM服务（OpenAI、DeepSeek等）都有专用的提供商模块
 2. **客户端**：处理与特定LLM服务通信的实例
 3. **注册表**：全局存储命名客户端，方便在应用程序中检索
 
@@ -134,28 +167,29 @@ import (
 	"os"
 
 	"github.com/jieliu2000/anyi"
-	"github.com/jieliu2000/anyi/llm/zhipu"
+	"github.com/jieliu2000/anyi/llm/openai"
 	"github.com/jieliu2000/anyi/llm/chat"
 )
 
 func main() {
-	// 创建一个名为"glm4"的客户端
-	config := zhipu.DefaultConfig(os.Getenv("ZHIPU_API_KEY"), "glm-4")
+	// 创建一个名为"gpt4"的客户端
+	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
+	config.Model = openai.GPT4o // 使用GPT-4o模型
 	
-	client, err := anyi.NewClient("glm4", config)
+	client, err := anyi.NewClient("gpt4", config)
 	if err != nil {
 		log.Fatalf("创建客户端失败: %v", err)
 	}
 	
 	// 之后可以通过名称检索此客户端
-	retrievedClient, err := anyi.GetClient("glm4")
+	retrievedClient, err := anyi.GetClient("gpt4")
 	if err != nil {
 		log.Fatalf("检索客户端失败: %v", err)
 	}
 	
 	// 使用客户端
 	messages := []chat.Message{
-		{Role: "user", Content: "中国有多少个省份？"},
+		{Role: "user", Content: "法国的首都是什么？"},
 	}
 	response, _, err := retrievedClient.Chat(messages, nil)
 	if err != nil {
@@ -176,13 +210,14 @@ import (
 	"os"
 
 	"github.com/jieliu2000/anyi/llm"
-	"github.com/jieliu2000/anyi/llm/dashscope"
+	"github.com/jieliu2000/anyi/llm/openai"
 	"github.com/jieliu2000/anyi/llm/chat"
 )
 
 func main() {
 	// 创建一个不注册的客户端
-	config := dashscope.DefaultConfig(os.Getenv("DASHSCOPE_API_KEY"), "qwen-max")
+	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
+	config.Model = openai.GPT3Dot5Turbo
 	
 	client, err := llm.NewClient(config)
 	if err != nil {
@@ -213,65 +248,395 @@ func main() {
 - 为生产环境考虑设置自定义超时
 - 对于自托管模型或代理服务，使用自定义基础URL
 
-#### 智谱AI
+### 支持的LLM提供商
 
-智谱AI提供了GLM系列的大语言模型，包括GLM-4、GLM-3-Turbo等。
+Anyi支持多种LLM提供商，以满足不同需求和用例。以下是各个支持的提供商的详细描述和示例，从最广泛使用的选项开始。
+
+#### OpenAI
+
+OpenAI是目前最广泛使用的AI服务提供商之一，提供了GPT-4、GPT-3.5等多种强大模型。
+
+##### 特点和优势
+
+- 提供业界领先的语言模型，包括最新的GPT-4o
+- 支持多种任务类型：文本生成、代码编写、逻辑推理、创意写作等
+- 完善的API文档和广泛的社区支持
+- 支持函数调用和工具使用功能
+
+##### 支持的模型
+
+Anyi框架支持OpenAI的所有主要模型，包括：
+
+- `GPT4o`：最新的多模态大型语言模型
+- `GPT4oMini`：GPT-4o的轻量版本
+- `GPT4Turbo`：GPT-4的高性能变体
+- `GPT4`：OpenAI的强大通用模型
+- `GPT3Dot5Turbo`：平衡性能和成本的通用模型
+
+##### 配置示例
 
 ```go
-// 默认配置
-config := zhipu.DefaultConfig(os.Getenv("ZHIPU_API_KEY"), "glm-4")
+package main
 
-// 使用GLM-3-Turbo模型
-config := zhipu.DefaultConfig(os.Getenv("ZHIPU_API_KEY"), "glm-3-turbo")
-
-// 自定义配置
-config := zhipu.NewConfig(
-    os.Getenv("ZHIPU_API_KEY"),
-    "glm-4-flash",
-    "https://api.bigmodel.cn"
+import (
+	"log"
+	"os"
+	
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm/openai"
+	"github.com/jieliu2000/anyi/llm/chat"
 )
+
+func main() {
+	// 默认配置（使用gpt-3.5-turbo）
+	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
+	
+	// 指定模型的配置
+	config := openai.NewConfigWithModel(os.Getenv("OPENAI_API_KEY"), openai.GPT4o)
+	
+	// 自定义基础URL配置（用于自托管或代理服务）
+	config := openai.NewConfig(
+		os.Getenv("OPENAI_API_KEY"),
+		openai.GPT4,
+		"https://your-openai-proxy.com/v1"
+	)
+	
+	// 创建客户端
+	client, err := anyi.NewClient("openai-gpt4", config)
+	if err != nil {
+		log.Fatalf("创建OpenAI客户端失败: %v", err)
+	}
+	
+	// 使用客户端进行文本生成
+	messages := []chat.Message{
+		{Role: "system", Content: "你是一位专精Go语言的程序员。"},
+		{Role: "user", Content: "编写一个函数检查字符串是否为回文"},
+	}
+	response, _, err := client.Chat(messages, nil)
+	if err != nil {
+		log.Fatalf("请求失败: %v", err)
+	}
+	
+	log.Printf("OpenAI回答: %s", response.Content)
+}
+```
+
+##### 最佳实践
+
+- 为敏感应用设置较低的温度值（0.1-0.3）以获得更确定性的结果
+- 为创意任务使用较高的温度值（0.7-1.0）
+- 使用系统消息来定义助手的角色和行为方式
+- 存储对话历史以维持上下文连贯性
+- 使用环境变量存储API密钥，避免硬编码
+
+#### DeepSeek
+
+DeepSeek提供了一系列强大的AI模型，专门针对代码生成和理解任务进行了优化。
+
+##### 特点和优势
+
+- 专门为代码生成优化的模型（DeepSeek Coder）
+- 提供多语言支持的聊天模型（DeepSeek Chat）
+- 与OpenAI兼容的API接口，便于迁移
+- 强大的多轮对话能力和上下文理解
+
+##### 支持的模型
+
+Anyi框架支持DeepSeek的主要模型：
+
+- `deepseek-chat`：通用对话模型，适合多轮交互
+- `deepseek-coder`：针对代码生成和理解优化的专业模型
+
+##### 配置示例
+
+```go
+package main
+
+import (
+	"log"
+	"os"
+	
+	"github.com/jieliu2000/anyi/llm"
+	"github.com/jieliu2000/anyi/llm/deepseek"
+	"github.com/jieliu2000/anyi/llm/chat"
+)
+
+func main() {
+	// 默认配置
+	config := deepseek.DefaultConfig(os.Getenv("DEEPSEEK_API_KEY"), "deepseek-chat")
+	
+	// 使用DeepSeek Coder模型
+	config := deepseek.DefaultConfig(os.Getenv("DEEPSEEK_API_KEY"), "deepseek-coder")
+	
+	// 自定义基础URL配置
+	config := deepseek.NewConfig(
+		os.Getenv("DEEPSEEK_API_KEY"),
+		"deepseek-chat",
+		"https://api.deepseek.com/v1"
+	)
+	
+	// 创建客户端
+	client, err := llm.NewClient(config)
+	if err != nil {
+		log.Fatalf("创建DeepSeek客户端失败: %v", err)
+	}
+	
+	// 使用客户端获取代码建议
+	messages := []chat.Message{
+		{Role: "user", Content: "编写一个实现快速排序的Go函数"},
+	}
+	response, _, err := client.Chat(messages, nil)
+	if err != nil {
+		log.Fatalf("请求失败: %v", err)
+	}
+	
+	log.Printf("DeepSeek回答: %s", response.Content)
+}
+```
+
+##### 最佳实践
+
+- 对代码相关任务优先使用DeepSeek Coder模型
+- 提供足够的上下文信息以获得更准确的代码生成
+- 为复杂代码任务明确指定语言和框架
+- 提供代码示例可以帮助模型理解您期望的风格
+
+#### 智谱AI
+
+智谱AI提供了GLM系列的大语言模型，包括GLM-4、GLM-3-Turbo等，特别适合中文处理场景。
+
+##### 特点和优势
+
+- 对中文语境的深度理解
+- 提供多种规模和能力的模型选择
+- 兼容OpenAI的API接口设计
+- 在数学和逻辑推理方面表现出色
+
+##### 配置示例
+
+```go
+package main
+
+import (
+	"log"
+	"os"
+	
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm/zhipu"
+	"github.com/jieliu2000/anyi/llm/chat"
+)
+
+func main() {
+	// 默认配置
+	config := zhipu.DefaultConfig(os.Getenv("ZHIPU_API_KEY"), "glm-4")
+	
+	// 使用GLM-3-Turbo模型
+	config := zhipu.DefaultConfig(os.Getenv("ZHIPU_API_KEY"), "glm-3-turbo")
+	
+	// 自定义配置
+	config := zhipu.NewConfig(
+		os.Getenv("ZHIPU_API_KEY"),
+		"glm-4-flash",
+		"https://api.bigmodel.cn"
+	)
+	
+	// 创建客户端
+	client, err := anyi.NewClient("glm4", config)
+	if err != nil {
+		log.Fatalf("创建智谱AI客户端失败: %v", err)
+	}
+	
+	// 使用客户端
+	messages := []chat.Message{
+		{Role: "user", Content: "请详细介绍中国的四大发明"},
+	}
+	response, _, err := client.Chat(messages, nil)
+	if err != nil {
+		log.Fatalf("请求失败: %v", err)
+	}
+	
+	log.Printf("智谱AI回答: %s", response.Content)
+}
 ```
 
 #### 阿里云灵积
 
-阿里云灵积模型服务提供了通义千问等一系列大语言模型。
+阿里云灵积模型服务提供了通义千问等一系列大语言模型，适合企业级应用场景。
+
+##### 特点和优势
+
+- 提供多种规模的通义千问模型
+- 阿里云生态系统集成
+- 企业级安全保障
+- 支持中英文及多模态输入
+
+##### 配置示例
 
 ```go
-// 默认配置
-config := dashscope.DefaultConfig(os.Getenv("DASHSCOPE_API_KEY"), "qwen-max")
+package main
 
-// 使用千问Turbo模型
-config := dashscope.DefaultConfig(os.Getenv("DASHSCOPE_API_KEY"), "qwen-turbo")
-
-// 自定义基础URL配置
-config := dashscope.NewConfig(
-    os.Getenv("DASHSCOPE_API_KEY"),
-    "qwen-max",
-    "https://your-proxy-url.com/compatible-mode/v1"
+import (
+	"log"
+	"os"
+	
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm/dashscope"
+	"github.com/jieliu2000/anyi/llm/chat"
 )
+
+func main() {
+	// 默认配置
+	config := dashscope.DefaultConfig(os.Getenv("DASHSCOPE_API_KEY"), "qwen-max")
+	
+	// 使用千问Turbo模型
+	config := dashscope.DefaultConfig(os.Getenv("DASHSCOPE_API_KEY"), "qwen-turbo")
+	
+	// 自定义基础URL配置
+	config := dashscope.NewConfig(
+		os.Getenv("DASHSCOPE_API_KEY"),
+		"qwen-max",
+		"https://dashscope.aliyuncs.com/compatible-mode/v1"
+	)
+	
+	// 创建客户端
+	client, err := anyi.NewClient("qwen", config)
+	if err != nil {
+		log.Fatalf("创建阿里云灵积客户端失败: %v", err)
+	}
+	
+	// 使用客户端
+	messages := []chat.Message{
+		{Role: "user", Content: "解释一下量子计算的基本原理"},
+	}
+	response, _, err := client.Chat(messages, nil)
+	if err != nil {
+		log.Fatalf("请求失败: %v", err)
+	}
+	
+	log.Printf("阿里云灵积回答: %s", response.Content)
+}
+```
+
+#### Azure OpenAI
+
+Azure OpenAI是微软托管的OpenAI服务，提供企业级功能和可靠性，适合需要合规性和安全性的商业环境。
+
+##### 特点和优势
+
+- 企业级SLA和技术支持
+- 符合多种合规标准
+- 网络隔离和私有网络部署选项
+- 与其他Azure服务的集成
+
+##### 配置示例
+
+```go
+package main
+
+import (
+	"log"
+	"os"
+	
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm/azureopenai"
+	"github.com/jieliu2000/anyi/llm/chat"
+)
+
+func main() {
+	config := azureopenai.NewConfig(
+		os.Getenv("AZ_OPENAI_API_KEY"),
+		os.Getenv("AZ_OPENAI_MODEL_DEPLOYMENT_ID"),
+		os.Getenv("AZ_OPENAI_ENDPOINT")
+	)
+	
+	// 创建客户端
+	client, err := anyi.NewClient("azure-openai", config)
+	if err != nil {
+		log.Fatalf("创建Azure OpenAI客户端失败: %v", err)
+	}
+	
+	// 使用客户端
+	messages := []chat.Message{
+		{Role: "user", Content: "机器学习和深度学习的主要区别是什么？"},
+	}
+	response, _, err := client.Chat(messages, nil)
+	if err != nil {
+		log.Fatalf("请求失败: %v", err)
+	}
+	
+	log.Printf("Azure OpenAI回答: %s", response.Content)
+}
 ```
 
 #### Ollama
 
-Ollama提供了在本地部署开源模型的能力，支持Llama、Qwen等多种模型。
+Ollama提供了在本地部署开源模型的能力，适合需要离线处理或数据隐私的场景。
+
+##### 特点和优势
+
+- 本地部署，无需网络连接
+- 支持多种开源模型，如Llama、Mixtral等
+- 完全控制数据流，增强隐私保护
+- 无使用费用，适合大规模实验
+
+##### 配置示例
 
 ```go
-// 默认配置（本地服务器）
-config := ollama.DefaultConfig("qwen2:7b")
+package main
 
-// 自定义服务器配置
-config := ollama.NewConfig("llama3", "http://your-ollama-server:11434")
+import (
+	"log"
+	
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm/ollama"
+	"github.com/jieliu2000/anyi/llm/chat"
+)
+
+func main() {
+	// 默认配置（本地服务器）
+	config := ollama.DefaultConfig("llama3")
+	
+	// 自定义服务器配置
+	config := ollama.NewConfig("mixtral", "http://your-ollama-server:11434")
+	
+	// 创建客户端
+	client, err := anyi.NewClient("local-llm", config)
+	if err != nil {
+		log.Fatalf("创建Ollama客户端失败: %v", err)
+	}
+	
+	// 使用客户端进行本地推理
+	messages := []chat.Message{
+		{Role: "system", Content: "你是一位专精数学的专家，专攻数论。"},
+		{Role: "user", Content: "用简单的语言解释黎曼猜想"},
+	}
+	response, _, err := client.Chat(messages, nil)
+	if err != nil {
+		log.Fatalf("本地推理失败: %v", err)
+	}
+	
+	log.Printf("Ollama模型回答: %s", response.Content)
+}
 ```
 
 #### 其他提供商
 
-Anyi还支持其他许多LLM提供商，包括：
+Anyi还支持其他LLM提供商，包括：
 
-- **DeepSeek**: `deepseek.DefaultConfig()`
-- **百川AI**: `baichuan.DefaultConfig()`
-- **OpenAI**: `openai.DefaultConfig()`
-- **Azure OpenAI**: `azureopenai.NewConfig()`
-- **SiliconCloud**: `siliconcloud.DefaultConfig()`
+- **SiliconCloud**: `siliconcloud.DefaultConfig()` - 面向企业的AI解决方案
+
+### 如何选择合适的LLM提供商
+
+选择合适的LLM提供商应考虑以下因素：
+
+1. **任务类型**：对于代码生成，考虑DeepSeek Coder；对于通用对话，OpenAI或智谱AI可能更适合
+2. **语言需求**：对于中文处理，智谱AI和阿里云灵积可能有更好的表现
+3. **隐私要求**：对于敏感数据，考虑使用Ollama在本地部署模型
+4. **预算考虑**：OpenAI的GPT-4等高端模型价格较高，可以考虑GPT-3.5等替代方案
+5. **延迟需求**：本地部署的Ollama可能提供最低的延迟
+6. **扩展性**：Azure OpenAI提供了企业级的扩展选项
+
+通过Anyi框架，您可以轻松在这些提供商之间切换，甚至在同一应用中使用多个不同的LLM服务。
 
 ## 聊天API使用
 
@@ -526,7 +891,31 @@ Anyi的工作流系统是其最强大的特性之一，允许您通过连接多�
 - 带有条件逻辑的决策树
 - 需要验证和重试的任务
 
-### 创建工作流
+### 工作流架构图
+
+```
+┌─────────────┐      ┌─────────────┐      ┌─────────────┐
+│   步骤 1    │      │   步骤 2    │      │   步骤 3    │
+│ (执行器)    ├─────>│ (执行器)    ├─────>│ (执行器)    │
+└──────┬──────┘      └──────┬──────┘      └──────┬──────┘
+       │                    │                    │
+       ▼                    ▼                    ▼
+┌─────────────┐      ┌─────────────┐      ┌─────────────┐
+│  验证器     │      │  验证器     │      │  验证器     │
+│ (可选)      │      │ (可选)      │      │ (可选)      │
+└─────────────┘      └─────────────┘      └─────────────┘
+       │                    │                    │
+       ▼                    ▼                    ▼
+┌───────────────────────────────────────────────────────┐
+│                     工作流上下文                       │
+└───────────────────────────────────────────────────────┘
+```
+
+工作流中，每个步骤执行完毕后会将结果存入上下文，供后续步骤使用。验证器确保每个步骤的输出符合要求，不符合时可触发重试机制。
+
+### 步骤间数据传递
+
+在Anyi工作流中，数据通过工作流上下文在不同步骤间传递。这种机制允许您从前一个步骤获取输出并在后续步骤中使用它。
 
 ```go
 package main
@@ -536,71 +925,233 @@ import (
 	"os"
 
 	"github.com/jieliu2000/anyi"
-	"github.com/jieliu2000/anyi/llm/zhipu"
+	"github.com/jieliu2000/anyi/llm/openai"
 	"github.com/jieliu2000/anyi/flow"
 )
 
 func main() {
-	// 创建一个客户端
-	config := zhipu.DefaultConfig(os.Getenv("ZHIPU_API_KEY"), "glm-4")
-	client, err := anyi.NewClient("glm4", config)
+	// 创建客户端
+	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
+	client, err := anyi.NewClient("openai", config)
 	if err != nil {
 		log.Fatalf("创建客户端失败: %v", err)
 	}
 	
-	// 创建单个步骤
+	// 创建第一个步骤 - 生成想法
 	step1, err := anyi.NewLLMStepWithTemplate(
-		"以{{.Text}}为主题，生成一个短篇故事",
-		"你是一位富有创造力的小说家。",
+		"生成5个关于{{.Text}}的创新想法",
+		"你是一个创意专家，善于头脑风暴。",
 		client,
 	)
 	if err != nil {
 		log.Fatalf("创建步骤失败: %v", err)
 	}
-	step1.Name = "故事生成"
+	step1.Name = "创意生成"
 	
+	// 创建第二个步骤 - 评估想法
 	step2, err := anyi.NewLLMStepWithTemplate(
-		"为以下故事创建一个吸引人的标题：\n\n{{.Text}}",
-		"你是一位擅长创作标题的编辑。",
+		"评估以下创意想法，并为每个想法打分(1-10):\n\n{{.Text}}",
+		"你是一个商业分析师，善于评估创意的商业潜力。",
 		client,
 	)
 	if err != nil {
 		log.Fatalf("创建步骤失败: %v", err)
 	}
-	step2.Name = "标题创作"
+	step2.Name = "创意评估"
 	
 	// 创建工作流
-	myFlow, err := anyi.NewFlow("故事流程", client, *step1, *step2)
+	myFlow, err := anyi.NewFlow("创意工作流", client, *step1, *step2)
 	if err != nil {
 		log.Fatalf("创建工作流失败: %v", err)
 	}
 	
-	// 注册工作流
-	err = anyi.RegisterFlow("故事流程", myFlow)
-	if err != nil {
-		log.Fatalf("注册工作流失败: %v", err)
-	}
-	
-	// 运行工作流
-	result, err := myFlow.RunWithInput("未来上海的一位侦探")
+	// 运行工作流 - 注意第一个步骤的输出自动成为第二个步骤的输入
+	result, err := myFlow.RunWithInput("可持续能源的家用产品")
 	if err != nil {
 		log.Fatalf("工作流执行失败: %v", err)
 	}
 	
-	log.Printf("标题: %s", result.Text)
+	log.Printf("最终评估结果: \n%s", result.Text)
+	
+	// 访问中间步骤的结果
+	intermediateResults := result.StepResults
+	for stepName, stepResult := range intermediateResults {
+		log.Printf("步骤 '%s' 的结果: %s", stepName, stepResult.Text)
+	}
 }
 ```
 
-### 步骤和执行器详解
+### 验证和重试
 
-工作流中的每个步骤都使用执行器来执行其任务。Anyi提供了几种内置执行器：
+验证器是确保步骤输出质量的重要机制。如果输出不符合要求，步骤会自动重试，直到满足条件或达到最大重试次数。
 
-1. **LLMExecutor**：最常用的执行器，向LLM发送带有模板的提示并捕获响应
-2. **SetContextExecutor**：直接修改工作流上下文
-3. **ConditionalFlowExecutor**：基于条件引导流程
-4. **RunCommandExecutor**：执行系统命令并捕获其输出
+```go
+package main
 
-步骤可以链接在一起，一个步骤的输出成为下一个步骤的输入。
+import (
+	"log"
+	"os"
+	"regexp"
+
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm/openai"
+	"github.com/jieliu2000/anyi/flow"
+)
+
+func main() {
+	// 创建客户端
+	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
+	client, err := anyi.NewClient("openai", config)
+	if err != nil {
+		log.Fatalf("创建客户端失败: %v", err)
+	}
+	
+	// 创建一个带验证器的步骤
+	step, err := anyi.NewLLMStepWithTemplate(
+		"生成一个包含数字和字母的随机8位密码",
+		"你是一个密码生成专家。",
+		client,
+	)
+	if err != nil {
+		log.Fatalf("创建步骤失败: %v", err)
+	}
+	
+	// 创建一个验证器，确保密码符合要求
+	validator := &anyi.StringValidator{
+		MinLength: 8,            // 至少8个字符
+		MaxLength: 8,            // 最多8个字符
+		MatchRegex: `^(?=.*[0-9])(?=.*[a-zA-Z])[a-zA-Z0-9]{8}$`, // 必须包含数字和字母
+	}
+	
+	// 设置步骤属性
+	step.Name = "密码生成"
+	step.Validator = validator
+	step.MaxRetryTimes = 3      // 最多重试3次
+	
+	// 创建并运行工作流
+	myFlow, err := anyi.NewFlow("密码生成工作流", client, *step)
+	if err != nil {
+		log.Fatalf("创建工作流失败: %v", err)
+	}
+	
+	result, err := myFlow.RunWithInput("需要一个安全密码")
+	if err != nil {
+		log.Fatalf("工作流执行失败: %v", err)
+	}
+	
+	log.Printf("生成的密码: %s", result.Text)
+}
+```
+
+### 条件工作流
+
+条件工作流允许您基于特定条件动态确定执行路径，实现更复杂的逻辑流程。
+
+```go
+package main
+
+import (
+	"log"
+	"os"
+	"strings"
+
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm/openai"
+	"github.com/jieliu2000/anyi/flow"
+)
+
+func main() {
+	// 创建客户端
+	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
+	client, err := anyi.NewClient("openai", config)
+	if err != nil {
+		log.Fatalf("创建客户端失败: %v", err)
+	}
+	
+	// 第一步：情感分析
+	sentimentStep, err := anyi.NewLLMStepWithTemplate(
+		"分析以下文本的情感，只回答'积极'、'消极'或'中立'：\n\n{{.Text}}",
+		"你是一个情感分析专家。",
+		client,
+	)
+	if err != nil {
+		log.Fatalf("创建步骤失败: %v", err)
+	}
+	sentimentStep.Name = "情感分析"
+	
+	// 积极回应步骤
+	positiveStep, err := anyi.NewLLMStepWithTemplate(
+		"用热情的语气回应这条积极的反馈：\n\n{{.Text}}",
+		"你是一个客户服务代表，擅长与客户建立融洽关系。",
+		client,
+	)
+	if err != nil {
+		log.Fatalf("创建步骤失败: %v", err)
+	}
+	positiveStep.Name = "积极回应"
+	
+	// 消极回应步骤
+	negativeStep, err := anyi.NewLLMStepWithTemplate(
+		"用专业且解决问题的语气回应这条消极的反馈：\n\n{{.Text}}",
+		"你是一个客户服务代表，擅长解决客户问题。",
+		client,
+	)
+	if err != nil {
+		log.Fatalf("创建步骤失败: %v", err)
+	}
+	negativeStep.Name = "消极回应"
+	
+	// 中立回应步骤
+	neutralStep, err := anyi.NewLLMStepWithTemplate(
+		"用专业的语气回应这条中立的反馈：\n\n{{.Text}}",
+		"你是一个客户服务代表，提供专业和有用的信息。",
+		client,
+	)
+	if err != nil {
+		log.Fatalf("创建步骤失败: %v", err)
+	}
+	neutralStep.Name = "中立回应"
+	
+	// 创建条件执行器
+	condExecutor := &flow.ConditionalFlowExecutor{
+		Condition: func(ctx *flow.FlowContext) (string, error) {
+			sentiment := strings.TrimSpace(ctx.Text)
+			if sentiment == "积极" {
+				return "positive", nil
+			} else if sentiment == "消极" {
+				return "negative", nil
+			} else {
+				return "neutral", nil
+			}
+		},
+		Branches: map[string]flow.Step{
+			"positive": *positiveStep,
+			"negative": *negativeStep,
+			"neutral":  *neutralStep,
+		},
+	}
+	
+	// 创建条件步骤
+	condStep := flow.Step{
+		Name:     "条件响应",
+		Executor: condExecutor,
+	}
+	
+	// 创建工作流
+	myFlow, err := anyi.NewFlow("客户反馈工作流", client, *sentimentStep, condStep)
+	if err != nil {
+		log.Fatalf("创建工作流失败: %v", err)
+	}
+	
+	// 运行工作流
+	result, err := myFlow.RunWithInput("我很喜欢你们的产品，使用体验非常好！")
+	if err != nil {
+		log.Fatalf("工作流执行失败: %v", err)
+	}
+	
+	log.Printf("回应: %s", result.Text)
+}
+```
 
 ## 配置系统
 
@@ -875,11 +1426,310 @@ Anyi提供了几种内置组件，您可以将其用作AI应用程序的构建�
 
 ### 格式化器
 
-Anyi包含格式化器，帮助在工作流中处理和转换文本。格式化器可以：
-- 标准化输出格式
-- 提取特定信息
-- 在不同表示之间转换数据
-- 应用一致的样式和格式
+Anyi包含格式化器，帮助在工作流中处理和转换文本。格式化器可以标准化输出格式、提取特定信息、在不同表示之间转换数据，以及应用一致的样式和格式。
+
+以下是使用Go模板格式化器的示例：
+
+```go
+package main
+
+import (
+	"log"
+	"os"
+	"text/template"
+
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm/openai"
+	"github.com/jieliu2000/anyi/flow"
+)
+
+func main() {
+	// 创建客户端
+	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
+	client, err := anyi.NewClient("openai", config)
+	if err != nil {
+		log.Fatalf("创建客户端失败: %v", err)
+	}
+	
+	// 创建一个格式化器
+	templateText := `
+产品名称: {{.ProductName}}
+价格: {{.Price}}
+评分: {{.Rating}}/5
+描述: {{.Description}}
+`
+	tmpl, err := template.New("product").Parse(templateText)
+	if err != nil {
+		log.Fatalf("创建模板失败: %v", err)
+	}
+	
+	// 创建设置上下文的步骤（在实际场景中可能从数据库或API获取）
+	setContextStep := &flow.SetContextExecutor{
+		SetContext: map[string]interface{}{
+			"ProductName": "智能音箱",
+			"Price":       "¥299",
+			"Rating":      4.5,
+			"Description": "高品质音质，支持语音控制的智能音箱",
+		},
+	}
+	
+	// 创建格式化步骤
+	formatStep := &flow.TemplateFormatExecutor{
+		Template: tmpl,
+	}
+	
+	// 创建工作流步骤
+	step1 := flow.Step{
+		Name:     "设置产品数据",
+		Executor: setContextStep,
+	}
+	
+	step2 := flow.Step{
+		Name:     "格式化产品信息",
+		Executor: formatStep,
+	}
+	
+	// 创建并运行工作流
+	myFlow, err := anyi.NewFlow("产品信息工作流", client, step1, step2)
+	if err != nil {
+		log.Fatalf("创建工作流失败: %v", err)
+	}
+	
+	result, err := myFlow.RunWithInput("")
+	if err != nil {
+		log.Fatalf("工作流执行失败: %v", err)
+	}
+	
+	log.Printf("格式化后的产品信息:\n%s", result.Text)
+}
+```
+
+## 高级用法
+
+### 多客户端管理
+
+Anyi允许您同时使用不同的LLM提供商，为不同的任务选择最合适的模型。
+
+```go
+package main
+
+import (
+	"log"
+	"os"
+
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm/openai"
+	"github.com/jieliu2000/anyi/llm/ollama"
+	"github.com/jieliu2000/anyi/llm/chat"
+)
+
+func main() {
+	// 创建OpenAI客户端用于复杂任务
+	openaiConfig := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
+	openaiClient, err := anyi.NewClient("gpt", openaiConfig)
+	if err != nil {
+		log.Fatalf("创建OpenAI客户端失败: %v", err)
+	}
+	
+	// 创建Ollama本地客户端用于简单任务
+	ollamaConfig := ollama.DefaultConfig("llama3")
+	ollamaClient, err := anyi.NewClient("local", ollamaConfig)
+	if err != nil {
+		log.Fatalf("创建Ollama客户端失败: %v", err)
+	}
+	
+	// 使用OpenAI客户端进行复杂问题解答
+	complexMessages := []chat.Message{
+		{Role: "user", Content: "分析人工智能在未来十年可能对就业市场产生的影响"},
+	}
+	
+	complexResponse, _, err := openaiClient.Chat(complexMessages, nil)
+	if err != nil {
+		log.Fatalf("OpenAI请求失败: %v", err)
+	}
+	
+	log.Printf("复杂问题回答 (GPT): %s", complexResponse.Content)
+	
+	// 使用本地Ollama客户端进行简单计算
+	simpleMessages := []chat.Message{
+		{Role: "user", Content: "计算342 + 781的结果"},
+	}
+	
+	simpleResponse, _, err := ollamaClient.Chat(simpleMessages, nil)
+	if err != nil {
+		log.Fatalf("Ollama请求失败: %v", err)
+	}
+	
+	log.Printf("简单计算回答 (Ollama): %s", simpleResponse.Content)
+	
+	// 在工作流中根据步骤需求切换客户端
+	// 工作流代码...
+}
+```
+
+### 提示词模板
+
+使用模板化提示词可以增强LLM交互的灵活性和可复用性。Anyi利用Go的模板系统，支持动态变量替换。
+
+```go
+package main
+
+import (
+	"log"
+	"os"
+
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm/openai"
+	"github.com/jieliu2000/anyi/flow"
+)
+
+func main() {
+	// 创建客户端
+	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
+	client, err := anyi.NewClient("openai", config)
+	if err != nil {
+		log.Fatalf("创建客户端失败: %v", err)
+	}
+	
+	// 使用文件模板创建步骤
+	// 假设在./templates/article.tmpl文件中有如下内容:
+	/*
+	你是一名专业的{{.Type}}内容创作者。
+	请根据以下主题创作一篇{{.Length}}字的{{.Type}}文章:
+	主题: {{.Topic}}
+	目标受众: {{.Audience}}
+	风格: {{.Style}}
+	*/
+	
+	articleStep, err := anyi.NewLLMStepWithTemplateFile(
+		"./templates/article.tmpl",
+		client,
+	)
+	if err != nil {
+		log.Fatalf("创建步骤失败: %v", err)
+	}
+	
+	// 创建设置上下文的步骤
+	setContextStep := &flow.SetContextExecutor{
+		SetContext: map[string]interface{}{
+			"Type":     "科技",
+			"Length":   "800",
+			"Topic":    "人工智能在医疗领域的应用",
+			"Audience": "医疗专业人士",
+			"Style":    "专业、信息丰富",
+		},
+	}
+	
+	// 创建工作流步骤
+	step1 := flow.Step{
+		Name:     "设置文章参数",
+		Executor: setContextStep,
+	}
+	
+	// 使用命名步骤
+	articleStep.Name = "生成文章"
+	
+	// 创建并运行工作流
+	myFlow, err := anyi.NewFlow("文章创作工作流", client, step1, *articleStep)
+	if err != nil {
+		log.Fatalf("创建工作流失败: %v", err)
+	}
+	
+	result, err := myFlow.RunWithInput("")
+	if err != nil {
+		log.Fatalf("工作流执行失败: %v", err)
+	}
+	
+	log.Printf("生成的文章:\n%s", result.Text)
+}
+```
+
+### 错误处理
+
+在与LLM交互的应用程序中，健壮的错误处理至关重要。以下是一些在Anyi中实现有效错误处理的模式：
+
+```go
+package main
+
+import (
+	"errors"
+	"log"
+	"os"
+	"time"
+
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm/openai"
+	"github.com/jieliu2000/anyi/llm/chat"
+)
+
+// 自定义错误类型
+type LLMError struct {
+	StatusCode int
+	Message    string
+	Retryable  bool
+}
+
+func (e *LLMError) Error() string {
+	return e.Message
+}
+
+func main() {
+	// 创建客户端
+	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
+	client, err := anyi.NewClient("openai", config)
+	if err != nil {
+		log.Fatalf("创建客户端失败: %v", err)
+	}
+	
+	// 准备消息
+	messages := []chat.Message{
+		{Role: "user", Content: "解释量子力学的基本原理"},
+	}
+	
+	// 实现重试逻辑
+	maxRetries := 3
+	backoff := 1 * time.Second
+	
+	var response *chat.Message
+	var info chat.ResponseInfo
+	
+	for i := 0; i < maxRetries; i++ {
+		response, info, err = client.Chat(messages, nil)
+		
+		if err == nil {
+			// 成功获取响应，跳出循环
+			break
+		}
+		
+		// 检查错误类型
+		var llmErr *LLMError
+		if errors.As(err, &llmErr) {
+			if !llmErr.Retryable {
+				// 不可重试的错误，直接退出
+				log.Fatalf("遇到不可重试的错误: %v", err)
+			}
+		}
+		
+		if i < maxRetries-1 {
+			log.Printf("第%d次尝试失败: %v，将在%v后重试", i+1, err, backoff)
+			time.Sleep(backoff)
+			backoff *= 2 // 指数退避
+		}
+	}
+	
+	if err != nil {
+		log.Fatalf("在%d次尝试后仍然失败: %v", maxRetries, err)
+	}
+	
+	// 处理成功的响应
+	log.Printf("响应: %s", response.Content)
+	log.Printf("使用的模型: %s", info.Model)
+	
+	// 错误记录和监控
+	// 在实际应用中，您应该实现更复杂的错误记录和监控系统
+	// 例如，将错误发送到日志管理系统或监控服务
+}
+```
 
 ## 最佳实践
 
@@ -974,11 +1824,114 @@ Anyi包含格式化器，帮助在工作流中处理和转换文本。格式化�
 
 通过遵循这些最佳实践，您可以构建不仅强大而且高效、经济且安全的AI应用程序。
 
+## 常见问题解答 (FAQ)
+
+### 1. 如何处理 API 密钥过期问题？
+
+```go
+// 实现动态刷新 API 密钥的处理器
+func refreshAPIKeyHandler(client *llm.Client) {
+    // 监听错误
+    if err.Error() contains "API key expired" {
+        // 获取新的 API 密钥
+        newAPIKey := getNewAPIKey()
+        // 更新客户端配置
+        client.UpdateAPIKey(newAPIKey)
+    }
+}
+```
+
+### 2. 如何确保工作流在网络不稳定时也能正常工作？
+
+Anyi 内置了重试机制。您可以为每个步骤设置 `MaxRetryTimes` 属性，并实现指数退避策略：
+
+```go
+step1.MaxRetryTimes = 3
+step1.RetryBackoffStrategy = flow.ExponentialBackoff{
+    InitialDelay: 1 * time.Second,
+    MaxDelay: 10 * time.Second,
+    Factor: 2,
+}
+```
+
+### 3. 对于超大文本处理，如何避免 Token 限制？
+
+```go
+// 实现文本分块处理
+func processLargeText(text string, client *llm.Client) (string, error) {
+    // 分割文本为较小的块
+    chunks := splitIntoChunks(text, 1000) // 每块约1000字
+    
+    var results []string
+    // 处理每个块
+    for _, chunk := range chunks {
+        response, _, err := client.Chat([]chat.Message{
+            {Role: "user", Content: "处理以下文本: " + chunk},
+        }, nil)
+        if err != nil {
+            return "", err
+        }
+        results = append(results, response.Content)
+    }
+    
+    // 合并结果
+    return combineResults(results), nil
+}
+```
+
+### 4. Anyi 框架如何与现有的 Go Web 框架集成？
+
+Anyi 可以与任何 Go Web 框架（如 Gin、Echo 或 Fiber）无缝集成。以 Gin 为例：
+
+```go
+import (
+    "github.com/gin-gonic/gin"
+    "github.com/jieliu2000/anyi"
+)
+
+func setupRouter() *gin.Engine {
+    r := gin.Default()
+    
+    // 初始化 Anyi 客户端
+    // ...
+    
+    r.POST("/ask", func(c *gin.Context) {
+        var req struct {
+            Question string `json:"question"`
+        }
+        if err := c.BindJSON(&req); err != nil {
+            c.JSON(400, gin.H{"error": err.Error()})
+            return
+        }
+        
+        // 使用 Anyi 客户端处理请求
+        response, _, err := client.Chat([]chat.Message{
+            {Role: "user", Content: req.Question},
+        }, nil)
+        
+        if err != nil {
+            c.JSON(500, gin.H{"error": err.Error()})
+            return
+        }
+        
+        c.JSON(200, gin.H{"answer": response.Content})
+    })
+    
+    return r
+}
+```
+
 ## 结论
 
 Anyi提供了一个强大的框架，用于构建AI智能体和工作流。通过组合不同的大语言模型提供商、工作流步骤和验证技术，您可以创建与现有系统集成的复杂AI应用程序。
 
 有关更多示例和最新文档，请访问[GitHub仓库](https://github.com/jieliu2000/anyi)。
+
+### 系统要求
+
+- Go 1.20 或更高版本
+- 网络连接（用于访问LLM API）
+- 适用于所有主要操作系统（Linux、macOS、Windows）
 
 ### 获取帮助和贡献
 

@@ -4,13 +4,14 @@
 
 ## Table of Contents
 
+- [Quick Start](#quick-start)
 - [Introduction](#introduction)
 - [Installation](#installation)
 - [Large Language Model Access](#large-language-model-access)
   - [Client Creation Methods](#client-creation-methods)
   - [Client Configuration](#client-configuration)
     - [OpenAI](#openai)
-    - [Anthropic](#anthropic)
+    - [DeepSeek](#deepseek)
     - [Azure OpenAI](#azure-openai)
     - [Ollama](#ollama)
     - [Other Providers](#other-providers)
@@ -46,6 +47,55 @@
   - [Performance Optimization](#performance-optimization)
   - [Cost Management](#cost-management)
   - [Security Considerations](#security-considerations)
+- [Frequently Asked Questions (FAQ)](#frequently-asked-questions-faq)
+
+## Quick Start
+
+If you want to get started with Anyi quickly, here are the basic steps:
+
+```bash
+# Install Anyi
+go get -u github.com/jieliu2000/anyi
+```
+
+### Basic Usage Example
+
+```go
+package main
+
+import (
+	"fmt"
+	"log"
+	"os"
+
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm/openai"
+	"github.com/jieliu2000/anyi/llm/chat"
+)
+
+func main() {
+	// 1. Create a client
+	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
+	client, err := anyi.NewClient("openai", config)
+	if err != nil {
+		log.Fatalf("Failed to create client: %v", err)
+	}
+
+	// 2. Send a simple request
+	messages := []chat.Message{
+		{Role: "user", Content: "Please briefly explain quantum computing"},
+	}
+	
+	response, _, err := client.Chat(messages, nil)
+	if err != nil {
+		log.Fatalf("Request failed: %v", err)
+	}
+	
+	fmt.Println("Response:", response.Content)
+}
+```
+
+This simple example demonstrates the core functionality of Anyi: creating a client and sending a request. For more detailed instructions, continue reading the full guide.
 
 ## Introduction
 
@@ -77,23 +127,6 @@ go get -u github.com/jieliu2000/anyi
 
 Anyi requires Go version 1.20 or higher.
 
-### Verifying Your Installation
-
-You can verify your installation by creating a simple program that imports the Anyi package:
-
-```go
-package main
-
-import (
-	"fmt"
-	"github.com/jieliu2000/anyi"
-)
-
-func main() {
-	fmt.Println("Anyi version:", anyi.Version)
-}
-```
-
 ## Large Language Model Access
 
 Anyi provides a unified way to interact with various Large Language Models (LLMs) through a consistent interface. This approach allows you to easily switch between different providers without changing your application logic.
@@ -102,7 +135,7 @@ Anyi provides a unified way to interact with various Large Language Models (LLMs
 
 Before diving into the code, it's important to understand how Anyi organizes LLM access:
 
-1. **Providers**: Each LLM service (OpenAI, Anthropic, etc.) has a dedicated provider module
+1. **Providers**: Each LLM service (OpenAI, DeepSeek, etc.) has a dedicated provider module
 2. **Clients**: Instances that handle communication with specific LLM services
 3. **Registry**: A global store of named clients for easy retrieval throughout your application
 
@@ -141,8 +174,8 @@ import (
 
 func main() {
 	// Create a client with a name "gpt4"
-	config := openai.DefaultConfig("gpt-4")
-	config.APIKey = os.Getenv("OPENAI_API_KEY")
+	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
+	config.Model = openai.GPT4o // Use the GPT-4o model
 	
 	client, err := anyi.NewClient("gpt4", config)
 	if err != nil {
@@ -178,14 +211,14 @@ import (
 	"os"
 
 	"github.com/jieliu2000/anyi/llm"
-	"github.com/jieliu2000/anyi/llm/anthropic"
+	"github.com/jieliu2000/anyi/llm/openai"
 	"github.com/jieliu2000/anyi/llm/chat"
 )
 
 func main() {
 	// Create a client without registering it
-	config := anthropic.DefaultConfig("claude-3-opus-20240229")
-	config.APIKey = os.Getenv("ANTHROPIC_API_KEY")
+	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
+	config.Model = openai.GPT3Dot5Turbo
 	
 	client, err := llm.NewClient(config)
 	if err != nil {
@@ -216,73 +249,274 @@ Each LLM provider has its own configuration structure. Understanding the specifi
 - Consider setting custom timeouts for production environments
 - Use custom base URLs for self-hosted models or proxy services
 
+### Supported LLM Providers
+
+Anyi supports a wide range of LLM providers to suit different needs and use cases. Below are detailed descriptions and examples for each supported provider, starting with the most widely used options.
+
 #### OpenAI
 
-OpenAI's API is widely used and provides access to models like GPT-4 and GPT-3.5.
+OpenAI is one of the most widely used AI service providers, offering powerful models like GPT-4 and GPT-3.5.
+
+##### Features and Advantages
+
+- Industry-leading language models including the latest GPT-4o
+- Support for diverse task types: text generation, code writing, logical reasoning, creative writing, etc.
+- Well-documented API and extensive community support
+- Support for function calling and tool use capabilities
+
+##### Supported Models
+
+Anyi framework supports all major OpenAI models, including:
+
+- `GPT4o`: Latest multimodal large language model
+- `GPT4oMini`: Lightweight version of GPT-4o
+- `GPT4Turbo`: High-performance variant of GPT-4
+- `GPT4`: OpenAI's powerful general-purpose model
+- `GPT3Dot5Turbo`: General-purpose model balancing performance and cost
+
+##### Configuration Example
 
 ```go
-// Default configuration (gpt-3.5-turbo)
-config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
+package main
 
-// Configuration with specific model
-config := openai.NewConfigWithModel(os.Getenv("OPENAI_API_KEY"), "gpt-4o")
-
-// Configuration with custom base URL (for self-hosted or proxy services)
-config := openai.NewConfig(
-    os.Getenv("OPENAI_API_KEY"), 
-    "gpt-4", 
-    "https://your-openai-proxy.com/v1"
+import (
+	"log"
+	"os"
+	
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm/openai"
+	"github.com/jieliu2000/anyi/llm/chat"
 )
+
+func main() {
+	// Default configuration (gpt-3.5-turbo)
+	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
+
+	// Configuration with specific model
+	config := openai.NewConfigWithModel(os.Getenv("OPENAI_API_KEY"), openai.GPT4o)
+
+	// Configuration with custom base URL (for self-hosted or proxy services)
+	config := openai.NewConfig(
+		os.Getenv("OPENAI_API_KEY"), 
+		openai.GPT4, 
+		"https://your-openai-proxy.com/v1"
+	)
+
+	// Create client and use example
+	client, err := anyi.NewClient("openai-gpt4", config)
+	if err != nil {
+		log.Fatalf("Failed to create OpenAI client: %v", err)
+	}
+	
+	// Use the client for text completion
+	messages := []chat.Message{
+		{Role: "system", Content: "You are an expert programmer who specializes in Go."},
+		{Role: "user", Content: "Write a function to check if a string is a palindrome"},
+	}
+	response, _, err := client.Chat(messages, nil)
+	if err != nil {
+		log.Fatalf("Request failed: %v", err)
+	}
+	
+	log.Printf("OpenAI response: %s", response.Content)
+}
 ```
 
-#### Anthropic
+##### Best Practices
 
-Anthropic's Claude models are known for their safety, helpfulness, and honesty.
+- Use lower temperature values (0.1-0.3) for sensitive applications requiring deterministic results
+- Use higher temperature values (0.7-1.0) for creative tasks
+- Utilize system messages to define the assistant's role and behavior
+- Store conversation history to maintain context coherence
+- Use environment variables for API keys rather than hardcoding them
+
+#### DeepSeek
+
+DeepSeek provides powerful AI models specifically optimized for code generation and understanding tasks.
+
+##### Features and Advantages
+
+- Specialized models for code generation (DeepSeek Coder)
+- Multilingual chat models with strong reasoning capabilities (DeepSeek Chat)
+- OpenAI-compatible API interface for easy migration
+- Strong multi-turn dialogue capabilities and context understanding
+
+##### Supported Models
+
+Anyi framework supports DeepSeek's main models:
+
+- `deepseek-chat`: General-purpose dialogue model suitable for multi-turn interactions
+- `deepseek-coder`: Professional model optimized for code generation and understanding
+
+##### Configuration Example
 
 ```go
-// Default configuration
-config := anthropic.DefaultConfig(os.Getenv("ANTHROPIC_API_KEY"), "claude-3-opus-20240229")
+package main
 
-// Custom configuration
-config := anthropic.NewConfig(
-    os.Getenv("ANTHROPIC_API_KEY"),
-    "claude-3-haiku-20240307",
-    "https://api.anthropic.com"
+import (
+	"log"
+	"os"
+	
+	"github.com/jieliu2000/anyi/llm"
+	"github.com/jieliu2000/anyi/llm/deepseek"
+	"github.com/jieliu2000/anyi/llm/chat"
 )
+
+func main() {
+	// Default configuration
+	config := deepseek.DefaultConfig(os.Getenv("DEEPSEEK_API_KEY"), "deepseek-chat")
+	
+	// Using DeepSeek Coder model
+	config := deepseek.DefaultConfig(os.Getenv("DEEPSEEK_API_KEY"), "deepseek-coder")
+	
+	// Custom base URL configuration
+	config := deepseek.NewConfig(
+		os.Getenv("DEEPSEEK_API_KEY"),
+		"deepseek-chat",
+		"https://api.deepseek.com/v1"
+	)
+	
+	// Create client and use example
+	client, err := llm.NewClient(config)
+	if err != nil {
+		log.Fatalf("Failed to create DeepSeek client: %v", err)
+	}
+	
+	// Use the client for code suggestions
+	messages := []chat.Message{
+		{Role: "user", Content: "Write a Go function that implements quicksort"},
+	}
+	response, _, err := client.Chat(messages, nil)
+	if err != nil {
+		log.Fatalf("Request failed: %v", err)
+	}
+	
+	log.Printf("DeepSeek response: %s", response.Content)
+}
 ```
 
 #### Azure OpenAI
 
-Azure OpenAI provides Microsoft-hosted OpenAI models with enterprise features.
+Azure OpenAI provides Microsoft-hosted OpenAI models with enterprise-grade features and reliability.
+
+##### Features and Advantages
+
+- Enterprise-grade SLAs and technical support
+- Compliance with various regulatory standards
+- Network isolation and private network deployment options
+- Integration with other Azure services
+
+##### Configuration Example
 
 ```go
-config := azureopenai.NewConfig(
-    os.Getenv("AZ_OPENAI_API_KEY"),
-    os.Getenv("AZ_OPENAI_MODEL_DEPLOYMENT_ID"),
-    os.Getenv("AZ_OPENAI_ENDPOINT")
+package main
+
+import (
+	"log"
+	"os"
+	
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm/azureopenai"
+	"github.com/jieliu2000/anyi/llm/chat"
 )
+
+func main() {
+	config := azureopenai.NewConfig(
+		os.Getenv("AZ_OPENAI_API_KEY"),
+		os.Getenv("AZ_OPENAI_MODEL_DEPLOYMENT_ID"),
+		os.Getenv("AZ_OPENAI_ENDPOINT")
+	)
+	
+	// Create client and use example
+	client, err := anyi.NewClient("azure-openai", config)
+	if err != nil {
+		log.Fatalf("Failed to create Azure OpenAI client: %v", err)
+	}
+	
+	// Use the client
+	messages := []chat.Message{
+		{Role: "user", Content: "What are the major differences between machine learning and deep learning?"},
+	}
+	response, _, err := client.Chat(messages, nil)
+	if err != nil {
+		log.Fatalf("Request failed: %v", err)
+	}
+	
+	log.Printf("Azure OpenAI response: %s", response.Content)
+}
 ```
 
 #### Ollama
 
-Ollama provides access to locally deployed open-source models.
+Ollama provides the ability to deploy open-source models locally, ideal for scenarios requiring offline processing or data privacy.
+
+##### Features and Advantages
+
+- Local deployment without requiring network connectivity
+- Support for various open-source models like Llama, Mixtral, etc.
+- Complete control over data flow, enhancing privacy protection
+- No usage fees, suitable for large-scale experimentation
+
+##### Configuration Example
 
 ```go
-// Default configuration (local server)
-config := ollama.DefaultConfig("llama3")
+package main
 
-// Custom server configuration
-config := ollama.NewConfig("mistral", "http://your-ollama-server:11434")
+import (
+	"log"
+	
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm/ollama"
+	"github.com/jieliu2000/anyi/llm/chat"
+)
+
+func main() {
+	// Default configuration (local server)
+	config := ollama.DefaultConfig("llama3")
+	
+	// Custom server configuration
+	config := ollama.NewConfig("mixtral", "http://your-ollama-server:11434")
+	
+	// Create client and use example
+	client, err := anyi.NewClient("local-llm", config)
+	if err != nil {
+		log.Fatalf("Failed to create Ollama client: %v", err)
+	}
+	
+	// Use the client for local inference
+	messages := []chat.Message{
+		{Role: "system", Content: "You are a math expert specializing in number theory."},
+		{Role: "user", Content: "Explain the Riemann hypothesis in simple terms"},
+	}
+	response, _, err := client.Chat(messages, nil)
+	if err != nil {
+		log.Fatalf("Local inference failed: %v", err)
+	}
+	
+	log.Printf("Ollama model response: %s", response.Content)
+}
 ```
 
 #### Other Providers
 
-Anyi supports many other LLM providers, including:
+Anyi also supports other LLM providers, including:
 
-- **DeepSeek**: `deepseek.DefaultConfig()`
-- **Zhipu AI**: `zhipu.DefaultConfig()`
-- **Dashscope (Alibaba)**: `dashscope.DefaultConfig()`
-- **SiliconCloud**: `siliconcloud.DefaultConfig()`
+- **Zhipu AI**: `zhipu.DefaultConfig()` - Provides GLM series models optimized for Chinese language understanding
+- **Dashscope (Alibaba)**: `dashscope.DefaultConfig()` - Offers Qwen series models with strong multilingual capabilities
+- **SiliconCloud**: `siliconcloud.DefaultConfig()` - Enterprise-focused AI solutions
+
+### How to Choose the Right LLM Provider
+
+When selecting an LLM provider, consider the following factors:
+
+1. **Task Type**: For code generation, consider DeepSeek Coder; for general conversation, OpenAI or Zhipu AI might be more suitable
+2. **Language Requirements**: For Chinese language processing, Zhipu AI and Dashscope may perform better
+3. **Privacy Requirements**: For sensitive data, consider using Ollama for local model deployment
+4. **Budget Considerations**: High-end models like OpenAI's GPT-4 are more expensive; consider alternatives like GPT-3.5
+5. **Latency Requirements**: Locally deployed Ollama may provide the lowest latency
+6. **Scalability**: Azure OpenAI provides enterprise-grade scaling options
+
+With Anyi framework, you can easily switch between these providers or even use multiple different LLM services within the same application.
 
 ## Chat API Usage
 
@@ -518,15 +752,15 @@ func main() {
 
 ## Workflow System
 
-Anyi's workflow system is one of its most powerful features, allowing you to create sophisticated AI pipelines by connecting multiple steps.
+The workflow system in Anyi is one of its most powerful features, allowing you to create complex AI processing pipelines by connecting multiple steps.
 
 ### Core Workflow Concepts
 
 - **Flow**: A sequence of steps executed in order
 - **Step**: A single unit of work with an executor and optional validator
-- **Executor**: Performs the actual work (e.g., calling an LLM, setting context)
-- **Validator**: Ensures output meets requirements before proceeding
-- **Context**: Shared data that passes between steps
+- **Executor**: Performs the actual work (e.g., call LLM, set context)
+- **Validator**: Ensures output meets requirements before proceeding to the next step
+- **Context**: Shared data passed between steps
 
 ### When to Use Workflows
 
@@ -535,9 +769,33 @@ Workflows are particularly useful for:
 - Content generation pipelines
 - Data transformation and enrichment
 - Decision trees with conditional logic
-- Tasks requiring validation and retries
+- Tasks requiring validation and retry
 
-### Flow Creation
+### Workflow Architecture
+
+```
+┌─────────────┐      ┌─────────────┐      ┌─────────────┐
+│   Step 1    │      │   Step 2    │      │   Step 3    │
+│ (Executor)  ├─────>│ (Executor)  ├─────>│ (Executor)  │
+└──────┬──────┘      └──────┬──────┘      └──────┬──────┘
+       │                    │                    │
+       ▼                    ▼                    ▼
+┌─────────────┐      ┌─────────────┐      ┌─────────────┐
+│  Validator  │      │  Validator  │      │  Validator  │
+│ (Optional)  │      │ (Optional)  │      │ (Optional)  │
+└─────────────┘      └─────────────┘      └─────────────┘
+       │                    │                    │
+       ▼                    ▼                    ▼
+┌───────────────────────────────────────────────────────┐
+│                   Flow Context                         │
+└───────────────────────────────────────────────────────┘
+```
+
+In a workflow, each step's output is stored in the context for subsequent steps to use. Validators ensure that each step's output meets the requirements, triggering retries when necessary.
+
+### Data Passing Between Steps
+
+In Anyi workflows, data is passed between different steps via the workflow context. This mechanism allows you to take output from a previous step and use it in subsequent steps.
 
 ```go
 package main
@@ -552,66 +810,228 @@ import (
 )
 
 func main() {
-	// Create a client
+	// Create client
 	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
 	client, err := anyi.NewClient("openai", config)
 	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)
 	}
 	
-	// Create individual steps
+	// Create first step - generate ideas
 	step1, err := anyi.NewLLMStepWithTemplate(
-		"Generate a short story about {{.Text}}",
-		"You are a creative fiction writer.",
+		"Generate 5 innovative ideas about {{.Text}}",
+		"You are a creative expert who excels at brainstorming.",
 		client,
 	)
 	if err != nil {
 		log.Fatalf("Failed to create step: %v", err)
 	}
-	step1.Name = "story_generation"
+	step1.Name = "Idea Generation"
 	
+	// Create second step - evaluate ideas
 	step2, err := anyi.NewLLMStepWithTemplate(
-		"Create a title for this story:\n\n{{.Text}}",
-		"You are an expert at creating compelling titles.",
+		"Evaluate the following creative ideas and rate each one (1-10):\n\n{{.Text}}",
+		"You are a business analyst who excels at evaluating the business potential of creative ideas.",
 		client,
 	)
 	if err != nil {
 		log.Fatalf("Failed to create step: %v", err)
 	}
-	step2.Name = "title_creation"
+	step2.Name = "Idea Evaluation"
 	
-	// Create the flow
-	myFlow, err := anyi.NewFlow("story_flow", client, *step1, *step2)
+	// Create workflow
+	myFlow, err := anyi.NewFlow("Idea Workflow", client, *step1, *step2)
 	if err != nil {
-		log.Fatalf("Failed to create flow: %v", err)
+		log.Fatalf("Failed to create workflow: %v", err)
 	}
 	
-	// Register the flow
-	err = anyi.RegisterFlow("story_flow", myFlow)
+	// Run workflow - note that the output of the first step automatically becomes the input for the second
+	result, err := myFlow.RunWithInput("sustainable energy products for the home")
 	if err != nil {
-		log.Fatalf("Failed to register flow: %v", err)
+		log.Fatalf("Workflow execution failed: %v", err)
 	}
 	
-	// Run the flow
-	result, err := myFlow.RunWithInput("a detective in future Tokyo")
-	if err != nil {
-		log.Fatalf("Flow execution failed: %v", err)
-	}
+	log.Printf("Final evaluation results: \n%s", result.Text)
 	
-	log.Printf("Title: %s", result.Text)
+	// Access intermediate step results
+	intermediateResults := result.StepResults
+	for stepName, stepResult := range intermediateResults {
+		log.Printf("Result from step '%s': %s", stepName, stepResult.Text)
+	}
 }
 ```
 
-### Steps and Executors Explained
+### Validation and Retry
 
-Each step in a workflow uses an executor to perform its task. Anyi provides several built-in executors:
+Validators are an important mechanism for ensuring the quality of step outputs. If the output doesn't meet the requirements, the step will automatically retry until the conditions are met or the maximum number of retries is reached.
 
-1. **LLMExecutor**: The most common executor that sends prompts to an LLM
-2. **SetContextExecutor**: Modifies the workflow context directly
-3. **ConditionalFlowExecutor**: Directs flow based on conditions
-4. **RunCommandExecutor**: Executes shell commands
+```go
+package main
 
-Steps can be chained together, with the output of one step becoming the input to the next.
+import (
+	"log"
+	"os"
+	"regexp"
+
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm/openai"
+	"github.com/jieliu2000/anyi/flow"
+)
+
+func main() {
+	// Create client
+	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
+	client, err := anyi.NewClient("openai", config)
+	if err != nil {
+		log.Fatalf("Failed to create client: %v", err)
+	}
+	
+	// Create a step with a validator
+	step, err := anyi.NewLLMStepWithTemplate(
+		"Generate a random 8-character password containing both numbers and letters",
+		"You are a password generation expert.",
+		client,
+	)
+	if err != nil {
+		log.Fatalf("Failed to create step: %v", err)
+	}
+	
+	// Create a validator to ensure the password meets requirements
+	validator := &anyi.StringValidator{
+		MinLength: 8,            // At least 8 characters
+		MaxLength: 8,            // At most 8 characters
+		MatchRegex: `^(?=.*[0-9])(?=.*[a-zA-Z])[a-zA-Z0-9]{8}$`, // Must contain numbers and letters
+	}
+	
+	// Set step properties
+	step.Name = "Password Generation"
+	step.Validator = validator
+	step.MaxRetryTimes = 3      // Maximum of 3 retries
+	
+	// Create and run workflow
+	myFlow, err := anyi.NewFlow("Password Generation Workflow", client, *step)
+	if err != nil {
+		log.Fatalf("Failed to create workflow: %v", err)
+	}
+	
+	result, err := myFlow.RunWithInput("I need a secure password")
+	if err != nil {
+		log.Fatalf("Workflow execution failed: %v", err)
+	}
+	
+	log.Printf("Generated password: %s", result.Text)
+}
+```
+
+### Conditional Workflows
+
+Conditional workflows allow you to dynamically determine the execution path based on specific conditions, enabling more complex logical flows.
+
+```go
+package main
+
+import (
+	"log"
+	"os"
+	"strings"
+
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm/openai"
+	"github.com/jieliu2000/anyi/flow"
+)
+
+func main() {
+	// Create client
+	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
+	client, err := anyi.NewClient("openai", config)
+	if err != nil {
+		log.Fatalf("Failed to create client: %v", err)
+	}
+	
+	// First step: sentiment analysis
+	sentimentStep, err := anyi.NewLLMStepWithTemplate(
+		"Analyze the sentiment of the following text, respond only with 'positive', 'negative', or 'neutral':\n\n{{.Text}}",
+		"You are a sentiment analysis expert.",
+		client,
+	)
+	if err != nil {
+		log.Fatalf("Failed to create step: %v", err)
+	}
+	sentimentStep.Name = "Sentiment Analysis"
+	
+	// Positive response step
+	positiveStep, err := anyi.NewLLMStepWithTemplate(
+		"Respond to this positive feedback with an enthusiastic tone:\n\n{{.Text}}",
+		"You are a customer service representative who excels at building rapport with customers.",
+		client,
+	)
+	if err != nil {
+		log.Fatalf("Failed to create step: %v", err)
+	}
+	positiveStep.Name = "Positive Response"
+	
+	// Negative response step
+	negativeStep, err := anyi.NewLLMStepWithTemplate(
+		"Respond to this negative feedback with a professional and solution-oriented tone:\n\n{{.Text}}",
+		"You are a customer service representative who excels at resolving customer issues.",
+		client,
+	)
+	if err != nil {
+		log.Fatalf("Failed to create step: %v", err)
+	}
+	negativeStep.Name = "Negative Response"
+	
+	// Neutral response step
+	neutralStep, err := anyi.NewLLMStepWithTemplate(
+		"Respond to this neutral feedback with a professional tone:\n\n{{.Text}}",
+		"You are a customer service representative who provides professional and helpful information.",
+		client,
+	)
+	if err != nil {
+		log.Fatalf("Failed to create step: %v", err)
+	}
+	neutralStep.Name = "Neutral Response"
+	
+	// Create conditional executor
+	condExecutor := &flow.ConditionalFlowExecutor{
+		Condition: func(ctx *flow.FlowContext) (string, error) {
+			sentiment := strings.TrimSpace(ctx.Text)
+			if sentiment == "positive" {
+				return "positive", nil
+			} else if sentiment == "negative" {
+				return "negative", nil
+			} else {
+				return "neutral", nil
+			}
+		},
+		Branches: map[string]flow.Step{
+			"positive": *positiveStep,
+			"negative": *negativeStep,
+			"neutral":  *neutralStep,
+		},
+	}
+	
+	// Create conditional step
+	condStep := flow.Step{
+		Name:     "Conditional Response",
+		Executor: condExecutor,
+	}
+	
+	// Create workflow
+	myFlow, err := anyi.NewFlow("Customer Feedback Workflow", client, *sentimentStep, condStep)
+	if err != nil {
+		log.Fatalf("Failed to create workflow: %v", err)
+	}
+	
+	// Run workflow
+	result, err := myFlow.RunWithInput("I really love your product, the experience has been great!")
+	if err != nil {
+		log.Fatalf("Workflow execution failed: %v", err)
+	}
+	
+	log.Printf("Response: %s", result.Text)
+}
+```
 
 ## Configuration System
 
@@ -733,9 +1153,9 @@ import (
 
 func main() {
 	// Load configuration from file
-	err := anyi.ConfigFromFile("./config/workflow.yaml")
+	err := anyi.ConfigFromFile("./config.yaml")
 	if err != nil {
-		log.Fatalf("Failed to load configuration: %v", err)
+		log.Fatalf("Failed to load config: %v", err)
 	}
 	
 	// Access the flow by name
@@ -754,7 +1174,7 @@ func main() {
 }
 ```
 
-Example YAML configuration file (`config/workflow.yaml`):
+Example YAML configuration file (`config.yaml`):
 
 ```yaml
 clients:
@@ -892,6 +1312,309 @@ Anyi includes formatters to help process and transform text in your workflows. F
 - Transform data between different representations
 - Apply consistent styling and formatting
 
+Here's an example using a Go template formatter:
+
+```go
+package main
+
+import (
+	"log"
+	"os"
+	"text/template"
+
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm/openai"
+	"github.com/jieliu2000/anyi/flow"
+)
+
+func main() {
+	// Create client
+	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
+	client, err := anyi.NewClient("openai", config)
+	if err != nil {
+		log.Fatalf("Failed to create client: %v", err)
+	}
+	
+	// Create a formatter
+	templateText := `
+Product Name: {{.ProductName}}
+Price: {{.Price}}
+Rating: {{.Rating}}/5
+Description: {{.Description}}
+`
+	tmpl, err := template.New("product").Parse(templateText)
+	if err != nil {
+		log.Fatalf("Failed to create template: %v", err)
+	}
+	
+	// Create a step to set context (in a real scenario, this might come from a database or API)
+	setContextStep := &flow.SetContextExecutor{
+		SetContext: map[string]interface{}{
+			"ProductName": "Smart Speaker",
+			"Price":       "$129.99",
+			"Rating":      4.5,
+			"Description": "High-quality smart speaker with voice control",
+		},
+	}
+	
+	// Create formatting step
+	formatStep := &flow.TemplateFormatExecutor{
+		Template: tmpl,
+	}
+	
+	// Create workflow steps
+	step1 := flow.Step{
+		Name:     "Set Product Data",
+		Executor: setContextStep,
+	}
+	
+	step2 := flow.Step{
+		Name:     "Format Product Information",
+		Executor: formatStep,
+	}
+	
+	// Create and run workflow
+	myFlow, err := anyi.NewFlow("Product Information Workflow", client, step1, step2)
+	if err != nil {
+		log.Fatalf("Failed to create workflow: %v", err)
+	}
+	
+	result, err := myFlow.RunWithInput("")
+	if err != nil {
+		log.Fatalf("Workflow execution failed: %v", err)
+	}
+	
+	log.Printf("Formatted product information:\n%s", result.Text)
+}
+```
+
+## Advanced Usage
+
+### Multiple Client Management
+
+Anyi allows you to use different LLM providers simultaneously, choosing the most appropriate model for different tasks.
+
+```go
+package main
+
+import (
+	"log"
+	"os"
+
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm/openai"
+	"github.com/jieliu2000/anyi/llm/ollama"
+	"github.com/jieliu2000/anyi/llm/chat"
+)
+
+func main() {
+	// Create OpenAI client for complex tasks
+	openaiConfig := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
+	openaiClient, err := anyi.NewClient("gpt", openaiConfig)
+	if err != nil {
+		log.Fatalf("Failed to create OpenAI client: %v", err)
+	}
+	
+	// Create Ollama local client for simple tasks
+	ollamaConfig := ollama.DefaultConfig("llama3")
+	ollamaClient, err := anyi.NewClient("local", ollamaConfig)
+	if err != nil {
+		log.Fatalf("Failed to create Ollama client: %v", err)
+	}
+	
+	// Use OpenAI client for complex problem solving
+	complexMessages := []chat.Message{
+		{Role: "user", Content: "Analyze the potential impact of artificial intelligence on the job market over the next decade"},
+	}
+	
+	complexResponse, _, err := openaiClient.Chat(complexMessages, nil)
+	if err != nil {
+		log.Fatalf("OpenAI request failed: %v", err)
+	}
+	
+	log.Printf("Complex question answer (GPT): %s", complexResponse.Content)
+	
+	// Use local Ollama client for simple computations
+	simpleMessages := []chat.Message{
+		{Role: "user", Content: "Calculate the result of 342 + 781"},
+	}
+	
+	simpleResponse, _, err := ollamaClient.Chat(simpleMessages, nil)
+	if err != nil {
+		log.Fatalf("Ollama request failed: %v", err)
+	}
+	
+	log.Printf("Simple calculation answer (Ollama): %s", simpleResponse.Content)
+	
+	// In a workflow, you could switch clients based on step requirements
+	// Workflow code...
+}
+```
+
+### Prompt Templates
+
+Using templated prompts can enhance the flexibility and reusability of LLM interactions. Anyi leverages Go's templating system, supporting dynamic variable substitution.
+
+```go
+package main
+
+import (
+	"log"
+	"os"
+
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm/openai"
+	"github.com/jieliu2000/anyi/flow"
+)
+
+func main() {
+	// Create client
+	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
+	client, err := anyi.NewClient("openai", config)
+	if err != nil {
+		log.Fatalf("Failed to create client: %v", err)
+	}
+	
+	// Create a step with a template file
+	// Assume ./templates/article.tmpl contains:
+	/*
+	You are a professional {{.Type}} content creator.
+	Please create a {{.Length}}-word {{.Type}} article on the following topic:
+	Topic: {{.Topic}}
+	Target audience: {{.Audience}}
+	Style: {{.Style}}
+	*/
+	
+	articleStep, err := anyi.NewLLMStepWithTemplateFile(
+		"./templates/article.tmpl",
+		client,
+	)
+	if err != nil {
+		log.Fatalf("Failed to create step: %v", err)
+	}
+	
+	// Create a step to set context
+	setContextStep := &flow.SetContextExecutor{
+		SetContext: map[string]interface{}{
+			"Type":     "technology",
+			"Length":   "800",
+			"Topic":    "Applications of Artificial Intelligence in Healthcare",
+			"Audience": "Healthcare professionals",
+			"Style":    "Professional, informative",
+		},
+	}
+	
+	// Create workflow steps
+	step1 := flow.Step{
+		Name:     "Set Article Parameters",
+		Executor: setContextStep,
+	}
+	
+	// Use named step
+	articleStep.Name = "Generate Article"
+	
+	// Create and run workflow
+	myFlow, err := anyi.NewFlow("Article Creation Workflow", client, step1, *articleStep)
+	if err != nil {
+		log.Fatalf("Failed to create workflow: %v", err)
+	}
+	
+	result, err := myFlow.RunWithInput("")
+	if err != nil {
+		log.Fatalf("Workflow execution failed: %v", err)
+	}
+	
+	log.Printf("Generated article:\n%s", result.Text)
+}
+```
+
+### Error Handling
+
+Robust error handling is critical in applications that interact with LLMs. Here are some patterns for implementing effective error handling in Anyi:
+
+```go
+package main
+
+import (
+	"errors"
+	"log"
+	"os"
+	"time"
+
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm/openai"
+	"github.com/jieliu2000/anyi/llm/chat"
+)
+
+// Custom error type
+type LLMError struct {
+	StatusCode int
+	Message    string
+	Retryable  bool
+}
+
+func (e *LLMError) Error() string {
+	return e.Message
+}
+
+func main() {
+	// Create client
+	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
+	client, err := anyi.NewClient("openai", config)
+	if err != nil {
+		log.Fatalf("Failed to create client: %v", err)
+	}
+	
+	// Prepare messages
+	messages := []chat.Message{
+		{Role: "user", Content: "Explain the basic principles of quantum mechanics"},
+	}
+	
+	// Implement retry logic
+	maxRetries := 3
+	backoff := 1 * time.Second
+	
+	var response *chat.Message
+	var info chat.ResponseInfo
+	
+	for i := 0; i < maxRetries; i++ {
+		response, info, err = client.Chat(messages, nil)
+		
+		if err == nil {
+			// Successfully got a response, break the loop
+			break
+		}
+		
+		// Check error type
+		var llmErr *LLMError
+		if errors.As(err, &llmErr) {
+			if !llmErr.Retryable {
+				// Non-retryable error, exit immediately
+				log.Fatalf("Encountered non-retryable error: %v", err)
+			}
+		}
+		
+		if i < maxRetries-1 {
+			log.Printf("Attempt %d failed: %v, retrying in %v", i+1, err, backoff)
+			time.Sleep(backoff)
+			backoff *= 2 // Exponential backoff
+		}
+	}
+	
+	if err != nil {
+		log.Fatalf("Failed after %d attempts: %v", maxRetries, err)
+	}
+	
+	// Process successful response
+	log.Printf("Response: %s", response.Content)
+	log.Printf("Model used: %s", info.Model)
+	
+	// Error logging and monitoring
+	// In a real application, you'd implement more sophisticated error logging and monitoring
+	// For example, sending errors to a log management system or monitoring service
+}
+```
+
 ## Best Practices
 
 Building effective AI applications requires more than just technical knowledge. Here are comprehensive best practices to help you get the most out of the Anyi framework.
@@ -985,11 +1708,114 @@ Security is paramount when building AI systems:
 
 By following these best practices, you can build AI applications that are not only powerful but also efficient, cost-effective, and secure.
 
+## Frequently Asked Questions (FAQ)
+
+### 1. How to handle API key expiration issues?
+
+```go
+// Implement a handler for API key refresh
+func refreshAPIKeyHandler(client *llm.Client) {
+    // Listen for errors
+    if err.Error() contains "API key expired" {
+        // Obtain a new API key
+        newAPIKey := getNewAPIKey()
+        // Update the client configuration
+        client.UpdateAPIKey(newAPIKey)
+    }
+}
+```
+
+### 2. How to ensure workflows work properly in unstable network conditions?
+
+Anyi has built-in retry mechanisms. You can set the `MaxRetryTimes` property for each step and implement exponential backoff:
+
+```go
+step1.MaxRetryTimes = 3
+step1.RetryBackoffStrategy = flow.ExponentialBackoff{
+    InitialDelay: 1 * time.Second,
+    MaxDelay: 10 * time.Second,
+    Factor: 2,
+}
+```
+
+### 3. How to handle large texts that exceed token limits?
+
+```go
+// Implement chunked text processing
+func processLargeText(text string, client *llm.Client) (string, error) {
+    // Split text into smaller chunks
+    chunks := splitIntoChunks(text, 1000) // About 1000 words per chunk
+    
+    var results []string
+    // Process each chunk
+    for _, chunk := range chunks {
+        response, _, err := client.Chat([]chat.Message{
+            {Role: "user", Content: "Process the following text: " + chunk},
+        }, nil)
+        if err != nil {
+            return "", err
+        }
+        results = append(results, response.Content)
+    }
+    
+    // Combine the results
+    return combineResults(results), nil
+}
+```
+
+### 4. How to integrate Anyi with existing Go web frameworks?
+
+Anyi can seamlessly integrate with any Go web framework such as Gin, Echo, or Fiber. Here's an example with Gin:
+
+```go
+import (
+    "github.com/gin-gonic/gin"
+    "github.com/jieliu2000/anyi"
+)
+
+func setupRouter() *gin.Engine {
+    r := gin.Default()
+    
+    // Initialize Anyi client
+    // ...
+    
+    r.POST("/ask", func(c *gin.Context) {
+        var req struct {
+            Question string `json:"question"`
+        }
+        if err := c.BindJSON(&req); err != nil {
+            c.JSON(400, gin.H{"error": err.Error()})
+            return
+        }
+        
+        // Use Anyi client to process the request
+        response, _, err := client.Chat([]chat.Message{
+            {Role: "user", Content: req.Question},
+        }, nil)
+        
+        if err != nil {
+            c.JSON(500, gin.H{"error": err.Error()})
+            return
+        }
+        
+        c.JSON(200, gin.H{"answer": response.Content})
+    })
+    
+    return r
+}
+```
+
 ## Conclusion
 
 Anyi provides a powerful framework for building AI agents and workflows. By combining different LLM providers, workflow steps, and validation techniques, you can create sophisticated AI applications that integrate with your existing systems.
 
 For more examples and the latest documentation, visit the [GitHub repository](https://github.com/jieliu2000/anyi).
+
+### System Requirements
+
+- Go 1.20 or higher
+- Network connectivity (for accessing LLM APIs)
+- Works on all major operating systems (Linux, macOS, Windows)
 
 ### Getting Help and Contributing
 
