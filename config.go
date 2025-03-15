@@ -251,6 +251,9 @@ func ConfigFromFile(configFile string) error {
 // - configContent string: The configuration content as a string
 // - configType string: The configuration type (e.g. "yaml", "json", "toml"). If empty, the format will be auto-detected.
 func ConfigFromString(configContent string, configType string) error {
+	if configContent == "" || configType == "" {
+		return errors.New("configContent and configType cannot be empty")
+	}
 	anyiConfig, err := utils.UnmarshallConfigFromString(configContent, configType, &AnyiConfig{})
 
 	if err != nil {

@@ -1,65 +1,107 @@
 package anyi
 
 import (
+	"errors"
 	"testing"
 
+	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/internal/test"
 	"github.com/jieliu2000/anyi/llm"
+	"github.com/jieliu2000/anyi/llm/chat"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSimpleChat(t *testing.T) {
-	// Test with empty input
-	t.Run("Empty input", func(t *testing.T) {
-		response, err := SimpleChat("")
-		assert.Error(t, err)
-		assert.Empty(t, response)
-		assert.Contains(t, err.Error(), "empty input")
-	})
+	// Setup - Create test environment
+	// Save original registry to restore after tests
+	origRegistry := GlobalRegistry
+	defer func() { GlobalRegistry = origRegistry }()
 
-	// Test with no default client
-	t.Run("No default client", func(t *testing.T) {
-		// Save the current clients
-		oldClients := GlobalRegistry.Clients
-		oldDefaultClient := GlobalRegistry.defaultClientName
+	t.Run("Success case", func(t *testing.T) {
+		// Setup - Register a mock client that returns a preset response
+		GlobalRegistry = &anyiRegistry{
+			Clients:           make(map[string]llm.Client),
+			Flows:             make(map[string]*flow.Flow),
+			Validators:        make(map[string]flow.StepValidator),
+			Executors:         make(map[string]flow.StepExecutor),
+			Formatters:        make(map[string]chat.PromptFormatter),
+			defaultClientName: "default",
+		}
+		mockClient := &test.MockClient{
+			ChatOutput: "This is a test response",
+		}
+		RegisterDefaultClient("default", mockClient)
 
-		// Reset the registry
-		GlobalRegistry.Clients = make(map[string]llm.Client)
-		GlobalRegistry.defaultClientName = ""
-
+		// Execute
 		response, err := SimpleChat("Hello")
-		assert.Error(t, err)
-		assert.Empty(t, response)
-		assert.Contains(t, err.Error(), "no default client found")
 
-		// Restore the registry
-		GlobalRegistry.Clients = oldClients
-		GlobalRegistry.defaultClientName = oldDefaultClient
-	})
-
-	// Test with successful chat
-	t.Run("Successful chat", func(t *testing.T) {
-		// Create and register a mock client that returns a successful response
-		mockClient := &test.MockClient{
-			ChatOutput: "This is a mock response",
-		}
-		RegisterDefaultClient("test-default", mockClient)
-
-		response, err := SimpleChat("Hello, AI!")
+		// Verify
 		assert.NoError(t, err)
-		assert.Equal(t, "This is a mock response", response)
+		assert.Equal(t, "This is a test response", response)
 	})
 
-	// Test with client error
-	t.Run("Client error", func(t *testing.T) {
-		// Create and register a mock client that returns an error
-		mockClient := &test.MockClient{
-			Err: assert.AnError,
+	t.Run("Empty input", func(t *testing.T) {
+		// Setup
+		GlobalRegistry = &anyiRegistry{
+			Clients:           make(map[string]llm.Client),
+			Flows:             make(map[string]*flow.Flow),
+			Validators:        make(map[string]flow.StepValidator),
+			Executors:         make(map[string]flow.StepExecutor),
+			Formatters:        make(map[string]chat.PromptFormatter),
+			defaultClientName: "default",
 		}
-		RegisterDefaultClient("test-error", mockClient)
+		mockClient := &test.MockClient{}
+		RegisterDefaultClient("default", mockClient)
 
-		response, err := SimpleChat("Hello, AI!")
+		// Execute
+		response, err := SimpleChat("")
+
+		// Verify
 		assert.Error(t, err)
-		assert.Empty(t, response)
+		assert.Equal(t, "", response)
+		assert.Equal(t, "empty input", err.Error())
+	})
+
+	t.Run("No default client", func(t *testing.T) {
+		// Setup - Create a registry with no default client
+		GlobalRegistry = &anyiRegistry{
+			Clients:    make(map[string]llm.Client),
+			Flows:      make(map[string]*flow.Flow),
+			Validators: make(map[string]flow.StepValidator),
+			Executors:  make(map[string]flow.StepExecutor),
+			Formatters: make(map[string]chat.PromptFormatter),
+		}
+
+		// Execute
+		response, err := SimpleChat("Hello")
+
+		// Verify
+		assert.Error(t, err)
+		assert.Equal(t, "", response)
+		assert.Equal(t, "no default client found", err.Error())
+	})
+
+	t.Run("Client error", func(t *testing.T) {
+		// Setup - Register a mock client that returns an error
+		GlobalRegistry = &anyiRegistry{
+			Clients:           make(map[string]llm.Client),
+			Flows:             make(map[string]*flow.Flow),
+			Validators:        make(map[string]flow.StepValidator),
+			Executors:         make(map[string]flow.StepExecutor),
+			Formatters:        make(map[string]chat.PromptFormatter),
+			defaultClientName: "default",
+		}
+		mockClient := &test.MockClient{
+			Err: errors.New("client error"),
+		}
+		RegisterDefaultClient("default", mockClient)
+
+		// Execute
+		response, err := SimpleChat("Hello")
+
+		// Verify
+		assert.Error(t, err)
+		assert.Equal(t, "", response)
+		assert.Equal(t, "client error", err.Error())
 	})
 }

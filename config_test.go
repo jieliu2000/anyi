@@ -483,6 +483,31 @@ flows:
 		assert.Equal(t, "json-flow", flow.Name)
 	})
 
+	t.Run("Success: Load TOML configuration from string", func(t *testing.T) {
+		tomlContent := `
+[[clients]]
+name = "toml-client"
+type = "openai"
+config = { apiKey = "test-key-toml" }
+
+[[flows]]
+name = "toml-flow"
+steps = [
+  { name = "toml-step", executor = { type = "string-executor" } }
+]
+`
+		// Execute
+		err := ConfigFromString(tomlContent, "toml")
+
+		// Verify
+		assert.NoError(t, err)
+
+		// Verify the flow was registered
+		flow, err := GetFlow("toml-flow")
+		assert.NoError(t, err)
+		assert.NotNil(t, flow)
+		assert.Equal(t, "toml-flow", flow.Name)
+	})
 	t.Run("Failure: Invalid configuration content", func(t *testing.T) {
 		invalidContent := `
 clients: - broken yaml
@@ -509,6 +534,33 @@ flows:
 `
 		// Execute
 		err := ConfigFromString(invalidStructContent, "yaml")
+
+		// Verify
+		assert.Error(t, err)
+	})
+
+	t.Run("Failure: Incorrect format type specified", func(t *testing.T) {
+		yamlContent := `
+clients:
+  - name: yaml-client
+    type: openai
+flows:
+  - name: yaml-flow
+    steps:
+      - name: yaml-step
+        executor:
+          type: string-executor
+`
+		// Execute with wrong format type
+		err := ConfigFromString(yamlContent, "json")
+
+		// Verify
+		assert.Error(t, err)
+	})
+
+	t.Run("Failure: Empty configuration content", func(t *testing.T) {
+		// Execute with empty configuration content
+		err := ConfigFromString("", "yaml")
 
 		// Verify
 		assert.Error(t, err)

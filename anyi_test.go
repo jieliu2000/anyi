@@ -3,6 +3,7 @@ package anyi
 import (
 	"encoding/json"
 	"errors"
+	"os"
 	"testing"
 
 	"github.com/jieliu2000/anyi/flow"
@@ -232,40 +233,17 @@ func TestGetFlow(t *testing.T) {
 }
 
 func TestNewFlowContext(t *testing.T) {
-	// Arrange
-	text := "test text"
-	memory := "test memory"
+	input := "test"
+	flowContext := NewFlowContextWithText(input)
 
-	// Act
-	context := NewFlowContext(text, memory)
+	assert.IsType(t, &flow.FlowContext{}, flowContext)
+	assert.Equal(t, input, flowContext.Text)
+	assert.Nil(t, flowContext.Memory)
 
-	// Assert
-	assert.Equal(t, text, context.Text)
-	assert.Equal(t, memory, context.Memory)
-}
+	flowContext = NewFlowContextWithMemory(5)
+	assert.Equal(t, 5, flowContext.Memory)
+	assert.Equal(t, "", flowContext.Text)
 
-func TestNewFlowContextWithText(t *testing.T) {
-	// Arrange
-	text := "test text only"
-
-	// Act
-	context := NewFlowContextWithText(text)
-
-	// Assert
-	assert.Equal(t, text, context.Text)
-	assert.Nil(t, context.Memory)
-}
-
-func TestNewFlowContextWithMemory(t *testing.T) {
-	// Arrange
-	memory := "test memory only"
-
-	// Act
-	context := NewFlowContextWithMemory(memory)
-
-	// Assert
-	assert.Equal(t, "", context.Text)
-	assert.Equal(t, memory, context.Memory)
 }
 
 func TestNewFlow(t *testing.T) {
@@ -401,5 +379,165 @@ func TestGetValidator(t *testing.T) {
 		_, err := GetValidator("not_exist_val")
 		assert.Error(t, err)
 		assert.EqualError(t, err, "no validator found with the given name: not_exist_val")
+	})
+}
+
+// TestRegisterFormatter tests the RegisterFormatter function
+func TestRegisterFormatter(t *testing.T) {
+	// Save the original registry and restore it after tests
+	origRegistry := GlobalRegistry
+	defer func() { GlobalRegistry = origRegistry }()
+
+	t.Run("Success case", func(t *testing.T) {
+		// Setup a fresh registry
+		GlobalRegistry = &anyiRegistry{
+			Formatters: make(map[string]chat.PromptFormatter),
+		}
+
+		// Create a formatter to register
+		templateString := "Hello, {{.Name}}!"
+		formatter, err := chat.NewPromptTemplateFormatter(templateString)
+		assert.NoError(t, err)
+
+		// Execute the register function
+		err = RegisterFormatter("test-formatter", formatter)
+
+		// Verify
+		assert.NoError(t, err)
+		assert.Equal(t, formatter, GlobalRegistry.Formatters["test-formatter"])
+	})
+
+	t.Run("Empty name", func(t *testing.T) {
+		// Setup
+		GlobalRegistry = &anyiRegistry{
+			Formatters: make(map[string]chat.PromptFormatter),
+		}
+
+		// Create a formatter
+		templateString := "Hello, {{.Name}}!"
+		formatter, err := chat.NewPromptTemplateFormatter(templateString)
+		assert.NoError(t, err)
+
+		// Execute with empty name
+		err = RegisterFormatter("", formatter)
+
+		// Verify
+		assert.Error(t, err)
+		assert.Equal(t, "name cannot be empty", err.Error())
+	})
+
+	t.Run("Overwriting existing formatter", func(t *testing.T) {
+		// Setup
+		GlobalRegistry = &anyiRegistry{
+			Formatters: make(map[string]chat.PromptFormatter),
+		}
+
+		// Create and register a formatter
+		formatter1, _ := chat.NewPromptTemplateFormatter("Template 1")
+		err := RegisterFormatter("formatter", formatter1)
+		assert.NoError(t, err)
+
+		// Create a second formatter
+		formatter2, _ := chat.NewPromptTemplateFormatter("Template 2")
+
+		// Execute - register with the same name
+		err = RegisterFormatter("formatter", formatter2)
+
+		// Verify - should overwrite without error
+		assert.NoError(t, err)
+		assert.Equal(t, formatter2, GlobalRegistry.Formatters["formatter"])
+		assert.NotEqual(t, formatter1, GlobalRegistry.Formatters["formatter"])
+	})
+}
+
+// TestNewClientFromConfigFile tests the NewClientFromConfigFile function
+func TestNewClientFromConfigFile(t *testing.T) {
+	// Save original registry to restore after tests
+	origRegistry := GlobalRegistry
+	defer func() { GlobalRegistry = origRegistry }()
+
+	// Create a test config file
+	configContent := `
+type: "openai"
+config:
+  apiKey: "test-key"
+  model: "test-model"
+`
+	tmpFile, err := os.CreateTemp("", "test-config-*.yaml")
+	assert.NoError(t, err)
+	defer os.Remove(tmpFile.Name())
+
+	_, err = tmpFile.WriteString(configContent)
+	assert.NoError(t, err)
+	err = tmpFile.Close()
+	assert.NoError(t, err)
+
+	t.Run("Success case with name", func(t *testing.T) {
+		// Setup a fresh registry
+		GlobalRegistry = &anyiRegistry{
+			Clients: make(map[string]llm.Client),
+		}
+
+		// Execute
+		client, err := NewClientFromConfigFile("test-client", tmpFile.Name())
+
+		// Verify
+		assert.NoError(t, err)
+		assert.NotNil(t, client)
+
+		// Check that the client was registered
+		registeredClient, err := GetClient("test-client")
+		assert.NoError(t, err)
+		assert.Equal(t, client, registeredClient)
+	})
+
+	t.Run("Success case without name", func(t *testing.T) {
+		// Setup a fresh registry
+		GlobalRegistry = &anyiRegistry{
+			Clients: make(map[string]llm.Client),
+		}
+
+		// Execute with empty name
+		client, err := NewClientFromConfigFile("", tmpFile.Name())
+
+		// Verify
+		assert.NoError(t, err)
+		assert.NotNil(t, client)
+
+		// Check that the client wasn't registered
+		assert.Equal(t, 0, len(GlobalRegistry.Clients))
+	})
+
+	t.Run("Invalid config file", func(t *testing.T) {
+		// Create an invalid config file
+		invalidContent := `
+type: "invalid"
+config:
+  invalid: true
+`
+		invalidFile, err := os.CreateTemp("", "invalid-config-*.yaml")
+		assert.NoError(t, err)
+		defer os.Remove(invalidFile.Name())
+
+		_, err = invalidFile.WriteString(invalidContent)
+		assert.NoError(t, err)
+		err = invalidFile.Close()
+		assert.NoError(t, err)
+
+		// Execute
+		client, err := NewClientFromConfigFile("test-client", invalidFile.Name())
+
+		// Verify
+		assert.Error(t, err)
+		assert.Nil(t, client)
+	})
+
+	t.Run("Non-existent file", func(t *testing.T) {
+		// Execute with a non-existent file
+		client, err := NewClientFromConfigFile("test-client", "non-existent-file.yaml")
+
+		// Verify
+		assert.Error(t, err)
+		assert.Nil(t, client)
 	})
 }
