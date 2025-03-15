@@ -37,7 +37,6 @@ Anyi is ideal for:
 - **Zhipu AI** - GLM series models
 - **Alibaba Cloud Lingji** - Qwen series models
 - **Ollama** - Local deployment of open-source models (Llama, Qwen, etc.)
-- **Baichuan AI** - Baichuan models
 - **DeepSeek** - DeepSeek models
 - **SiliconCloud** - SiliconFlow models
 
