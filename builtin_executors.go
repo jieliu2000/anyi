@@ -437,25 +437,28 @@ func (executor *DeepSeekStyleResponseFilter) Init() error {
 //
 // When OutputJSON is true, it extracts <think> content and returns both thinking and result
 // in JSON format. Otherwise, it simply removes <think> tags and returns the cleaned content.
+// In both cases, the extracted thinking content is stored in the FlowContext.Think field.
 func (executor *DeepSeekStyleResponseFilter) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
-	// If OutputJSON is true, extract <think> tag content and return in JSON format
+	// Extract <think> tag content
+	thinkMatch := executor.re.FindStringSubmatch(flowContext.Text)
+	thinkContent := ""
+	if len(thinkMatch) > 0 {
+		thinkContent = thinkMatch[0]
+		// Store the thinking content in the FlowContext.Think field
+		flowContext.Think = thinkContent
+	}
+
+	// Extract and trim other content (remove <think> tags)
+	resultContent := strings.TrimSpace(executor.re.ReplaceAllString(flowContext.Text, ""))
+
+	// If OutputJSON is true, return both thinking and result in JSON format
 	if executor.OutputJSON {
-		// Extract <think> tag content
-		thinkMatch := executor.re.FindStringSubmatch(flowContext.Text)
-		thinkContent := ""
-		if len(thinkMatch) > 0 {
-			thinkContent = thinkMatch[0]
-		}
-
-		// Extract and trim other content
-		resultContent := strings.TrimSpace(executor.re.ReplaceAllString(flowContext.Text, ""))
-
 		// Set return content in JSON format
 		flowContext.Text = fmt.Sprintf(`{"think": "%s", "result": "%s"}`, thinkContent, resultContent)
 		return &flowContext, nil
 	}
 
-	// Default behavior: remove <think> tags and trim result
-	flowContext.Text = strings.TrimSpace(executor.re.ReplaceAllString(flowContext.Text, ""))
+	// Default behavior: set the clean content as Text
+	flowContext.Text = resultContent
 	return &flowContext, nil
 }

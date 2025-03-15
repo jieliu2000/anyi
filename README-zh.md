@@ -1,4 +1,4 @@
-# Anyi(安易) - 开源的自主式 AI 智能体框架 🤖
+# Anyi(安易) - 开源的自主式 AI 智能体框架 
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/jieliu2000/anyi.svg)](https://pkg.go.dev/github.com/jieliu2000/anyi)
 [![Go Report Card](https://goreportcard.com/badge/github.com/jieliu2000/anyi)](https://goreportcard.com/report/github.com/jieliu2000/anyi)

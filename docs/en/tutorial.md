@@ -176,12 +176,12 @@ func main() {
 	// Create a client with a name "gpt4"
 	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
 	config.Model = openai.GPT4o // Use the GPT-4o model
-	
+
 	client, err := anyi.NewClient("gpt4", config)
 	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)
 	}
-	
+
 	// Later, you can retrieve this client by name
 	retrievedClient, err := anyi.GetClient("gpt4")
 	if err != nil {
@@ -293,7 +293,7 @@ func main() {
 	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
 
 	// Configuration with specific model
-	config := openai.NewConfigWithModel(os.Getenv("OPENAI_API_KEY"), openai.GPT4o)
+config := openai.NewConfigWithModel(os.Getenv("OPENAI_API_KEY"), openai.GPT4o)
 
 	// Configuration with custom base URL (for self-hosted or proxy services)
 	config := openai.NewConfig(
@@ -377,7 +377,7 @@ func main() {
 	)
 	
 	// Create client and use example
-	client, err := llm.NewClient(config)
+client, err := llm.NewClient(config)
 	if err != nil {
 		log.Fatalf("Failed to create DeepSeek client: %v", err)
 	}
@@ -572,7 +572,7 @@ import (
 func main() {
 	// Create client
 	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
-	client, err := anyi.NewClient("openai", config)
+client, err := anyi.NewClient("openai", config)
 	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)
 	}
@@ -757,280 +757,85 @@ The workflow system in Anyi is one of its most powerful features, allowing you t
 ### Core Workflow Concepts
 
 - **Flow**: A sequence of steps executed in order
-- **Step**: A single unit of work with an executor and optional validator
-- **Executor**: Performs the actual work (e.g., call LLM, set context)
-- **Validator**: Ensures output meets requirements before proceeding to the next step
-- **Context**: Shared data passed between steps
 
-### When to Use Workflows
+### Flow Context
 
-Workflows are particularly useful for:
-- Multi-step reasoning processes
-- Content generation pipelines
-- Data transformation and enrichment
-- Decision trees with conditional logic
-- Tasks requiring validation and retry
+During workflow execution, context needs to be maintained between steps. Anyi provides the `FlowContext` structure to pass and share data between various workflow steps. The `FlowContext` contains the following key properties:
 
-### Workflow Architecture
+- **Text**: String type, used to store the input and output text content of a step. Before a step runs, this field is the input text; after the step runs, it becomes the output text.
+- **Memory**: Any type (`ShortTermMemory`), used to pass and share structured data between steps.
+- **Flow**: A reference to the current flow.
+- **ImageURLs**: String array, stores a list of image URLs for multimodal content processing.
+- **Think**: String type, stores the content extracted from `<think>` tags in model output, used to capture the model's thinking process without affecting the final output.
 
-```
-┌─────────────┐      ┌─────────────┐      ┌─────────────┐
-│   Step 1    │      │   Step 2    │      │   Step 3    │
-│ (Executor)  ├─────>│ (Executor)  ├─────>│ (Executor)  │
-└──────┬──────┘      └──────┬──────┘      └──────┬──────┘
-       │                    │                    │
-       ▼                    ▼                    ▼
-┌─────────────┐      ┌─────────────┐      ┌─────────────┐
-│  Validator  │      │  Validator  │      │  Validator  │
-│ (Optional)  │      │ (Optional)  │      │ (Optional)  │
-└─────────────┘      └─────────────┘      └─────────────┘
-       │                    │                    │
-       ▼                    ▼                    ▼
-┌───────────────────────────────────────────────────────┐
-│                   Flow Context                         │
-└───────────────────────────────────────────────────────┘
-```
+#### Using ShortTermMemory
 
-In a workflow, each step's output is stored in the context for subsequent steps to use. Validators ensure that each step's output meets the requirements, triggering retries when necessary.
-
-### Data Passing Between Steps
-
-In Anyi workflows, data is passed between different steps via the workflow context. This mechanism allows you to take output from a previous step and use it in subsequent steps.
+Short-term memory allows you to pass complex structured data between workflow steps, not just text. This is particularly useful in scenarios requiring multi-step processing and state maintenance.
 
 ```go
-package main
+// Create workflow context with structured data
+type TaskData struct {
+    Objective string
+    Steps     []string
+    Progress  int
+}
 
-import (
-	"log"
-	"os"
+taskData := TaskData{
+    Objective: "Create a website",
+    Steps:     []string{"Design interface", "Develop frontend", "Develop backend", "Test and deploy"},
+    Progress:  0,
+}
 
-	"github.com/jieliu2000/anyi"
-	"github.com/jieliu2000/anyi/llm/openai"
-	"github.com/jieliu2000/anyi/flow"
-)
+// Initialize context with structured data in Memory
+flowContext := anyi.NewFlowContextWithMemory(taskData)
 
-func main() {
-	// Create client
-	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
-	client, err := anyi.NewClient("openai", config)
-	if err != nil {
-		log.Fatalf("Failed to create client: %v", err)
-	}
-	
-	// Create first step - generate ideas
-	step1, err := anyi.NewLLMStepWithTemplate(
-		"Generate 5 innovative ideas about {{.Text}}",
-		"You are a creative expert who excels at brainstorming.",
-		client,
-	)
-	if err != nil {
-		log.Fatalf("Failed to create step: %v", err)
-	}
-	step1.Name = "Idea Generation"
-	
-	// Create second step - evaluate ideas
-	step2, err := anyi.NewLLMStepWithTemplate(
-		"Evaluate the following creative ideas and rate each one (1-10):\n\n{{.Text}}",
-		"You are a business analyst who excels at evaluating the business potential of creative ideas.",
-		client,
-	)
-	if err != nil {
-		log.Fatalf("Failed to create step: %v", err)
-	}
-	step2.Name = "Idea Evaluation"
-	
-	// Create workflow
-	myFlow, err := anyi.NewFlow("Idea Workflow", client, *step1, *step2)
-	if err != nil {
-		log.Fatalf("Failed to create workflow: %v", err)
-	}
-	
-	// Run workflow - note that the output of the first step automatically becomes the input for the second
-	result, err := myFlow.RunWithInput("sustainable energy products for the home")
-	if err != nil {
-		log.Fatalf("Workflow execution failed: %v", err)
-	}
-	
-	log.Printf("Final evaluation results: \n%s", result.Text)
-	
-	// Access intermediate step results
-	intermediateResults := result.StepResults
-	for stepName, stepResult := range intermediateResults {
-		log.Printf("Result from step '%s': %s", stepName, stepResult.Text)
-	}
+// You can also set both text and memory data
+flowContext := anyi.NewFlowContext("Initial input", taskData)
+
+// Access and modify memory data in a workflow step
+func (executor *MyExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
+    // Access data in Memory (requires type assertion)
+    taskData := flowContext.Memory.(TaskData)
+    
+    // Update memory data
+    taskData.Progress++
+    flowContext.Memory = taskData
+    
+    // Update output text
+    flowContext.Text = fmt.Sprintf("Current progress: %d/%d", taskData.Progress, len(taskData.Steps))
+    
+    return &flowContext, nil
 }
 ```
 
-### Validation and Retry
+#### Using the Think Field
 
-Validators are an important mechanism for ensuring the quality of step outputs. If the output doesn't meet the requirements, the step will automatically retry until the conditions are met or the maximum number of retries is reached.
+Anyi supports special `<think>` tags where models can express their thinking process. This content doesn't affect the final output but is captured in the `Think` field. This is especially useful for models that support explicit thinking (like DeepSeek), but can also be used to prompt other models to use this format.
 
-```go
-package main
+There are two ways to handle `<think>` tags:
 
-import (
-	"log"
-	"os"
-	"regexp"
-
-	"github.com/jieliu2000/anyi"
-	"github.com/jieliu2000/anyi/llm/openai"
-	"github.com/jieliu2000/anyi/flow"
-)
-
-func main() {
-	// Create client
-	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
-	client, err := anyi.NewClient("openai", config)
-	if err != nil {
-		log.Fatalf("Failed to create client: %v", err)
-	}
-	
-	// Create a step with a validator
-	step, err := anyi.NewLLMStepWithTemplate(
-		"Generate a random 8-character password containing both numbers and letters",
-		"You are a password generation expert.",
-		client,
-	)
-	if err != nil {
-		log.Fatalf("Failed to create step: %v", err)
-	}
-	
-	// Create a validator to ensure the password meets requirements
-	validator := &anyi.StringValidator{
-		MinLength: 8,            // At least 8 characters
-		MaxLength: 8,            // At most 8 characters
-		MatchRegex: `^(?=.*[0-9])(?=.*[a-zA-Z])[a-zA-Z0-9]{8}$`, // Must contain numbers and letters
-	}
-	
-	// Set step properties
-	step.Name = "Password Generation"
-	step.Validator = validator
-	step.MaxRetryTimes = 3      // Maximum of 3 retries
-	
-	// Create and run workflow
-	myFlow, err := anyi.NewFlow("Password Generation Workflow", client, *step)
-	if err != nil {
-		log.Fatalf("Failed to create workflow: %v", err)
-	}
-	
-	result, err := myFlow.RunWithInput("I need a secure password")
-	if err != nil {
-		log.Fatalf("Workflow execution failed: %v", err)
-	}
-	
-	log.Printf("Generated password: %s", result.Text)
-}
-```
-
-### Conditional Workflows
-
-Conditional workflows allow you to dynamically determine the execution path based on specific conditions, enabling more complex logical flows.
+1. **Automatic processing**: The `Flow.Run` method automatically detects and extracts content within `<think>` tags to the `FlowContext.Think` field, while cleaning the tag content from the `Text` field.
+    
+2. **Using DeepSeekStyleResponseFilter**: A dedicated executor for processing thinking tags:
 
 ```go
-package main
-
-import (
-	"log"
-	"os"
-	"strings"
-
-	"github.com/jieliu2000/anyi"
-	"github.com/jieliu2000/anyi/llm/openai"
-	"github.com/jieliu2000/anyi/flow"
-)
-
-func main() {
-	// Create client
-	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
-	client, err := anyi.NewClient("openai", config)
-	if err != nil {
-		log.Fatalf("Failed to create client: %v", err)
-	}
-	
-	// First step: sentiment analysis
-	sentimentStep, err := anyi.NewLLMStepWithTemplate(
-		"Analyze the sentiment of the following text, respond only with 'positive', 'negative', or 'neutral':\n\n{{.Text}}",
-		"You are a sentiment analysis expert.",
-		client,
-	)
-	if err != nil {
-		log.Fatalf("Failed to create step: %v", err)
-	}
-	sentimentStep.Name = "Sentiment Analysis"
-	
-	// Positive response step
-	positiveStep, err := anyi.NewLLMStepWithTemplate(
-		"Respond to this positive feedback with an enthusiastic tone:\n\n{{.Text}}",
-		"You are a customer service representative who excels at building rapport with customers.",
-		client,
-	)
-	if err != nil {
-		log.Fatalf("Failed to create step: %v", err)
-	}
-	positiveStep.Name = "Positive Response"
-	
-	// Negative response step
-	negativeStep, err := anyi.NewLLMStepWithTemplate(
-		"Respond to this negative feedback with a professional and solution-oriented tone:\n\n{{.Text}}",
-		"You are a customer service representative who excels at resolving customer issues.",
-		client,
-	)
-	if err != nil {
-		log.Fatalf("Failed to create step: %v", err)
-	}
-	negativeStep.Name = "Negative Response"
-	
-	// Neutral response step
-	neutralStep, err := anyi.NewLLMStepWithTemplate(
-		"Respond to this neutral feedback with a professional tone:\n\n{{.Text}}",
-		"You are a customer service representative who provides professional and helpful information.",
-		client,
-	)
-	if err != nil {
-		log.Fatalf("Failed to create step: %v", err)
-	}
-	neutralStep.Name = "Neutral Response"
-	
-	// Create conditional executor
-	condExecutor := &flow.ConditionalFlowExecutor{
-		Condition: func(ctx *flow.FlowContext) (string, error) {
-			sentiment := strings.TrimSpace(ctx.Text)
-			if sentiment == "positive" {
-				return "positive", nil
-			} else if sentiment == "negative" {
-				return "negative", nil
-			} else {
-				return "neutral", nil
-			}
-		},
-		Branches: map[string]flow.Step{
-			"positive": *positiveStep,
-			"negative": *negativeStep,
-			"neutral":  *neutralStep,
-		},
-	}
-	
-	// Create conditional step
-	condStep := flow.Step{
-		Name:     "Conditional Response",
-		Executor: condExecutor,
-	}
-	
-	// Create workflow
-	myFlow, err := anyi.NewFlow("Customer Feedback Workflow", client, *sentimentStep, condStep)
-	if err != nil {
-		log.Fatalf("Failed to create workflow: %v", err)
-	}
-	
-	// Run workflow
-	result, err := myFlow.RunWithInput("I really love your product, the experience has been great!")
-	if err != nil {
-		log.Fatalf("Workflow execution failed: %v", err)
-	}
-	
-	log.Printf("Response: %s", result.Text)
+// Create a filter to process thinking tags
+thinkFilter := &anyi.DeepSeekStyleResponseFilter{}
+err := thinkFilter.Init()
+if err != nil {
+    log.Fatalf("Initialization failed: %v", err)
 }
+
+// Configure whether to output results in JSON format
+thinkFilter.OutputJSON = true // When true, returns both thinking and result content as JSON
+
+// Use DeepSeekStyleResponseFilter as an executor
+thinkStep := flow.Step{
+    Executor: thinkFilter,
+}
+
+// After processing, thinking content is stored in flowContext.Think
+// If OutputJSON = true, flowContext.Text will contain thinking content and results in JSON format
 ```
 
 ## Configuration System
@@ -1276,7 +1081,7 @@ Validators are crucial components in the Anyi workflow system that ensure output
    - Regular expression pattern matching
    - Content verification
 
-   ```go
+```go
    validator := &anyi.StringValidator{
        MinLength: 100,            // Minimum length
        MaxLength: 1000,           // Maximum length
@@ -1289,7 +1094,7 @@ Validators are crucial components in the Anyi workflow system that ensure output
    - Can validate against JSON Schema
    - Useful for ensuring structured data
 
-   ```go
+```go
    validator := &anyi.JsonValidator{
        RequiredFields: []string{"name", "email"},
        Schema: `{"type": "object", "properties": {"name": {"type": "string"}, "email": {"type": "string", "format": "email"}}}`,
@@ -1453,79 +1258,98 @@ func main() {
 
 ### Prompt Templates
 
-Using templated prompts can enhance the flexibility and reusability of LLM interactions. Anyi leverages Go's templating system, supporting dynamic variable substitution.
+Using templated prompts enhances the flexibility and reusability of LLM interactions. Anyi leverages Go's template system, supporting dynamic variable substitution.
+
+#### Using FlowContext Data in Templates
+
+In prompt templates, you can access various properties of the `FlowContext`:
+
+1. **Using the Text field**: Directly access the current context text content with `.Text`.
+
+```
+Analyze the following text: {{.Text}}
+```
+
+2. **Using the Memory field**: Access structured data and its internal properties.
+
+```
+Task objective: {{.Memory.Objective}}
+Current progress: {{.Memory.Progress}}
+Task list:
+{{range .Memory.Steps}}
+- {{.}}
+{{end}}
+```
+
+3. **Using the Think field**: Access the model's thinking process (if a previous step extracted `<think>` tag content).
+
+```
+Thinking process from the previous step: {{.Think}}
+
+Please continue the analysis and provide a more detailed answer.
+```
+
+4. **Using Image URLs**: If image URLs are provided, you can reference them in the prompt.
+
+A practical example integrating memory and thinking process:
 
 ```go
-package main
-
-import (
-	"log"
-	"os"
-
-	"github.com/jieliu2000/anyi"
-	"github.com/jieliu2000/anyi/llm/openai"
-	"github.com/jieliu2000/anyi/flow"
-)
-
-func main() {
-	// Create client
-	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
-	client, err := anyi.NewClient("openai", config)
-	if err != nil {
-		log.Fatalf("Failed to create client: %v", err)
-	}
-	
-	// Create a step with a template file
-	// Assume ./templates/article.tmpl contains:
-	/*
-	You are a professional {{.Type}} content creator.
-	Please create a {{.Length}}-word {{.Type}} article on the following topic:
-	Topic: {{.Topic}}
-	Target audience: {{.Audience}}
-	Style: {{.Style}}
-	*/
-	
-	articleStep, err := anyi.NewLLMStepWithTemplateFile(
-		"./templates/article.tmpl",
-		client,
-	)
-	if err != nil {
-		log.Fatalf("Failed to create step: %v", err)
-	}
-	
-	// Create a step to set context
-	setContextStep := &flow.SetContextExecutor{
-		SetContext: map[string]interface{}{
-			"Type":     "technology",
-			"Length":   "800",
-			"Topic":    "Applications of Artificial Intelligence in Healthcare",
-			"Audience": "Healthcare professionals",
-			"Style":    "Professional, informative",
-		},
-	}
-	
-	// Create workflow steps
-	step1 := flow.Step{
-		Name:     "Set Article Parameters",
-		Executor: setContextStep,
-	}
-	
-	// Use named step
-	articleStep.Name = "Generate Article"
-	
-	// Create and run workflow
-	myFlow, err := anyi.NewFlow("Article Creation Workflow", client, step1, *articleStep)
-	if err != nil {
-		log.Fatalf("Failed to create workflow: %v", err)
-	}
-	
-	result, err := myFlow.RunWithInput("")
-	if err != nil {
-		log.Fatalf("Workflow execution failed: %v", err)
-	}
-	
-	log.Printf("Generated article:\n%s", result.Text)
+// Define structured data
+type AnalysisData struct {
+    Topic        string
+    Requirements []string
+    Progress     map[string]bool
 }
+
+// Create structured data
+data := AnalysisData{
+    Topic:        "AI Safety",
+    Requirements: []string{"Current State", "Key Challenges", "Future Trends"},
+    Progress:     map[string]bool{"Current State": true, "Key Challenges": false, "Future Trends": false},
+}
+
+// Create template text
+templateText := `
+Analyze the following topic: {{.Memory.Topic}}
+
+Points to cover:
+{{range .Memory.Requirements}}
+- {{.}}
+{{end}}
+
+Current progress:
+{{range $key, $value := .Memory.Progress}}
+- {{$key}}: {{if $value}}Completed{{else}}Not completed{{end}}
+{{end}}
+
+{{if .Think}}
+Thinking process from the previous step:
+{{.Think}}
+{{end}}
+
+Please analyze the points that are not yet completed.
+`
+
+// Create context with memory
+flowContext := anyi.NewFlowContextWithMemory(data)
+
+// Previous step might have thinking content
+flowContext.Think = "<think>I should focus on Key Challenges and Future Trends since Current State is already completed</think>"
+
+// Create template
+formatter, err := chat.NewPromptTemplateFormatter(templateText)
+if err != nil {
+    log.Fatalf("Failed to create template: %v", err)
+}
+
+// Create executor with template
+executor := &anyi.LLMExecutor{
+    TemplateFormatter: formatter,
+    SystemMessage:     "You are a professional research analyst",
+}
+
+// Create and run flow
+// ...
 ```
 
 ### Error Handling
@@ -1566,7 +1390,7 @@ func main() {
 	}
 	
 	// Prepare messages
-	messages := []chat.Message{
+messages := []chat.Message{
 		{Role: "user", Content: "Explain the basic principles of quantum mechanics"},
 	}
 	

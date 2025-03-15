@@ -662,3 +662,38 @@ func TestSetContextExecutor_Run(t *testing.T) {
 		assert.Equal(t, "bar", memory["foo"])
 	})
 }
+
+func TestDeepSeekStyleResponseFilter_Think(t *testing.T) {
+	// Create a new filter
+	filter := &DeepSeekStyleResponseFilter{}
+	err := filter.Init()
+	assert.NoError(t, err)
+
+	// Test case 1: Text with <think> tags
+	testText := "Let me think about this. <think>This is my thinking process. I need to consider several factors.</think> Based on my analysis, the answer is 42."
+	flowContext := flow.FlowContext{
+		Text: testText,
+	}
+
+	// Run the filter
+	result, err := filter.Run(flowContext, nil)
+	assert.NoError(t, err)
+
+	// Check that Think field contains the extracted thinking content
+	assert.Equal(t, "<think>This is my thinking process. I need to consider several factors.</think>", result.Think)
+
+	// Check that Text field has thinking content removed
+	assert.Equal(t, "Let me think about this.  Based on my analysis, the answer is 42.", result.Text)
+
+	// Test case 2: Test with OutputJSON=true
+	filter.OutputJSON = true
+	result, err = filter.Run(flowContext, nil)
+	assert.NoError(t, err)
+
+	// Check that Think field still contains the extracted thinking content
+	assert.Equal(t, "<think>This is my thinking process. I need to consider several factors.</think>", result.Think)
+
+	// Check that Text field has JSON format with both thinking and result
+	expectedJSON := `{"think": "<think>This is my thinking process. I need to consider several factors.</think>", "result": "Let me think about this.  Based on my analysis, the answer is 42."}`
+	assert.Equal(t, expectedJSON, result.Text)
+}

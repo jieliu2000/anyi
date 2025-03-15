@@ -175,7 +175,7 @@ func main() {
 	// 创建一个名为"gpt4"的客户端
 	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
 	config.Model = openai.GPT4o // 使用GPT-4o模型
-	
+
 	client, err := anyi.NewClient("gpt4", config)
 	if err != nil {
 		log.Fatalf("创建客户端失败: %v", err)
@@ -292,7 +292,7 @@ func main() {
 	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
 	
 	// 指定模型的配置
-	config := openai.NewConfigWithModel(os.Getenv("OPENAI_API_KEY"), openai.GPT4o)
+config := openai.NewConfigWithModel(os.Getenv("OPENAI_API_KEY"), openai.GPT4o)
 	
 	// 自定义基础URL配置（用于自托管或代理服务）
 	config := openai.NewConfig(
@@ -376,7 +376,7 @@ func main() {
 	)
 	
 	// 创建客户端
-	client, err := llm.NewClient(config)
+client, err := llm.NewClient(config)
 	if err != nil {
 		log.Fatalf("创建DeepSeek客户端失败: %v", err)
 	}
@@ -489,7 +489,7 @@ func main() {
 	config := dashscope.DefaultConfig(os.Getenv("DASHSCOPE_API_KEY"), "qwen-max")
 	
 	// 使用千问Turbo模型
-	config := dashscope.DefaultConfig(os.Getenv("DASHSCOPE_API_KEY"), "qwen-turbo")
+config := dashscope.DefaultConfig(os.Getenv("DASHSCOPE_API_KEY"), "qwen-turbo")
 	
 	// 自定义基础URL配置
 	config := dashscope.NewConfig(
@@ -877,6 +877,87 @@ Anyi的工作流系统是其最强大的特性之一，允许您通过连接多�
 ### 工作流核心概念
 
 - **流程(Flow)**：按顺序执行的步骤序列
+
+### 流程上下文（FlowContext）
+
+工作流在执行过程中需要保持上下文，Anyi提供了 `FlowContext` 结构来在各个步骤之间传递和共享数据。`FlowContext` 包含以下主要属性：
+
+- **Text**：字符串类型，用于存储步骤的输入和输出文本内容。在步骤执行前，该字段是输入文本；步骤执行后，该字段变为输出文本。
+- **Memory**：任意类型（`ShortTermMemory`/短期记忆），用于在各个步骤之间传递和共享结构化数据。
+- **Flow**：指向当前流程的引用。
+- **ImageURLs**：字符串数组，存储图像URL列表，用于处理多模态内容。
+- **Think**：字符串类型，存储从模型输出中提取的 `<think>` 标签内容，用于捕获模型的思考过程而不影响最终输出。
+
+#### 使用短期记忆（ShortTermMemory）
+
+短期记忆允许在工作流步骤之间传递复杂的结构化数据，而不仅仅是文本。这在需要多步骤处理和维护状态的场景中非常有用。
+
+```go
+// 创建带结构化数据的工作流上下文
+type TaskData struct {
+    Objective string
+    Steps     []string
+    Progress  int
+}
+
+taskData := TaskData{
+    Objective: "创建一个网站",
+    Steps:     []string{"设计界面", "开发前端", "开发后端", "测试部署"},
+    Progress:  0,
+}
+
+// 初始化上下文，将结构化数据存入短期记忆(Memory)
+flowContext := anyi.NewFlowContextWithMemory(taskData)
+
+// 也可以同时设置文本和短期记忆数据
+flowContext := anyi.NewFlowContext("初始输入", taskData)
+
+// 在流程步骤中访问和修改短期记忆数据
+func (executor *MyExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
+    // 访问短期记忆(Memory)中的数据（需要类型断言）
+    taskData := flowContext.Memory.(TaskData)
+    
+    // 更新短期记忆数据
+    taskData.Progress++
+    flowContext.Memory = taskData
+    
+    // 更新输出文本
+    flowContext.Text = fmt.Sprintf("当前进度：%d/%d", taskData.Progress, len(taskData.Steps))
+    
+    return &flowContext, nil
+}
+```
+
+#### 使用思考内容（Think）
+
+Anyi 支持特殊的 `<think>` 标签，模型可以在这些标签内表达思考过程，这些内容不会影响最终输出，但会被捕获到 `Think` 字段中。特别适用于支持显式思考的模型（如 DeepSeek），但也可以用于提示其他模型使用这种格式。
+
+有两种方式处理 `<think>` 标签：
+
+1. **自动处理**：`Flow.Run` 方法会自动检测并提取 `<think>` 标签内容到 `FlowContext.Think` 字段，同时清理 `Text` 字段中的标签内容。
+    
+2. **使用 DeepSeekStyleResponseFilter**：作为专门处理思考标签的执行器：
+
+```go
+// 创建处理思考标签的执行器
+thinkFilter := &anyi.DeepSeekStyleResponseFilter{}
+err := thinkFilter.Init()
+if err != nil {
+    log.Fatalf("初始化失败: %v", err)
+}
+
+// 配置是否以 JSON 格式输出结果
+thinkFilter.OutputJSON = true // 设为 true 时，将返回包含 think 和 result 的 JSON 字符串
+
+// 使用 DeepSeekStyleResponseFilter 作为执行器
+thinkStep := flow.Step{
+    Executor: thinkFilter,
+}
+
+// 处理后，思考内容会存储在 flowContext.Think 中
+// 如果 OutputJSON = true，flowContext.Text 会包含 JSON 格式的思考内容和结果
+```
+
 - **步骤(Step)**：带有执行器和可选验证器的单个工作单元
 - **执行器(Executor)**：执行实际工作（例如，调用LLM，设置上下文）
 - **验证器(Validator)**：确保输出在继续下一步之前满足要求
@@ -1409,7 +1490,7 @@ Anyi提供了几种内置组件，您可以将其用作AI应用程序的构建�
    - 可以根据JSON模式进行验证
    - 对确保结构化数据很有用
 
-   ```go
+```go
    validator := &anyi.JsonValidator{
        RequiredFields: []string{"name", "email"},
        Schema: `{"type": "object", "properties": {"name": {"type": "string"}, "email": {"type": "string", "format": "email"}}}`,
@@ -1571,77 +1652,96 @@ func main() {
 
 使用模板化提示词可以增强LLM交互的灵活性和可复用性。Anyi利用Go的模板系统，支持动态变量替换。
 
+#### 在模板中使用 FlowContext 数据
+
+在提示词模板中，您可以访问 `FlowContext` 中的各种属性：
+
+1. **使用 Text 字段**：直接使用 `.Text` 可以访问当前上下文中的文本内容。
+
+```
+分析以下文本：{{.Text}}
+```
+
+2. **使用 Memory 字段**：访问短期记忆(Memory)中的结构化数据，可以访问其内部属性。
+
+```
+任务目标: {{.Memory.Objective}}
+当前进度: {{.Memory.Progress}}
+任务列表:
+{{range .Memory.Steps}}
+- {{.}}
+{{end}}
+```
+
+3. **使用 Think 字段**：访问模型的思考过程（如果前一步骤提取了 `<think>` 标签内容）。
+
+```
+上一步骤的思考过程：{{.Think}}
+
+请继续分析并提供更详细的解答。
+```
+
+4. **使用图像 URL**：如果提供了图像URL，可以在提示中引用它们。
+
+实际示例，集成了短期记忆和思考过程：
+
 ```go
-package main
-
-import (
-	"log"
-	"os"
-
-	"github.com/jieliu2000/anyi"
-	"github.com/jieliu2000/anyi/llm/openai"
-	"github.com/jieliu2000/anyi/flow"
-)
-
-func main() {
-	// 创建客户端
-	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
-	client, err := anyi.NewClient("openai", config)
-	if err != nil {
-		log.Fatalf("创建客户端失败: %v", err)
-	}
-	
-	// 使用文件模板创建步骤
-	// 假设在./templates/article.tmpl文件中有如下内容:
-	/*
-	你是一名专业的{{.Type}}内容创作者。
-	请根据以下主题创作一篇{{.Length}}字的{{.Type}}文章:
-	主题: {{.Topic}}
-	目标受众: {{.Audience}}
-	风格: {{.Style}}
-	*/
-	
-	articleStep, err := anyi.NewLLMStepWithTemplateFile(
-		"./templates/article.tmpl",
-		client,
-	)
-	if err != nil {
-		log.Fatalf("创建步骤失败: %v", err)
-	}
-	
-	// 创建设置上下文的步骤
-	setContextStep := &flow.SetContextExecutor{
-		SetContext: map[string]interface{}{
-			"Type":     "科技",
-			"Length":   "800",
-			"Topic":    "人工智能在医疗领域的应用",
-			"Audience": "医疗专业人士",
-			"Style":    "专业、信息丰富",
-		},
-	}
-	
-	// 创建工作流步骤
-	step1 := flow.Step{
-		Name:     "设置文章参数",
-		Executor: setContextStep,
-	}
-	
-	// 使用命名步骤
-	articleStep.Name = "生成文章"
-	
-	// 创建并运行工作流
-	myFlow, err := anyi.NewFlow("文章创作工作流", client, step1, *articleStep)
-	if err != nil {
-		log.Fatalf("创建工作流失败: %v", err)
-	}
-	
-	result, err := myFlow.RunWithInput("")
-	if err != nil {
-		log.Fatalf("工作流执行失败: %v", err)
-	}
-	
-	log.Printf("生成的文章:\n%s", result.Text)
+// 定义结构化数据
+type AnalysisData struct {
+    Topic        string
+    Requirements []string
+    Progress     map[string]bool
 }
+
+// 创建结构化数据
+data := AnalysisData{
+    Topic:        "人工智能安全",
+    Requirements: []string{"研究现状", "关键挑战", "未来趋势"},
+    Progress:     map[string]bool{"研究现状": true, "关键挑战": false, "未来趋势": false},
+}
+
+// 创建模板文本
+templateText := `
+分析以下主题：{{.Memory.Topic}}
+
+需要覆盖的要点：
+{{range .Memory.Requirements}}
+- {{.}}
+{{end}}
+
+当前进度：
+{{range $key, $value := .Memory.Progress}}
+- {{$key}}: {{if $value}}已完成{{else}}未完成{{end}}
+{{end}}
+
+{{if .Think}}
+前一步骤的思考过程：
+{{.Think}}
+{{end}}
+
+请分析上述要点中尚未完成的部分。
+`
+
+// 创建带短期记忆的上下文
+flowContext := anyi.NewFlowContextWithMemory(data)
+
+// 可能前一步有思考内容
+flowContext.Think = "<think>我应该专注于关键挑战和未来趋势，因为研究现状已经完成了</think>"
+
+// 创建模板
+formatter, err := chat.NewPromptTemplateFormatter(templateText)
+if err != nil {
+    log.Fatalf("创建模板失败: %v", err)
+}
+
+// 使用模板创建执行器
+executor := &anyi.LLMExecutor{
+    TemplateFormatter: formatter,
+    SystemMessage:     "你是一个专业的研究分析师",
+}
+
+// 创建流程并执行
+// ...
 ```
 
 ### 错误处理
@@ -1682,7 +1782,7 @@ func main() {
 	}
 	
 	// 准备消息
-	messages := []chat.Message{
+messages := []chat.Message{
 		{Role: "user", Content: "解释量子力学的基本原理"},
 	}
 	

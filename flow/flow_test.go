@@ -313,3 +313,95 @@ func TestFlow_Run_WithValidatorAndInvalidStep(t *testing.T) {
 	_, err = flow.Run(FlowContext{Text: "Initial"})
 	assert.NotNil(t, err)
 }
+
+func TestFlow_Run_WithThinkTags(t *testing.T) {
+	// Create a step that returns text with <think> tags
+	step1 := NewStepWithValidatorAndExectorFunction(
+		"Step with think tag",
+		func(flowContext FlowContext, step *Step) (*FlowContext, error) {
+			// Return text with <think> tags
+			flowContext.Text = "This is the output result. <think>This is my thinking process, which should be extracted to the Think field</think> Final conclusion."
+			return &flowContext, nil
+		},
+		nil,
+		nil,
+	)
+
+	// Create a step that doesn't return <think> tags
+	step2 := NewStepWithValidatorAndExectorFunction(
+		"Step without think tag",
+		func(flowContext FlowContext, step *Step) (*FlowContext, error) {
+			// Add to the output of the previous step
+			flowContext.Text = flowContext.Text + " This is the output of the second step, without any think tags."
+			return &flowContext, nil
+		},
+		nil,
+		nil,
+	)
+
+	// Create a test flow with these two steps
+	flow, err := NewFlow(&test.MockClient{}, "Test Flow with Think Tags", *step1, *step2)
+	assert.NoError(t, err)
+
+	// Run the flow
+	flowContext, err := flow.Run(FlowContext{Text: "Initial input"})
+	assert.NoError(t, err)
+
+	// Verify that the Think field contains the extracted thinking content
+	assert.Contains(t, flowContext.Think, "This is my thinking process")
+	assert.Equal(t, "<think>This is my thinking process, which should be extracted to the Think field</think>", flowContext.Think)
+
+	// Verify that the Text field doesn't contain any <think> tag content
+	assert.NotContains(t, flowContext.Text, "<think>")
+	assert.NotContains(t, flowContext.Text, "</think>")
+	assert.NotContains(t, flowContext.Text, "This is my thinking process")
+
+	// Verify that the Text field contains the cleaned text
+	assert.Contains(t, flowContext.Text, "This is the output result. Final conclusion.")
+	assert.Contains(t, flowContext.Text, "This is the output of the second step, without any think tags.")
+}
+
+// Test the case where multiple steps contain think tags
+func TestFlow_Run_WithMultipleThinkTags(t *testing.T) {
+	// Create the first step that returns text with <think> tags
+	step1 := NewStepWithValidatorAndExectorFunction(
+		"Step 1 with think tag",
+		func(flowContext FlowContext, step *Step) (*FlowContext, error) {
+			flowContext.Text = "First step result. <think>Thinking process of the first step</think> First step conclusion."
+			return &flowContext, nil
+		},
+		nil,
+		nil,
+	)
+
+	// Create the second step that returns text with <think> tags
+	step2 := NewStepWithValidatorAndExectorFunction(
+		"Step 2 with think tag",
+		func(flowContext FlowContext, step *Step) (*FlowContext, error) {
+			flowContext.Text = "Second step processing. <think>The thinking process of the second step is more complex</think> Final decision."
+			return &flowContext, nil
+		},
+		nil,
+		nil,
+	)
+
+	// Create a test flow with these two steps
+	flow, err := NewFlow(&test.MockClient{}, "Test Flow with Multiple Think Tags", *step1, *step2)
+	assert.NoError(t, err)
+
+	// Run the flow
+	flowContext, err := flow.Run(FlowContext{Text: "Initial input"})
+	assert.NoError(t, err)
+
+	// Verify that the Think field contains the thinking content from the last step
+	assert.Contains(t, flowContext.Think, "thinking process of the second step")
+	assert.Equal(t, "<think>The thinking process of the second step is more complex</think>", flowContext.Think)
+
+	// Verify that the Text field doesn't contain any <think> tag content
+	assert.NotContains(t, flowContext.Text, "<think>")
+	assert.NotContains(t, flowContext.Text, "</think>")
+	assert.NotContains(t, flowContext.Text, "thinking process")
+
+	// Verify that the Text field contains the cleaned text from the last step
+	assert.Equal(t, "Second step processing. Final decision.", flowContext.Text)
+}

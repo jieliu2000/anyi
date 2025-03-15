@@ -3,6 +3,8 @@ package flow
 import (
 	"encoding/json"
 	"errors"
+	"regexp"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 
@@ -75,6 +77,7 @@ type FlowContext struct {
 	Memory    ShortTermMemory
 	Flow      *Flow
 	ImageURLs []string
+	Think     string // Stores thinking content extracted from <think> tags in model output
 }
 
 func (fc *FlowContext) UnmarshalJsonText(entity any) error {
@@ -150,20 +153,35 @@ func (flow *Flow) RunWithInput(input string) (*FlowContext, error) {
 }
 
 func (flow *Flow) Run(initialFlowContext FlowContext) (*FlowContext, error) {
-
 	flowContext := &initialFlowContext
 	flowContext.Flow = flow
+
+	// 编译正则表达式用于提取 <think> 标签内容
+	thinkRegex, err := regexp.Compile(`(?s)<think>.*?</think>`)
+	if err != nil {
+		return nil, err
+	}
 
 	log.Debug("Starting run flow ", flow.Name, " with initial context.")
 	// For each step in the flow
 	for _, step := range flow.Steps {
 		// Run the step and get the updated flowContext
-
 		result, err := tryStep(&step, *flowContext)
 
 		log.Debug("Step running finished. Error:", err, ".")
 		if err != nil {
 			return nil, err
+		}
+
+		// 检查结果中是否包含 <think> 标签
+		if result != nil && result.Text != "" {
+			thinkMatch := thinkRegex.FindStringSubmatch(result.Text)
+			if len(thinkMatch) > 0 {
+				// 提取 <think> 标签内容到 Think 属性
+				result.Think = thinkMatch[0]
+				// 移除 <think> 标签内容，保留清理后的文本
+				result.Text = strings.TrimSpace(thinkRegex.ReplaceAllString(result.Text, ""))
+			}
 		}
 
 		// Update the flowContext
