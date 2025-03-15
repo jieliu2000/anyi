@@ -12,6 +12,8 @@ import (
 	"github.com/jieliu2000/anyi/llm/chat"
 )
 
+// anyiRegistry is the central registry for all components in the Anyi framework.
+// It stores clients, flows, validators, executors, and formatters for reuse across the application.
 type anyiRegistry struct {
 	Clients           map[string]llm.Client
 	Flows             map[string]*flow.Flow
@@ -21,6 +23,8 @@ type anyiRegistry struct {
 	defaultClientName string
 }
 
+// GlobalRegistry is the singleton instance of anyiRegistry.
+// All components are registered and retrieved through this global registry.
 var GlobalRegistry *anyiRegistry = &anyiRegistry{
 	Clients:    make(map[string]llm.Client),
 	Flows:      make(map[string]*flow.Flow),
@@ -29,9 +33,15 @@ var GlobalRegistry *anyiRegistry = &anyiRegistry{
 	Formatters: make(map[string]chat.PromptFormatter),
 }
 
-// RegisterDefaultClient registers the default client to the global registry.
+// RegisterDefaultClient registers a client as the default client in the global registry.
+// If no name is provided, it uses "default" as the client name.
+//
 // Parameters:
-// - client llm.Client: The client to be registered as the default client.
+//   - name: Name to register the client under (uses "default" if empty)
+//   - client: LLM client to register as the default
+//
+// Returns:
+//   - Any error encountered during registration
 func RegisterDefaultClient(name string, client llm.Client) error {
 	if name == "" {
 		name = "default"
@@ -44,11 +54,12 @@ func RegisterDefaultClient(name string, client llm.Client) error {
 	return nil
 }
 
-// GetDefaultClient function retrieves the default client from the Anyi global registry. A default client is a client that meets any of the following conditions:
-// - It has been Set to the global Anyi instance with name "default"
-// - There is only one client in the registry. Then this client will be the default client and returned.
+// GetDefaultClient retrieves the default client from the global registry.
+// It returns the client registered as "default", or the only client if only one exists.
 //
-// If no client is found, it returns an error indicating that no default client was found.
+// Returns:
+//   - The default LLM client
+//   - An error if no default client is found
 func GetDefaultClient() (llm.Client, error) {
 
 	defaultName := GlobalRegistry.defaultClientName
@@ -68,10 +79,16 @@ func GetDefaultClient() (llm.Client, error) {
 	return client, nil
 }
 
-// The function creates a new client based on the given configuration and, if a non-empty name is provided, Set that client to the global Anyi instance.
-// The name is used to identify the client in Anyi. After a client is Seted to Anyi with a name, you can access it by calling [GetClient].
-// Please note that if the name is empty but the config is valid, the client will still be created but it won't be Seted to Anyi. No error will be returned in this case.
-// If the config is invalid, an error will be returned.
+// NewClient creates a new client from a model configuration and optionally registers it.
+// If a name is provided, the client is registered in the global registry under that name.
+//
+// Parameters:
+//   - name: Name to register the client under (optional, can be empty)
+//   - model: Model configuration for the client
+//
+// Returns:
+//   - A new LLM client
+//   - Any error encountered during client creation
 func NewClient(name string, model llm.ModelConfig) (llm.Client, error) {
 	client, err := llm.NewClient(model)
 	if err != nil {
@@ -84,6 +101,15 @@ func NewClient(name string, model llm.ModelConfig) (llm.Client, error) {
 	return client, nil
 }
 
+// RegisterFlow registers a flow in the global registry.
+// Each flow must have a unique name.
+//
+// Parameters:
+//   - name: Name to register the flow under
+//   - flow: Workflow to register
+//
+// Returns:
+//   - Any error encountered during registration
 func RegisterFlow(name string, flow *flow.Flow) error {
 	if name == "" {
 		return errors.New("name cannot be empty")
@@ -92,6 +118,14 @@ func RegisterFlow(name string, flow *flow.Flow) error {
 	return nil
 }
 
+// GetFlow retrieves a flow from the global registry by name.
+//
+// Parameters:
+//   - name: Name of the flow to retrieve
+//
+// Returns:
+//   - The requested workflow
+//   - An error if the flow is not found
 func GetFlow(name string) (*flow.Flow, error) {
 	if name == "" {
 		return nil, errors.New("name cannot be empty")
@@ -103,8 +137,15 @@ func GetFlow(name string) (*flow.Flow, error) {
 	return f, nil
 }
 
-// The function Sets a client to the global Anyi instance.
-// If the client or name is nil, an error will be returned.
+// RegisterClient registers a client in the global registry.
+// Each client must have a unique name.
+//
+// Parameters:
+//   - name: Name to register the client under
+//   - client: LLM client to register
+//
+// Returns:
+//   - Any error encountered during registration
 func RegisterClient(name string, client llm.Client) error {
 	if client == nil {
 		return errors.New("client cannot be empty")
@@ -116,6 +157,15 @@ func RegisterClient(name string, client llm.Client) error {
 	return nil
 }
 
+// GetValidator retrieves a validator from the global registry by name.
+// It returns a new instance of the validator with the same configuration.
+//
+// Parameters:
+//   - name: Name of the validator to retrieve
+//
+// Returns:
+//   - A new instance of the requested validator
+//   - An error if the validator is not found
 func GetValidator(name string) (flow.StepValidator, error) {
 	if name == "" {
 		return nil, errors.New("name cannot be empty")
@@ -136,6 +186,15 @@ func GetValidator(name string) (flow.StepValidator, error) {
 	return validatorType, nil
 }
 
+// GetExecutor retrieves an executor from the global registry by name.
+// It returns a new instance of the executor with the same configuration.
+//
+// Parameters:
+//   - name: Name of the executor to retrieve
+//
+// Returns:
+//   - A new instance of the requested executor
+//   - An error if the executor is not found
 func GetExecutor(name string) (flow.StepExecutor, error) {
 	if name == "" {
 		return nil, errors.New("name cannot be empty")
@@ -155,6 +214,14 @@ func GetExecutor(name string) (flow.StepExecutor, error) {
 	return executor, nil
 }
 
+// GetClient retrieves a client from the global registry by name.
+//
+// Parameters:
+//   - name: Name of the client to retrieve
+//
+// Returns:
+//   - The requested LLM client
+//   - An error if the client is not found
 func GetClient(name string) (llm.Client, error) {
 	if name == "" {
 		return nil, errors.New("name cannot be empty")
@@ -166,13 +233,16 @@ func GetClient(name string) (llm.Client, error) {
 	return client, nil
 }
 
-// NewClientFromConfigFile creates a new client based on the model config file.
-// The configFile parameter is the path to the model config file. Anyi reads config file using [viper] library.
-// The name parameter is used to identify the client in Anyi. After a client is Seted to Anyi with a name, you can access it by calling Anyi.GetClient(name).
-// Please note that if the name is empty but the config is valid, the client will still be created but it won't be Seted to Anyi. No error will be returned in this case.
-// If the config is invalid, an error will be returned.
+// NewClientFromConfigFile creates a new client from a configuration file and optionally registers it.
+// The file can be in any format supported by Viper (e.g., YAML, JSON, TOML).
 //
-// [viper]: https://github.com/spf13/viper
+// Parameters:
+//   - name: Name to register the client under (optional, can be empty)
+//   - configFile: Path to the client configuration file
+//
+// Returns:
+//   - A new LLM client
+//   - Any error encountered during client creation
 func NewClientFromConfigFile(name string, configFile string) (llm.Client, error) {
 	client, err := llm.NewClientFromConfigFile(configFile)
 	if err != nil {
@@ -185,6 +255,14 @@ func NewClientFromConfigFile(name string, configFile string) (llm.Client, error)
 	return client, nil
 }
 
+// NewMessage creates a new chat message with the specified role and content.
+//
+// Parameters:
+//   - role: Role of the message sender (e.g., "user", "assistant", "system")
+//   - content: Content of the message
+//
+// Returns:
+//   - A new chat message
 func NewMessage(role string, content string) chat.Message {
 	return chat.Message{
 		Role:    role,
@@ -192,22 +270,27 @@ func NewMessage(role string, content string) chat.Message {
 	}
 }
 
-// NewFlowContextWithText creates a new FlowContext with the provided text.
+// NewFlowContextWithText creates a new flow context with the specified text.
+// It's a convenience function for creating a context with only text and no memory.
+//
 // Parameters:
-// - text string: The text content for the FlowContext.
-// return value:
-// - *flow.FlowContext: A new FlowContext instance with the provided text.
+//   - text: Text content for the flow context
+//
+// Returns:
+//   - A new flow context with the specified text
 func NewFlowContextWithText(text string) *flow.FlowContext {
 	return NewFlowContext(text, nil)
 }
 
-// NewFlowContextWithMemory creates a new FlowContext with the specified input string and short-term memory.
+// NewFlowContext creates a new flow context with the specified text and memory.
+// This is the core function for creating flow contexts.
+//
 // Parameters:
-// - text string: The input string for the FlowContext. Leave it empty if you don't need any text information in the flow context.
-// - memory flow.ShortTermMemory: The short-term memory for the FlowContext. This is actually an any type parameter. You can pass any type of memory object you want.
-
-// Return value:
-// - *flow.FlowContext: A pointer to the newly created FlowContext.
+//   - text: Text content for the flow context
+//   - memory: Short-term memory for the flow context (can be any type)
+//
+// Returns:
+//   - A new flow context with the specified text and memory
 func NewFlowContext(text string, memory flow.ShortTermMemory) *flow.FlowContext {
 	flowContext := flow.FlowContext{
 		Text:   text,
@@ -217,14 +300,38 @@ func NewFlowContext(text string, memory flow.ShortTermMemory) *flow.FlowContext 
 	return &flowContext
 }
 
+// NewFlowContextWithMemory creates a new flow context with the specified memory and empty text.
+// It's a convenience function for creating a context with only memory.
+//
+// Parameters:
+//   - memory: Short-term memory for the flow context
+//
+// Returns:
+//   - A new flow context with the specified memory and empty text
 func NewFlowContextWithMemory(memory flow.ShortTermMemory) *flow.FlowContext {
 	return NewFlowContext("", memory)
 }
 
+// GetFormatter retrieves a formatter from the global registry by name.
+//
+// Parameters:
+//   - name: Name of the formatter to retrieve
+//
+// Returns:
+//   - The requested prompt formatter, or nil if not found
 func GetFormatter(name string) chat.PromptFormatter {
 	return GlobalRegistry.Formatters[name]
 }
 
+// RegisterFormatter registers a formatter in the global registry.
+// Each formatter must have a unique name.
+//
+// Parameters:
+//   - name: Name to register the formatter under
+//   - formatter: Prompt formatter to register
+//
+// Returns:
+//   - Any error encountered during registration
 func RegisterFormatter(name string, formatter chat.PromptFormatter) error {
 	if name == "" {
 		return errors.New("name cannot be empty")
@@ -233,6 +340,16 @@ func RegisterFormatter(name string, formatter chat.PromptFormatter) error {
 	return nil
 }
 
+// NewPromptTemplateFormatterFromFile creates a new template formatter from a file and registers it.
+// The file should contain a Go template for formatting prompts.
+//
+// Parameters:
+//   - name: Name to register the formatter under
+//   - templateFile: Path to the template file
+//
+// Returns:
+//   - A new template formatter
+//   - Any error encountered during formatter creation
 func NewPromptTemplateFormatterFromFile(name string, templateFile string) (*chat.PromptyTemplateFormatter, error) {
 	if name == "" {
 		return nil, errors.New("name cannot be empty")
@@ -246,6 +363,16 @@ func NewPromptTemplateFormatterFromFile(name string, templateFile string) (*chat
 	return formatter, err
 }
 
+// NewPromptTemplateFormatter creates a new template formatter from a string and registers it.
+// The string should contain a Go template for formatting prompts.
+//
+// Parameters:
+//   - name: Name to register the formatter under
+//   - template: Template string
+//
+// Returns:
+//   - A new template formatter
+//   - Any error encountered during formatter creation
 func NewPromptTemplateFormatter(name string, template string) (*chat.PromptyTemplateFormatter, error) {
 	if name == "" {
 		return nil, errors.New("name cannot be empty")
@@ -258,6 +385,17 @@ func NewPromptTemplateFormatter(name string, template string) (*chat.PromptyTemp
 	return formatter, err
 }
 
+// NewFlow creates a new workflow with the specified name, client, and steps.
+// The workflow is registered in the global registry.
+//
+// Parameters:
+//   - name: Name for the workflow
+//   - client: LLM client to use for the workflow
+//   - steps: Workflow steps to include
+//
+// Returns:
+//   - A new workflow
+//   - Any error encountered during workflow creation
 func NewFlow(name string, client llm.Client, steps ...flow.Step) (*flow.Flow, error) {
 	if name == "" {
 		return nil, errors.New("name cannot be empty")
@@ -276,13 +414,15 @@ func NewFlow(name string, client llm.Client, steps ...flow.Step) (*flow.Flow, er
 	return f, nil
 }
 
-// RegisterExecutor function registers a StepExecutor to the global registry with a specified name.
-// Note here you can simply pass an empty StepExecutor instance to the GlobalRegistry. The executors are used by steps. You can config the properties of the executors in step config or actual execution.
+// RegisterExecutor registers an executor in the global registry.
+// Executors are used to execute steps in workflows.
+//
 // Parameters:
-// - name string: The name of the executor to be registered.
-// - executor flow.StepExecutor: The executor to be registered.
-// Return value:
-// - error: If an error occurs during registration, the corresponding error message is returned.
+//   - name: Name to register the executor under
+//   - executor: Step executor to register
+//
+// Returns:
+//   - Any error encountered during registration
 func RegisterExecutor(name string, executor flow.StepExecutor) error {
 	if name == "" {
 		return errors.New("name cannot be empty")
@@ -296,13 +436,15 @@ func RegisterExecutor(name string, executor flow.StepExecutor) error {
 	return nil
 }
 
-// RegisterValidator registers a validator with a given name to the global registry.
-// Note here you can simply pass an empty StepValidator instance to the GlobalRegistry. The validators are used by steps. You can config the properties of the validators in step config or actual validation.
+// RegisterValidator registers a validator in the global registry.
+// Validators are used to validate the output of workflow steps.
+//
 // Parameters:
-// - name string: The name of the validator to be registered.
-// - validator flow.StepValidator: The validator to be registered.
-// Return value:
-// - error: If an error occurs during registration, the corresponding error message is returned.
+//   - name: Name to register the validator under
+//   - validator: Step validator to register
+//
+// Returns:
+//   - Any error encountered during registration
 func RegisterValidator(name string, validator flow.StepValidator) error {
 	if name == "" {
 		return errors.New("name cannot be empty")
@@ -314,6 +456,17 @@ func RegisterValidator(name string, validator flow.StepValidator) error {
 	return nil
 }
 
+// NewLLMStepExecutorWithFormatter creates a new LLM step executor with a template formatter.
+// The executor is registered in the global registry.
+//
+// Parameters:
+//   - name: Name to register the executor under
+//   - formatter: Template formatter for generating prompts
+//   - systemMessage: System message to include in the conversation
+//   - client: LLM client to use for execution
+//
+// Returns:
+//   - A new LLM executor
 func NewLLMStepExecutorWithFormatter(name string, formatter *chat.PromptyTemplateFormatter, systemMessage string, client llm.Client) *LLMExecutor {
 
 	stepExecutor := LLMExecutor{
@@ -325,10 +478,23 @@ func NewLLMStepExecutorWithFormatter(name string, formatter *chat.PromptyTemplat
 	return &stepExecutor
 }
 
+// NewLLMStep creates a new workflow step with an LLM executor.
+// This is a convenience function that calls NewLLMStepWithTemplate.
+//
+// Parameters:
+//   - tmplate: Template string for generating prompts
+//   - systemMessage: System message to include in the conversation
+//   - client: LLM client to use for the step
+//
+// Returns:
+//   - A new workflow step
+//   - Any error encountered during step creation
 func NewLLMStep(tmplate string, systemMessage string, client llm.Client) (*flow.Step, error) {
 	return NewLLMStepWithTemplate(tmplate, systemMessage, client)
 }
 
+// Init initializes the Anyi framework by registering built-in executors and validators.
+// This should be called before using the framework, but is automatically called by Config.
 func Init() {
 
 	log.Debug("Initializing Anyi...")

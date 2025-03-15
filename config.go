@@ -13,28 +13,38 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
+// AnyiConfig represents the top-level configuration structure for the Anyi framework.
+// It contains configurations for clients, flows, and formatters.
 type AnyiConfig struct {
 	Clients    []llm.ClientConfig
 	Flows      []FlowConfig
 	Formatters []FormatterConfig
 }
 
+// ValidatorConfig defines the configuration structure for validators.
+// Validators are used to validate the output of workflow steps.
 type ValidatorConfig struct {
 	Type       string                 `mapstructure:"type" json:"type" yaml:"type"`
 	WithConfig map[string]interface{} `mapstructure:"withconfig" json:"withconfig" yaml:"withconfig"`
 }
 
+// ExecutorConfig defines the configuration structure for executors.
+// Executors are responsible for executing workflow steps.
 type ExecutorConfig struct {
 	Type       string                 `mapstructure:"type" json:"type" yaml:"type"`
 	WithConfig map[string]interface{} `mapstructure:"withconfig" json:"withconfig" yaml:"withconfig"`
 }
 
+// FormatterConfig defines the configuration structure for formatters.
+// Formatters are used to format prompts for LLM interactions.
 type FormatterConfig struct {
 	Name       string                 `mapstructure:"name" json:"name" yaml:"name"`
 	Type       string                 `mapstructure:"type" json:"type" yaml:"type"`
 	WithConfig map[string]interface{} `mapstructure:"withconfig" json:"withconfig" yaml:"withconfig"`
 }
 
+// FlowConfig defines the configuration structure for workflows.
+// A workflow consists of a series of steps that are executed in sequence.
 type FlowConfig struct {
 	ClientName   string           `mapstructure:"clientName" json:"clientName" yaml:"clientName"`
 	ClientConfig llm.ClientConfig `mapstructure:"clientConfig" json:"clientConfig" yaml:"clientConfig"`
@@ -42,6 +52,8 @@ type FlowConfig struct {
 	Steps        []StepConfig     `mapstructure:"steps" json:"steps" yaml:"steps"`
 }
 
+// StepConfig defines the configuration structure for workflow steps.
+// Each step represents a unit of work within a workflow.
 type StepConfig struct {
 	ClientName string `mapstructure:"clientName" json:"clientName" yaml:"clientName"`
 	// The client name which will be used to validate the step output. If not set, validator will use the default client of the step (which is identified by the ClientName field). If the step doesn't have a default client, the validator will use the default client of the flow.
@@ -54,6 +66,16 @@ type StepConfig struct {
 	Name     string          `mapstructure:"name" json:"name" yaml:"name"`
 }
 
+// NewClientFromConfig creates a new LLM client from a client configuration.
+// It creates the appropriate model configuration, initializes the client,
+// and registers it with the global registry if specified.
+//
+// Parameters:
+//   - config: Client configuration containing type, API keys, and other settings
+//
+// Returns:
+//   - A new LLM client instance
+//   - Any error encountered during client creation
 func NewClientFromConfig(config *llm.ClientConfig) (llm.Client, error) {
 	model, err := llm.NewModelConfigFromClientConfig(config)
 	if err != nil {
@@ -75,6 +97,16 @@ func NewClientFromConfig(config *llm.ClientConfig) (llm.Client, error) {
 	return client, nil
 }
 
+// NewStepFromConfig creates a new workflow step from a step configuration.
+// It initializes the validator and executor based on the configuration,
+// and associates the appropriate client with the step.
+//
+// Parameters:
+//   - stepConfig: Step configuration containing executor, validator, and client settings
+//
+// Returns:
+//   - A new workflow step
+//   - Any error encountered during step creation
 func NewStepFromConfig(stepConfig *StepConfig) (*flow.Step, error) {
 
 	if stepConfig == nil {
@@ -121,6 +153,16 @@ func NewStepFromConfig(stepConfig *StepConfig) (*flow.Step, error) {
 	return step, nil
 }
 
+// NewFlowFromConfig creates a new workflow from a flow configuration.
+// It initializes each step in the workflow, associates the appropriate client,
+// and registers the flow with the global registry.
+//
+// Parameters:
+//   - flowConfig: Flow configuration containing steps and client settings
+//
+// Returns:
+//   - A new workflow
+//   - Any error encountered during flow creation
 func NewFlowFromConfig(flowConfig *FlowConfig) (*flow.Flow, error) {
 
 	if flowConfig == nil {
@@ -156,6 +198,16 @@ func NewFlowFromConfig(flowConfig *FlowConfig) (*flow.Flow, error) {
 	return flow, err
 }
 
+// NewExecutorFromConfig creates a new executor from an executor configuration.
+// It instantiates the appropriate executor type based on the configuration,
+// decodes the configuration parameters, and initializes the executor.
+//
+// Parameters:
+//   - executorConfig: Executor configuration containing type and parameters
+//
+// Returns:
+//   - A new step executor
+//   - Any error encountered during executor creation
 func NewExecutorFromConfig(executorConfig *ExecutorConfig) (flow.StepExecutor, error) {
 	if executorConfig == nil {
 		return nil, errors.New("executor config is nil")
@@ -181,6 +233,16 @@ func NewExecutorFromConfig(executorConfig *ExecutorConfig) (flow.StepExecutor, e
 	return executor, nil
 }
 
+// NewValidatorFromConfig creates a new validator from a validator configuration.
+// It instantiates the appropriate validator type based on the configuration,
+// decodes the configuration parameters, and initializes the validator.
+//
+// Parameters:
+//   - validatorConfig: Validator configuration containing type and parameters
+//
+// Returns:
+//   - A new step validator
+//   - Any error encountered during validator creation
 func NewValidatorFromConfig(validatorConfig *ValidatorConfig) (flow.StepValidator, error) {
 	if validatorConfig == nil {
 		return nil, errors.New("validator config is nil")
@@ -207,6 +269,14 @@ func NewValidatorFromConfig(validatorConfig *ValidatorConfig) (flow.StepValidato
 
 }
 
+// Config configures the Anyi framework with the provided configuration.
+// It initializes clients, flows, and formatters based on the configuration.
+//
+// Parameters:
+//   - config: Complete configuration for the Anyi framework
+//
+// Returns:
+//   - Any error encountered during configuration
 func Config(config *AnyiConfig) error {
 
 	Init()
@@ -236,6 +306,14 @@ func Config(config *AnyiConfig) error {
 
 }
 
+// ConfigFromFile loads configuration from a file and configures the Anyi framework.
+// The file can be in any format supported by Viper (e.g., YAML, JSON, TOML).
+//
+// Parameters:
+//   - configFile: Path to the configuration file
+//
+// Returns:
+//   - Any error encountered during configuration loading
 func ConfigFromFile(configFile string) error {
 
 	anyiConfig, err := utils.UnmarshallConfig(configFile, &AnyiConfig{})
@@ -246,10 +324,15 @@ func ConfigFromFile(configFile string) error {
 	return Config(anyiConfig)
 }
 
-// ConfigFromString loads configuration from a string content
+// ConfigFromString loads configuration from a string content and configures the Anyi framework.
+// The string can be in any format supported by the configType parameter.
+//
 // Parameters:
-// - configContent string: The configuration content as a string
-// - configType string: The configuration type (e.g. "yaml", "json", "toml"). If empty, the format will be auto-detected.
+//   - configContent: Configuration content as a string
+//   - configType: Configuration format type (e.g., "yaml", "json", "toml")
+//
+// Returns:
+//   - Any error encountered during configuration loading
 func ConfigFromString(configContent string, configType string) error {
 	if configContent == "" || configType == "" {
 		return errors.New("configContent and configType cannot be empty")
