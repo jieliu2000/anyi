@@ -1,43 +1,131 @@
-# Anyi Tutorials and Examples
+# Anyi Programming Guide and Examples
 
 | [English](../en/tutorial.md) | [中文](../zh/tutorial.md) |
 
 ## Table of Contents
 
+- [Introduction](#introduction)
 - [Installation](#installation)
-- [Accessing Large Language Models](#accessing-large-language-models)
-  - [Client Creation](#creating-clients)
+- [Large Language Model Access](#large-language-model-access)
+  - [Client Creation Methods](#client-creation-methods)
   - [Client Configuration](#client-configuration)
     - [OpenAI](#openai)
+    - [Anthropic](#anthropic)
     - [Azure OpenAI](#azure-openai)
-    - [Dashscope](#dashscope)
     - [Ollama](#ollama)
-    - [Zhipu AI Open Platform](#zhipu-ai-open-platform-bigmodelcn)
-    - [DeepSeek AI](#deepseek)
-    - [SiliconCloud AI Platform](#siliconcloud-ai-platform-siliconflowcn)
-- [Large Language Model Chat](#large-language-model-chat)
-  - [Message Structure](#chatmessage-struct)
-  - [Return Values](#return-values-of-large-model-invocation)
-- [Multimodal Large Model Invocation](#multimodal-large-model-invocation)
-  - [Basic Usage](#the-simplest-multimodal-large-model-invocation)
-  - [ContentParts Property](#reading-images-to-the-large-model-via-the-chatcontentparts-property)
+    - [Other Providers](#other-providers)
+- [Chat API Usage](#chat-api-usage)
+  - [Message Structure](#message-structure)
+  - [Return Values](#return-values)
+  - [Chat Options](#chat-options)
+- [Multimodal Model Usage](#multimodal-model-usage)
+  - [Sending Images](#sending-images)
+  - [Using ContentParts](#using-contentparts)
+- [Working with Functions](#working-with-functions)
+  - [Function Definitions](#function-definitions)
+  - [Function Calling](#function-calling)
+- [Workflow System](#workflow-system)
+  - [Flow Creation](#flow-creation)
+  - [Steps and Executors](#steps-and-executors)
+  - [Data Passing Between Steps](#data-passing-between-steps)
+  - [Validation and Retries](#validation-and-retries)
+  - [Conditional Flows](#conditional-flows)
+- [Configuration System](#configuration-system)
+  - [Dynamic Configuration](#dynamic-configuration)
+  - [Configuration Files](#configuration-files)
+  - [Environment Variables](#environment-variables)
+- [Built-in Components](#built-in-components)
+  - [Executors](#executors)
+  - [Validators](#validators)
+  - [Formatting](#formatting)
+- [Advanced Usage](#advanced-usage)
+  - [Multiple Client Management](#multiple-client-management)
+  - [Prompt Templates](#prompt-templates)
+  - [Error Handling](#error-handling)
+- [Best Practices](#best-practices)
+  - [Performance Optimization](#performance-optimization)
+  - [Cost Management](#cost-management)
+  - [Security Considerations](#security-considerations)
+
+## Introduction
+
+Anyi is an open-source Autonomous AI Agent framework written in Go, designed to help you build AI agents that integrate seamlessly with real-world workflows. This guide provides detailed programming instructions and examples for using the Anyi framework effectively.
+
+### Key Features of Anyi
+
+- **Unified LLM Interface**: Access multiple LLM providers through a consistent API
+- **Flexible Workflow System**: Build complex, multi-step AI processes with validation and error handling
+- **Configuration Management**: Support for YAML, JSON, and TOML configuration files
+- **Built-in Components**: Ready-to-use executors and validators for common tasks
+- **Extensible Architecture**: Create custom components to fit your specific needs
+
+### When to Use Anyi
+
+Anyi is particularly useful when:
+- You need to orchestrate complex interactions between multiple AI models
+- You want to build reliable AI workflows with validation and error handling
+- You need to switch between different LLM providers without changing your code
+- You're building production-grade AI applications in Go
 
 ## Installation
 
+To start using Anyi, install it via Go modules:
+
 ```bash
-go get -u  github.com/jieliu2000/anyi
+go get -u github.com/jieliu2000/anyi
 ```
 
-## Accessing Large Language Models
+Anyi requires Go version 1.20 or higher.
 
-Anyi supports access to the following large language model APIs:
+### Verifying Your Installation
 
-- OpenAI
-- Azure OpenAI
-- Alibaba Cloud Model Service Lingji (Dashscope)
-- Ollama
+You can verify your installation by creating a simple program that imports the Anyi package:
 
-Anyi uses a unified interface for accessing different large models, allowing you to use almost the same set of code with different configurations to access various large models. Below is a simple example using OpenAI:
+```go
+package main
+
+import (
+	"fmt"
+	"github.com/jieliu2000/anyi"
+)
+
+func main() {
+	fmt.Println("Anyi version:", anyi.Version)
+}
+```
+
+## Large Language Model Access
+
+Anyi provides a unified way to interact with various Large Language Models (LLMs) through a consistent interface. This approach allows you to easily switch between different providers without changing your application logic.
+
+### Understanding Anyi's Client Architecture
+
+Before diving into the code, it's important to understand how Anyi organizes LLM access:
+
+1. **Providers**: Each LLM service (OpenAI, Anthropic, etc.) has a dedicated provider module
+2. **Clients**: Instances that handle communication with specific LLM services
+3. **Registry**: A global store of named clients for easy retrieval throughout your application
+
+### Client Creation Methods
+
+Anyi provides a unified interface for accessing various large language models. There are two primary methods for creating clients:
+
+1. Using `anyi.NewClient()` - Creates a named client registered in the global registry
+2. Using `llm.NewClient()` - Creates an unregistered client instance that you manage yourself
+
+#### When to Use Named vs. Unregistered Clients
+
+- **Named Clients** are ideal when you need to:
+  - Access the same client instance from different parts of your application
+  - Configure once and reuse throughout your codebase
+  - Manage multiple clients with different configurations
+
+- **Unregistered Clients** are better when:
+  - You need isolated client instances for specific tasks
+  - You want to avoid potential naming conflicts
+  - Your application has a simple structure with limited LLM interactions
+
+#### Named Client Example
 
 ```go
 package main
@@ -52,297 +140,188 @@ import (
 )
 
 func main() {
-
-	// Before running, make sure to set the OPENAI_API_KEY environment variable to your OpenAI API key.
-	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
-	client, err := anyi.NewClient("openai", config)
-
+	// Create a client with a name "gpt4"
+	config := openai.DefaultConfig("gpt-4")
+	config.APIKey = os.Getenv("OPENAI_API_KEY")
+	
+	client, err := anyi.NewClient("gpt4", config)
 	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)
 	}
-
-	messages := []chat.Message{
-		{Role: "user", Content: "5+1=?"},
+	
+	// Later, you can retrieve this client by name
+	retrievedClient, err := anyi.GetClient("gpt4")
+	if err != nil {
+		log.Fatalf("Failed to retrieve client: %v", err)
 	}
-	message, _, _:= client.Chat(messages, nil)
-
-	log.Printf("Response: %s\n", message.Content)
+	
+	// Use the client
+	messages := []chat.Message{
+		{Role: "user", Content: "What is the capital of France?"},
+	}
+	response, _, err := retrievedClient.Chat(messages, nil)
+	if err != nil {
+		log.Fatalf("Chat failed: %v", err)
+	}
+	
+	log.Printf("Response: %s", response.Content)
 }
 ```
 
-In the above code, we create the OpenAI configuration using the `openai.DefaultConfig()` function and then create an Anyi client using the `anyi.NewClient()` function.
-
-### Creating Clients
-
-Clients can be created in Anyi using the following two methods:
-
-- Directly using the `anyi.NewClient()` function, passing the model name and configuration.
-- Using the `llm.NewClient()` function, where `llm` is a submodule of `github.com/jieliu2000/anyi/llm`.
-
-The difference between `llm.NewClient()` and `anyi.NewClient()` is that clients created with `llm.NewClient()` do not have a client name, so you need to save the created instance in your code yourself, while clients created with `anyi.NewClient()` have a client name. After creation, you can retrieve the client instance through the `anyi.GetClient()` function.
-
-Below is an example of creating a client using `anyi.NewClient()`:
+#### Unregistered Client Example
 
 ```go
-config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
-_, err := anyi.NewClient("openai", config)
+package main
 
-// Get the client instance by client name
-client, err = anyi.GetClient("openai")
+import (
+	"log"
+	"os"
+
+	"github.com/jieliu2000/anyi/llm"
+	"github.com/jieliu2000/anyi/llm/anthropic"
+	"github.com/jieliu2000/anyi/llm/chat"
+)
+
+func main() {
+	// Create a client without registering it
+	config := anthropic.DefaultConfig("claude-3-opus-20240229")
+	config.APIKey = os.Getenv("ANTHROPIC_API_KEY")
+	
+	client, err := llm.NewClient(config)
+	if err != nil {
+		log.Fatalf("Failed to create client: %v", err)
+	}
+	
+	// Use the client directly
+	messages := []chat.Message{
+		{Role: "user", Content: "Explain quantum computing in simple terms"},
+	}
+	response, _, err := client.Chat(messages, nil)
+	if err != nil {
+		log.Fatalf("Chat failed: %v", err)
+	}
+	
+	log.Printf("Response: %s", response.Content)
+}
 ```
 
 ### Client Configuration
 
-In Anyi, you can create different large model clients with different configurations. Here are some code examples. You can also find more complete code examples in the [Anyi LLM pkg.go.dev documentation](https://pkg.go.dev/github.com/jieliu2000/anyi/llm).
+Each LLM provider has its own configuration structure. Understanding the specific configuration options for each provider is crucial for optimizing your interactions with different models.
+
+#### Configuration Best Practices
+
+- Store API keys in environment variables rather than hardcoding them
+- Use provider-specific default configurations as starting points
+- Consider setting custom timeouts for production environments
+- Use custom base URLs for self-hosted models or proxy services
 
 #### OpenAI
 
-##### Creating a Client with Default Configuration
+OpenAI's API is widely used and provides access to models like GPT-4 and GPT-3.5.
 
 ```go
+// Default configuration (gpt-3.5-turbo)
 config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
-client, err := anyi.NewClient("openai", config)
+
+// Configuration with specific model
+config := openai.NewConfigWithModel(os.Getenv("OPENAI_API_KEY"), "gpt-4o")
+
+// Configuration with custom base URL (for self-hosted or proxy services)
+config := openai.NewConfig(
+    os.Getenv("OPENAI_API_KEY"), 
+    "gpt-4", 
+    "https://your-openai-proxy.com/v1"
+)
 ```
 
-##### Creating a Client with Specified Model Name
+#### Anthropic
 
-The default configuration uses the `gpt-3.5-turbo` model. If you want to use another model, you can create a configuration using the `openai.NewConfigWithModel()` function:
+Anthropic's Claude models are known for their safety, helpfulness, and honesty.
 
 ```go
-config := openai.NewConfigWithModel(os.Getenv("OPENAI_API_KEY"), openai.GPT4o)
-client, err := anyi.NewClient("gpt4o", config)
+// Default configuration
+config := anthropic.DefaultConfig(os.Getenv("ANTHROPIC_API_KEY"), "claude-3-opus-20240229")
+
+// Custom configuration
+config := anthropic.NewConfig(
+    os.Getenv("ANTHROPIC_API_KEY"),
+    "claude-3-haiku-20240307",
+    "https://api.anthropic.com"
+)
 ```
-
-You can reference the model name from any of the following documents:
-
-- OpenAI documentation
-- [completion.go in the go-openai project](https://github.com/sashabaranov/go-openai/blob/master/completion.go)
-- Constant definitions in [openai.go](../../llm/openai/openai.go) in Anyi
-
-##### Using a Different baseURL
-
-If you want to modify the baseURL used by OpenAI, you can create a configuration using the `openai.NewConfig()` function:
-
-```go
-config := openai.NewConfig(os.Getenv("OPENAI_API_KEY"), "gpt-4o-mini", "https://api.openai.com/v1")
-client, err := anyi.NewClient("gpt4o", config)
-```
-
-Here, `gpt-4o-mini` is the model name, and `https://api.openai.com/v1` is the baseURL. This parameter is particularly useful when using other large models compatible with the OpenAI API.
 
 #### Azure OpenAI
 
-The configuration method for Azure OpenAI differs from OpenAI. To use Azure OpenAI, you need to set the following parameters:
-
-- Azure OpenAI API Key
-- Azure OpenAI Model Deployment ID
-- Azure OpenAI Endpoint
-
-The following code demonstrates how to use Azure OpenAI in Anyi:
+Azure OpenAI provides Microsoft-hosted OpenAI models with enterprise features.
 
 ```go
-config := azureopenai.NewConfig(os.Getenv("AZ_OPENAI_API_KEY"), os.Getenv("AZ_OPENAI_MODEL_DEPLOYMENT_ID"), os.Getenv("AZ_OPENAI_ENDPOINT"))
-client, err := llm.NewClient(config)
-```
-
-The `azureopenai` module is `"github.com/jieliu2000/anyi/llm/azureopenai"`. You can import it as follows:
-
-```go
-import "github.com/jieliu2000/anyi/llm/azureopenai"
-```
-
-Since all configuration items in Azure OpenAI are required and there are no default options, there is only one way to create an Azure OpenAI configuration in Anyi.
-
-#### Dashscope
-
-Dashscope Lingji is a large model API service provided by Alibaba Cloud. You can access it at https://dashscope.aliyun.com/. Currently, Anyi accesses Dashscope via an OpenAI-compatible API. The specific Dashscope documentation can be found at https://help.aliyun.com/zh/dashscope/developer-reference/compatibility-of-openai-with-dashscope .
-
-##### Accessing Dashscope with Default Configuration
-
-```go
-// The first parameter of dashscope.DefaultConfig is the Dashscope API Key. If using this code, set the DASHSCOPE_API_KEY environment variable to your Dashscope API Key.
-config := dashscope.DefaultConfig(os.Getenv("DASHSCOPE_API_KEY"), "qwen-turbo")
-client, err := anyi.NewClient("openai", config)
-```
-
-Here, `qwen-turbo` is the model name. The `dashscope` module is `"github.com/jieliu2000/anyi/llm/dashscope"`. You can import it as follows:
-
-```go
-import "github.com/jieliu2000/anyi/llm/dashscope"
-```
-
-The default configuration here refers to using the default baseURL, which is `"https://dashscope.aliyuncs.com/compatible-mode/v1"`.
-
-##### Accessing Dashscope with a Specified baseURL
-
-```go
-// The first parameter of NewConfig is the Dashscope API Key. If using this code, set the DASHSCOPE_API_KEY environment variable to your Dashscope API Key. The second parameter is the model name, and the third parameter is the baseURL.
-config := dashscope.NewConfig(os.Getenv("DASHSCOPE_API_KEY"), "qwen-turbo", "https://your-url.com")
-client, err := anyi.NewClient("openai", config)
+config := azureopenai.NewConfig(
+    os.Getenv("AZ_OPENAI_API_KEY"),
+    os.Getenv("AZ_OPENAI_MODEL_DEPLOYMENT_ID"),
+    os.Getenv("AZ_OPENAI_ENDPOINT")
+)
 ```
 
 #### Ollama
 
-Ollama is a local LLM service that can run on your computer. You can visit https://ollama.ai/ for more information. Ollama supports multiple open-source models such as Llama 3.1, Mistral, qwen2, Phi-3, etc. To use Anyi to access Ollama, you need to install Ollama first and pull the model you wish to use with Ollama. If you're not familiar with Ollama usage, you can read the [Ollama documentation](https://github.com/ollama/ollama/tree/main/docs) first.
-
-The following code demonstrates how to use Ollama in Anyi:
+Ollama provides access to locally deployed open-source models.
 
 ```go
-// Ensure you have installed and started Ollama, and pulled the mistral model in Ollama.
-config := ollama.DefaultConfig("mistral")
-client, err := llm.NewClient(config)
-```
+// Default configuration (local server)
+config := ollama.DefaultConfig("llama3")
 
-Here, `mistral` is the model name. Refer to the [Ollama documentation](https://github.com/ollama/ollama/tree/main/docs) and the [Ollama model library list](https://ollama.com/library) for more model names.
-
-The `ollama` module is `"github.com/jieliu2000/anyi/llm/ollama"`. You can import it as follows:
-
-```go
-import "github.com/jieliu2000/anyi/llm/ollama"
-```
-
-When creating the configuration, the `ollama.DefaultConfig()` function is used, which creates a default Anyi Ollama configuration based on the passed model name. A default configuration means using the default baseURL, which is `"http://localhost:11434"`.
-
-If you want to access an Ollama API not hosted on localhost or if you've changed the port of the Ollama service, you can create a custom configuration using the `ollama.NewConfig()` function:
-
-```go
+// Custom server configuration
 config := ollama.NewConfig("mistral", "http://your-ollama-server:11434")
-client, err := llm.NewClient(config)
 ```
 
-#### Zhipu AI Open Platform (bigmodel.cn)
+#### Other Providers
 
-##### Accessing Zhipu AI with Default Configuration
+Anyi supports many other LLM providers, including:
 
-```go
-// Make sure you set ZHIPU_API_KEY environment variable to your Zhipu API key.
-config := zhipu.DefaultConfig(os.Getenv("ZHIPU_API_KEY"), "glm-4-flash")
-client, err := llm.NewClient(config)
-```
+- **DeepSeek**: `deepseek.DefaultConfig()`
+- **Zhipu AI**: `zhipu.DefaultConfig()`
+- **Dashscope (Alibaba)**: `dashscope.DefaultConfig()`
+- **SiliconCloud**: `siliconcloud.DefaultConfig()`
 
-The zhipu package path is:
+## Chat API Usage
 
-```go
-import "github.com/jieliu2000/anyi/llm/zhipu"
-```
+The core functionality of Anyi is to interact with LLMs through the Chat API. This section explains how to structure conversations, handle responses, and customize chat behavior.
 
-#### DeepSeek
+### Understanding the Chat Lifecycle
 
-##### Default Configuration for DeepSeek
+A typical chat interaction with an LLM follows these steps:
+1. **Prepare Messages**: Create a sequence of messages representing the conversation
+2. **Configure Options**: Set parameters like temperature, max tokens, etc.
+3. **Send Request**: Call the Chat method on your client
+4. **Process Response**: Handle the model's reply and any metadata
+5. **Continue Conversation**: Add the response to the message history for follow-ups
 
-```go
-// Make sure you set DEEPSEEK_API_KEY environment variable
-config := deepseek.DefaultConfig(os.Getenv("DEEPSEEK_API_KEY"), "deepseek-chat")
-client, err := llm.NewClient(config)
-```
+### Message Structure
 
-Check [DeepSeek Documentation](https://api-docs.deepseek.com/zh-cn/quick_start/pricing) to get more information about the model name and price.
-
-DeepSeek package path:
-
-```go
-import "github.com/jieliu2000/anyi/llm/deepseek"
-```
-
-#### SiliconCloud AI Platform (siliconflow.cn)
-
-##### Accessing SiliconCloud AI Platform
-
-```go
-// Make sure you set SILICONCLOUD_API_KEY environment variable to your Siliconcloud API key.
-config := siliconcloud.DefaultConfig(os.Getenv("SILICONCLOUD_API_KEY"), "glm-4-flash")
-client, err := llm.NewClient(config)
-```
-
-The siliconcloud package path is:
-
-```go
-import "github.com/jieliu2000/anyi/llm/siliconcloud"
-```
-
-### Large Language Model Chat
-
-In Anyi, the entry point for a standard LLM chat invocation is the `client.Chat()` function. This function takes a parameter of type `[]chat.Message`, which represents the chat messages received by the large model.
-
-The aforementioned `chat` package is `"github.com/jieliu2000/anyi/llm/chat"`. You can import it with the following code:
-
-```go
-import "github.com/jieliu2000/anyi/llm/chat"
-```
-
-#### `chat.Message` Struct
-
-The `chat.Message` struct is defined as follows:
+Chat messages in Anyi use the `chat.Message` structure:
 
 ```go
 type Message struct {
-	Content      string        `json:"content,omitempty"`
-	Role         string        `json:"role"`
-	ContentParts []ContentPart `json:"contentParts,omitempty"`
+	Role    string // "user", "assistant", "system"
+	Content string // Text content of the message
+	Name    string // Optional name (for multi-agent contexts)
+	
+	// For multimodal content
+	ContentParts []ContentPart
 }
 ```
 
-Here, `Content` is the message content, `Role` is the role of the message sender, and `ContentParts` is an attribute set up for calling images in multimodal large models. We will discuss how to use the `ContentParts` property to pass images to large models later on. If you only need to chat using text messages with a large model, the `Content` attribute will suffice, and you can completely ignore the `ContentParts` attribute.
+### Return Values Explained
 
-_\* For details on how to use the `ContentParts` property, refer to [Multimodal Large Model Invocation](#multimodal-large-model-invocation)_
+When calling the Chat method, you receive three values:
+1. **Response Message**: The model's reply as a `chat.Message`
+2. **Response Info**: Metadata about the response (tokens used, model name, etc.)
+3. **Error**: Any error that occurred during the request
 
-As demonstrated previously, you can create messages by directly assigning values to the properties of `chat.Message`, or you can create messages using the `chat.NewMessage()` function.
+Understanding these return values helps you implement proper error handling and logging.
 
-The following code demonstrates directly creating a user message and invoking a large model chat:
-
-```go
-messages := []chat.Message{
-	{Role: "user", Content: "5+1=?"},
-}
-message, responseInfo, err := client.Chat(messages, nil)
-```
-
-The following code shows creating a user message using the `chat.NewMessage()` function and invoking a large model chat:
-
-```go
-messages := []chat.Message{
-	chat.NewMessage("user", "Hello, world!"),
-}
-message, responseInfo, err := client.Chat(messages, nil)
-```
-
-#### Return Values of Large Model Invocation
-
-The `client.Chat()` function has three return values:
-
-- The first one is a pointer of type `*chat.Message`, representing the chat message returned by the large model. Since this is a pointer, if an error occurs during the call to the large model, this return value will be set to nil.
-- The second one is a value of type `chat.ResponseInfo`, indicating response information from the large model, such as the number of tokens.
-- The third one is a value of type `error`, representing any errors that occurred while calling the large model.
-
-You may have noticed that the return value of the `client.Chat()` function is also a pointer of type `chat.Message`. This is part of our design to simplify Anyi's code. Typically, the `Role` attribute of the returned Message will be `"assistant"`, and the `Content` attribute will contain the response from the large model.
-
-Currently, `chat.ResponseInfo` is defined as follows:
-
-```go
-type ResponseInfo struct {
-	PromptTokens     int
-	CompletionTokens int
-}
-```
-
-As you can see, the properties within the `chat.ResponseInfo` struct are quite straightforward, each representing various token counts returned by the large model. In the future, we plan to add more attributes to this struct to support more detailed invocation information from large models.
-
-Given that Anyi supports multiple large model interfaces and that each interface may return different information, not all attributes of the `chat.ResponseInfo` struct may be populated after each large model call. You should handle the return values according to the specific large model interface used.
-
-### Multimodal Large Model Invocation
-
-In Anyi, the invocation entry for the multimodal large model remains the `client.Chat()` function. Unlike single-modal large models, when invoking a multimodal large model, you need to use the `ContentParts` property in the `chat.Message` struct to pass images to the large model.
-
-#### The Simplest Multimodal Large Model Invocation
-
-In the `github.com/jieliu2000/anyi/llm/chat` package, we provide two simple functions for creating the `chat.Message` struct required for multimodal large model invocations. They are:
-
-- `chat.NewImageMessageFromUrl()` is used to create a `chat.Message` struct that passes a network image URL to the large model.
-- `chat.NewImageMessageFromFile()` is used to create a `chat.Message` struct that passes a local image file to the large model.
-
-These two functions are very useful when you only need to pass a prompt string and one image to the visual large model. If you need to pass multiple images, you will need to manually create the `chat.Message` struct and then manually set the `ContentParts` property.
-
-The following code demonstrates how to use the `chat.NewImageMessageFromUrl()` function to create the `chat.Message` struct required for multimodal large model invocation (using Dashscope):
+### Basic Chat Example
 
 ```go
 package main
@@ -352,85 +331,672 @@ import (
 	"os"
 
 	"github.com/jieliu2000/anyi"
-	"github.com/jieliu2000/anyi/llm/dashscope"
+	"github.com/jieliu2000/anyi/llm/openai"
 	"github.com/jieliu2000/anyi/llm/chat"
 )
 
 func main() {
-	// Make sure you set DASHSCOPE_API_KEY environment variable to your Dashscope API key.
-	config := dashscope.DefaultConfig(os.Getenv("DASHSCOPE_API_KEY"), "qwen-vl-plus")
-	client, err := anyi.NewClient("dashscope", config)
-
-	if err!= nil {
+	// Create client
+	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
+	client, err := anyi.NewClient("openai", config)
+	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)
 	}
 
+	// Create message history
 	messages := []chat.Message{
-		chat.NewImageMessageFromUrl("user", "What's this?", "https://dashscope.oss-cn-beijing.aliyuncs.com/images/dog_and_girl.jpeg"),
+		{Role: "system", Content: "You are a helpful assistant."},
+		{Role: "user", Content: "What can machine learning be used for?"},
 	}
-
-	message, responseInfo, err := client.Chat(messages, nil)
-
-	if err!= nil {
-		log.Fatalf("Failed to chat: %v", err)
-		panic(err)
+	
+	// Send chat request
+	response, info, err := client.Chat(messages, nil)
+	if err != nil {
+		log.Fatalf("Chat failed: %v", err)
 	}
-
-	log.Printf("Response: %s", message.Content)
-	log.Printf("Prompt tokens: %v", responseInfo.PromptTokens)
+	
+	// Process response
+	log.Printf("Model: %s", info.Model)
+	log.Printf("Response: %s", response.Content)
+	
+	// Continue the conversation
+	messages = append(messages, *response) // Add assistant's response
+	messages = append(messages, chat.Message{
+		Role: "user", 
+		Content: "Can you give a specific example in healthcare?",
+	})
+	
+	// Send follow-up
+	response, _, err = client.Chat(messages, nil)
+	if err != nil {
+		log.Fatalf("Chat failed: %v", err)
+	}
+	
+	log.Printf("Follow-up response: %s", response.Content)
 }
 ```
 
-In the above code, we used the `chat.NewImageMessageFromUrl()` function to create a `chat.Message` struct that passes a network image URL to the large model. The first parameter of the `chat.NewImageMessageFromUrl()` function is the message role, the second parameter is the text message content, and the third parameter is the image URL.
+### Chat Options
 
-It should be noted that in the above code, the `ContentParts` property in the finally created `chat.Message` struct is an array of length **2** (not just one ContentPart). The first element in the array is a `ContentPart` struct of text type, and its text content is `"What's this?"`; the second element is a `ContentPart` struct of image type, and its image URL is `https://dashscope.oss-cn-beijing.aliyuncs.com/`.
-
-And the `Content` property of the `chat.Message` struct is an empty string. That is to say, the text message in the parameters of `chat.NewImageMessageFromUrl()` is reflected in the `ContentParts` property, not in the `Content` property of `chat.Message`. This is also a significant difference between multimodal large model invocations and single-modal large model invocations in Anyi.
-
-`chat.NewImageMessageFromUrl()` is used to create a `chat.Message` struct that passes a network image URL to the large model.
-
-The `chat.NewImageMessageFromFile()` function is similar to the `chat.NewImageMessageFromUrl()` function, except that it creates a `chat.Message` struct from a local image file. The following is an example code using the `chat.NewImageMessageFromFile()` function:
+You can customize chat behavior using `chat.ChatOptions`:
 
 ```go
-messages := []chat.Message{
-	chat.NewImageMessageFromFile("user", "What number is in the image?", "../internal/test/number_six.png"),
-	}
+options := &chat.ChatOptions{
+	Temperature: 0.7,               // Controls randomness (0.0-2.0)
+	MaxTokens:   1000,              // Maximum response length
+	TopP:        0.9,               // Nucleus sampling parameter
+	Stream:      true,              // Enable streaming responses
+	Stop:        []string{"STOP"},  // Custom stop sequences
+}
+
+response, info, err := client.Chat(messages, options)
 ```
 
-As can be seen, the first parameter of the `chat.NewImageMessageFromFile()` function is the message role, the second parameter is the text message content, and the third parameter is the image file path.
+## Multimodal Model Usage
 
-The `ContentParts` property in the `chat.Message` struct created by the `chat.NewImageMessageFromFile()` function is an array of length **2** (not just one ContentPart). The first element in the array is a `ContentPart` struct of text type, and its text content is `"What's this?"`; the second element is a `ContentPart` struct of image type, and its `ImageUrl` property is the base64-encoded URL of the passed image file.
+Many modern LLMs support multimodal inputs, allowing you to send images along with text.
 
-The `chat.NewImageMessageFromFile()` function will try to read the file. If the read fails, it will return a `chat.Message` value that only contains the `Role` property, and its `Content` property and `ContentParts` property are both empty.
-
-#### Reading Images to the Large Model via the `chat.ContentParts` Property
-
-In multimodal large model invocations, the `ContentParts` property in the `chat.Message` struct is an array, and each element in the array is a `ContentPart` struct. The `ContentPart` struct is defined as follows:
+### Sending Images
 
 ```go
-type ContentPart struct {
-	Text        string `json:"text"`
-	ImageUrl    string `json:"imageUrl"`
-	ImageDetail string `json:"imageDetail"`
+package main
+
+import (
+	"log"
+	"os"
+
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm/openai"
+	"github.com/jieliu2000/anyi/llm/chat"
+)
+
+func main() {
+	// Create GPT-4 Vision client
+	config := openai.NewConfigWithModel(os.Getenv("OPENAI_API_KEY"), "gpt-4-vision-preview")
+	client, err := anyi.NewClient("vision", config)
+	if err != nil {
+		log.Fatalf("Failed to create client: %v", err)
+	}
+
+	// Create message with image URL
+	messages := []chat.Message{
+		{
+			Role: "user",
+			ContentParts: []chat.ContentPart{
+				{
+					Type: "text",
+					Text: "What's in this image?",
+				},
+				{
+					Type: "image_url",
+					ImageURL: &chat.ImageURL{
+						URL: "https://example.com/image.jpg",
+					},
+				},
+			},
+		},
+	}
+	
+	// Send chat request
+	response, _, err := client.Chat(messages, nil)
+	if err != nil {
+		log.Fatalf("Chat failed: %v", err)
+	}
+	
+	log.Printf("Description: %s", response.Content)
 }
 ```
 
-The `ContentPart` struct contains three properties: `Text`, `ImageUrl`, and `ImageDetail`. The `Text` property is used to pass text messages to the large model, the `ImageUrl` property is used to pass image URLs to the large model, and the `ImageDetail` property is used to pass the level of detail of the image.
+## Working with Functions
 
-It should be noted that the **`Text` and `ImageUrl` properties are mutually exclusive**. That is, if you set both the `Text` and `ImageUrl` properties for the `ContentPart` struct at the same time, the `ImageUrl` property will be ignored. If you want to pass an image, set the `Text` property to an empty string.
+Many LLMs support function calling capabilities, allowing AI models to request specific actions.
 
-The ImageUrl can be a network image URL or a base64-encoded URL of an image. Anyi provides the `chat.NewImagePartFromFile()` function to convert a local image into a `ContentPart` struct, and also provides the `chat.NewImagePartFromUrl()` function to convert a network image URL into a `ContentPart` struct.
-
-The ImageDetail property is used to pass the level of detail of the image. For example, `"low"`, `"medium"`, `"high"`, and `"auto"` are used to represent the level of detail of the image. If you are not sure which value to use, you can directly set this parameter to an empty string.
-
-The following code demonstrates how to use the `chat.NewImagePartFromUrl()` function to convert a network image URL into a `ContentPart` struct:
+### Function Definitions
 
 ```go
-imageUrl := "https://example.com/image.jpg"
-contentPart, err := chat.NewImagePartFromUrl(imageUrl, "")
+package main
+
+import (
+	"log"
+	"os"
+
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm/openai"
+	"github.com/jieliu2000/anyi/llm/chat"
+	"github.com/jieliu2000/anyi/llm/tools"
+)
+
+func main() {
+	// Create a client
+	config := openai.NewConfigWithModel(os.Getenv("OPENAI_API_KEY"), "gpt-4")
+	client, err := anyi.NewClient("gpt4", config)
+	if err != nil {
+		log.Fatalf("Failed to create client: %v", err)
+	}
+
+	// Define functions
+	functions := []tools.FunctionConfig{
+		{
+			Name:        "get_weather",
+			Description: "Get the current weather for a location",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"location": map[string]interface{}{
+						"type":        "string",
+						"description": "The city and state, e.g., 'San Francisco, CA'",
+					},
+					"unit": map[string]interface{}{
+						"type":        "string",
+						"enum":        []string{"celsius", "fahrenheit"},
+						"description": "The temperature unit",
+					},
+				},
+				"required": []string{"location"},
+			},
+		},
+	}
+
+	// Create message
+	messages := []chat.Message{
+		{Role: "user", Content: "What's the weather like in Boston?"},
+	}
+	
+	// Request with function calling
+	response, _, err := client.ChatWithFunctions(messages, functions, nil)
+	if err != nil {
+		log.Fatalf("Chat failed: %v", err)
+	}
+	
+	log.Printf("Response type: %s", response.FunctionCall.Name)
+	log.Printf("Arguments: %s", response.FunctionCall.Arguments)
+	
+	// Here you would handle the function call, execute the requested function
+	// and send the result back in another message
+}
 ```
 
-The `chat.NewImagePartFromUrl()` function does not verify the image. However, when using the `client.Chat()` function to invoke the large model, Anyi will take different actions according to the situations of different large models:
+## Workflow System
 
-- In most cases, if the large model API supports passing image information via URL, Anyi will not check whether the image URL is valid, but directly pass the image URL to the large model API. In this case, you need to ensure that the image URL you provide is valid.
-- For APIs such as ollama, which do not support passing images via URL, in this case, Anyi will read the image according to the URL and convert the image into the format required by the large model API (such as base64 encoding) and pass it out. Obviously, if the URL points to an inaccessible or invalid image, the `client.Chat()` function will return an error before actually interacting with the large model.
+Anyi's workflow system is one of its most powerful features, allowing you to create sophisticated AI pipelines by connecting multiple steps.
+
+### Core Workflow Concepts
+
+- **Flow**: A sequence of steps executed in order
+- **Step**: A single unit of work with an executor and optional validator
+- **Executor**: Performs the actual work (e.g., calling an LLM, setting context)
+- **Validator**: Ensures output meets requirements before proceeding
+- **Context**: Shared data that passes between steps
+
+### When to Use Workflows
+
+Workflows are particularly useful for:
+- Multi-step reasoning processes
+- Content generation pipelines
+- Data transformation and enrichment
+- Decision trees with conditional logic
+- Tasks requiring validation and retries
+
+### Flow Creation
+
+```go
+package main
+
+import (
+	"log"
+	"os"
+
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm/openai"
+	"github.com/jieliu2000/anyi/flow"
+)
+
+func main() {
+	// Create a client
+	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
+	client, err := anyi.NewClient("openai", config)
+	if err != nil {
+		log.Fatalf("Failed to create client: %v", err)
+	}
+	
+	// Create individual steps
+	step1, err := anyi.NewLLMStepWithTemplate(
+		"Generate a short story about {{.Text}}",
+		"You are a creative fiction writer.",
+		client,
+	)
+	if err != nil {
+		log.Fatalf("Failed to create step: %v", err)
+	}
+	step1.Name = "story_generation"
+	
+	step2, err := anyi.NewLLMStepWithTemplate(
+		"Create a title for this story:\n\n{{.Text}}",
+		"You are an expert at creating compelling titles.",
+		client,
+	)
+	if err != nil {
+		log.Fatalf("Failed to create step: %v", err)
+	}
+	step2.Name = "title_creation"
+	
+	// Create the flow
+	myFlow, err := anyi.NewFlow("story_flow", client, *step1, *step2)
+	if err != nil {
+		log.Fatalf("Failed to create flow: %v", err)
+	}
+	
+	// Register the flow
+	err = anyi.RegisterFlow("story_flow", myFlow)
+	if err != nil {
+		log.Fatalf("Failed to register flow: %v", err)
+	}
+	
+	// Run the flow
+	result, err := myFlow.RunWithInput("a detective in future Tokyo")
+	if err != nil {
+		log.Fatalf("Flow execution failed: %v", err)
+	}
+	
+	log.Printf("Title: %s", result.Text)
+}
+```
+
+### Steps and Executors Explained
+
+Each step in a workflow uses an executor to perform its task. Anyi provides several built-in executors:
+
+1. **LLMExecutor**: The most common executor that sends prompts to an LLM
+2. **SetContextExecutor**: Modifies the workflow context directly
+3. **ConditionalFlowExecutor**: Directs flow based on conditions
+4. **RunCommandExecutor**: Executes shell commands
+
+Steps can be chained together, with the output of one step becoming the input to the next.
+
+## Configuration System
+
+Anyi's configuration system allows you to manage clients, flows, and other settings in a centralized manner. This approach brings several benefits:
+
+- **Separation of Code and Configuration**: Keep your business logic separate from configuration details
+- **Runtime Flexibility**: Change behavior without recompiling your application
+- **Environment-Specific Settings**: Easily adapt to different environments (development, staging, production)
+- **Centralized Management**: Define all your LLM and workflow configurations in one place
+
+### Dynamic Configuration
+
+Dynamic configuration allows you to programmatically define and update settings at runtime. This is useful when:
+- Your configuration needs to be generated dynamically based on user input
+- You're building a system that needs to adapt its behavior on the fly
+- You want to test different configurations without restarting your application
+
+```go
+package main
+
+import (
+	"log"
+	"os"
+
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm"
+)
+
+func main() {
+	// Define configuration
+	config := anyi.AnyiConfig{
+		Clients: []llm.ClientConfig{
+			{
+				Name: "openai",
+				Type: "openai",
+				Config: map[string]interface{}{
+					"model":  "gpt-4",
+					"apiKey": os.Getenv("OPENAI_API_KEY"),
+				},
+			},
+		},
+		Flows: []anyi.FlowConfig{
+			{
+				Name: "content_processor",
+				Steps: []anyi.StepConfig{
+					{
+						Name: "summarize_content",
+						Executor: &anyi.ExecutorConfig{
+							Type: "llm",
+							WithConfig: map[string]interface{}{
+								"template":      "Summarize the following content in 3 bullet points:\n\n{{.Text}}",
+								"systemMessage": "You are a professional summarizer.",
+							},
+						},
+					},
+					{
+						Name: "translate_summary",
+						Executor: &anyi.ExecutorConfig{
+							Type: "llm",
+							WithConfig: map[string]interface{}{
+								"template": "Translate the following summary to French:\n\n{{.Text}}",
+							},
+						},
+						Validator: &anyi.ValidatorConfig{
+							Type: "string",
+							WithConfig: map[string]interface{}{
+								"minLength": 100,
+							},
+						},
+						MaxRetryTimes: 2,
+					},
+				},
+			},
+		},
+	}
+
+	// Apply configuration
+	err := anyi.Config(&config)
+	if err != nil {
+		log.Fatalf("Configuration failed: %v", err)
+	}
+
+	// Get and run the flow
+	flow, err := anyi.GetFlow("content_processor")
+	if err != nil {
+		log.Fatalf("Failed to get flow: %v", err)
+	}
+	
+	input := "Artificial intelligence (AI) is intelligence demonstrated by machines, as opposed to natural intelligence displayed by animals including humans. AI research has been defined as the field of study of intelligent agents, which refers to any system that perceives its environment and takes actions that maximize its chance of achieving its goals. The term \"artificial intelligence\" had previously been used to describe machines that mimic and display \"human\" cognitive skills that are associated with the human mind, such as \"learning\" and \"problem-solving\". This definition has since been rejected by major AI researchers who now describe AI in terms of rationality and acting rationally, which does not limit how intelligence can be articulated."
+	
+	result, err := flow.RunWithInput(input)
+	if err != nil {
+		log.Fatalf("Flow execution failed: %v", err)
+	}
+	
+	log.Printf("Result: %s", result.Text)
+}
+```
+
+### Configuration Files
+
+Using configuration files is often the most practical approach for production applications. Anyi supports multiple file formats (YAML, JSON, TOML) and provides an easy way to load them.
+
+**Benefits of using configuration files:**
+- Keep sensitive information (like API keys) out of your codebase
+- Easily switch between different configurations without changing code
+- Allow non-developers to modify application behavior
+- Support environment-specific configurations
+
+```go
+package main
+
+import (
+	"log"
+	"fmt"
+
+	"github.com/jieliu2000/anyi"
+)
+
+func main() {
+	// Load configuration from file
+	err := anyi.ConfigFromFile("./config/workflow.yaml")
+	if err != nil {
+		log.Fatalf("Failed to load configuration: %v", err)
+	}
+	
+	// Access the flow by name
+	flow, err := anyi.GetFlow("content_creator")
+	if err != nil {
+		log.Fatalf("Failed to get flow: %v", err)
+	}
+	
+	// Run the flow
+	result, err := flow.RunWithInput("autonomous vehicles")
+	if err != nil {
+		log.Fatalf("Flow execution failed: %v", err)
+	}
+	
+	fmt.Println("Generated content:", result.Text)
+}
+```
+
+Example YAML configuration file (`config/workflow.yaml`):
+
+```yaml
+clients:
+  - name: "openai"
+    type: "openai"
+    config:
+      model: "gpt-4"
+      apiKey: "$OPENAI_API_KEY"
+  
+  - name: "anthropic"
+    type: "anthropic"
+    config:
+      model: "claude-3-opus-20240229"
+      apiKey: "$ANTHROPIC_API_KEY"
+
+flows:
+  - name: "content_creator"
+    clientName: "openai"
+    steps:
+      - name: "research_topic"
+        executor:
+          type: "llm"
+          withconfig:
+            template: "Research the following topic and provide key facts and insights: {{.Text}}"
+            systemMessage: "You are a research assistant."
+        maxRetryTimes: 2
+      
+      - name: "draft_article"
+        clientName: "anthropic"
+        executor:
+          type: "llm"
+          withconfig:
+            template: "Write a detailed article about this topic using the research provided:\n\n{{.Text}}"
+            systemMessage: "You are a professional writer."
+        validator:
+          type: "string"
+          withconfig:
+            minLength: 500
+```
+
+### Environment Variables
+
+Anyi supports environment variables for configuration, which is especially useful for:
+- Secrets management (API keys, tokens)
+- Deployment-specific settings
+- CI/CD pipelines
+- Container orchestration environments
+
+Environment variables are referenced in configuration files using the `$` prefix. For example, `$OPENAI_API_KEY` in a configuration file will be replaced with the value of the `OPENAI_API_KEY` environment variable.
+
+**Best Practices for Environment Variables:**
+- Use a `.env` file for local development
+- Keep sensitive information in environment variables, not in code or configuration files
+- Use descriptive names for your environment variables
+- Consider using a secrets manager for production environments
+
+## Built-in Components
+
+Anyi provides several built-in components that you can use as building blocks for your AI applications. Understanding these components will help you leverage the full power of the framework.
+
+### Executors
+
+Executors are the workhorses of the Anyi workflow system. They perform the actual tasks within each step.
+
+#### Types of Built-in Executors
+
+1. **LLMExecutor**: The most commonly used executor, it sends prompts to an LLM and captures the response.
+   - Supports template-based prompts with variable substitution
+   - Can use different system messages for different steps
+   - Works with any registered LLM client
+
+2. **SetContextExecutor**: Directly modifies the flow context without external calls.
+   - Useful for initializing variables
+   - Can overwrite or append to existing context
+   - Often used at the beginning of workflows
+
+3. **ConditionalFlowExecutor**: Enables branching logic in workflows.
+   - Routes to different steps based on conditions
+   - Can evaluate simple expressions
+   - Allows for complex decision trees
+
+4. **RunCommandExecutor**: Executes shell commands and captures their output.
+   - Bridges the gap between AI and system operations
+   - Useful for data processing or external tool integration
+   - Allows workflows to interact with the operating system
+
+### Validators
+
+Validators are crucial components in the Anyi workflow system that ensure outputs meet specific criteria before proceeding to the next step. They serve as quality control mechanisms that can:
+- Prevent low-quality or invalid outputs from propagating through your workflow
+- Automatically trigger retries when outputs don't meet requirements
+- Enforce data schemas and formatting requirements
+- Implement business rules and logic checks
+
+#### Types of Built-in Validators
+
+1. **StringValidator**: Validates text output based on various criteria.
+   - Length checks (minimum and maximum length)
+   - Regular expression pattern matching
+   - Content verification
+
+   ```go
+   validator := &anyi.StringValidator{
+       MinLength: 100,            // Minimum length
+       MaxLength: 1000,           // Maximum length
+       MatchRegex: `\d{3}-\d{2}`, // Must contain pattern (e.g., SSN format)
+   }
+   ```
+
+2. **JsonValidator**: Ensures output is valid JSON and can validate against a schema.
+   - Checks for valid JSON syntax
+   - Can validate against JSON Schema
+   - Useful for ensuring structured data
+
+   ```go
+   validator := &anyi.JsonValidator{
+       RequiredFields: []string{"name", "email"},
+       Schema: `{"type": "object", "properties": {"name": {"type": "string"}, "email": {"type": "string", "format": "email"}}}`,
+   }
+   ```
+
+#### Using Validators Effectively
+
+To get the most out of validators:
+- Start with simpler validations and gradually add complexity
+- Use validators in combination with retry logic
+- Consider creating custom validators for specific business rules
+- Log validation failures to identify common issues
+
+### Formatting
+
+Anyi includes formatters to help process and transform text in your workflows. Formatters can:
+- Standardize output formats
+- Extract specific information
+- Transform data between different representations
+- Apply consistent styling and formatting
+
+## Best Practices
+
+Building effective AI applications requires more than just technical knowledge. Here are comprehensive best practices to help you get the most out of the Anyi framework.
+
+### Performance Optimization
+
+Optimizing your Anyi workflows for performance can significantly improve user experience and reduce costs:
+
+**1. Choose the Right Model for the Task**
+- Use smaller, faster models for simple tasks
+- Reserve more powerful models for complex reasoning
+- Consider fine-tuned models for specialized domains
+
+**2. Implement Caching**
+- Cache common LLM responses to avoid redundant API calls
+- Use a distributed cache for multi-instance deployments
+- Set appropriate cache expiration times
+
+**3. Optimize Prompts**
+- Keep prompts concise while including necessary context
+- Use clear instructions to reduce back-and-forth
+- Test and iterate on prompts to minimize token usage
+
+**4. Local Deployment Options**
+- For frequent, non-critical tasks, use Ollama with local models
+- Balance between cloud and local models based on requirements
+- Consider quantized models for resource-constrained environments
+
+**5. Parallel Execution**
+- Identify workflow steps that can run in parallel
+- Use goroutines for concurrent LLM calls when appropriate
+- Implement proper error handling for parallel steps
+
+### Cost Management
+
+Managing costs is essential when working with commercial LLM providers:
+
+**1. Token Monitoring**
+- Implement token counting to track usage
+- Set up alerts for unusual spending patterns
+- Regularly audit your token consumption
+
+**2. Tiered Model Strategy**
+- Use a cascading approach: try cheaper models first
+- Upgrade to more expensive models only when necessary
+- Implement fallbacks for service outages
+
+**3. Response Length Control**
+- Set appropriate MaxTokens limits for each use case
+- Use validation to ensure outputs aren't unnecessarily verbose
+- Implement truncation strategies for excessive outputs
+
+**4. Batching Requests**
+- Combine multiple small requests when possible
+- Implement queue systems for non-urgent processing
+- Schedule batch processing during off-peak hours
+
+**5. Cost Attribution**
+- Track costs by workflow, feature, or user
+- Implement per-user quotas or rate limits
+- Consider passing costs to end-users for premium features
+
+### Security Considerations
+
+Security is paramount when building AI systems:
+
+**1. API Key Management**
+- Never hardcode API keys in your application
+- Use environment variables or a secrets manager
+- Rotate keys regularly and limit their permissions
+
+**2. Input Sanitization**
+- Validate and sanitize all user inputs
+- Implement rate limiting to prevent abuse
+- Use context filtering to prevent prompt injection
+
+**3. Output Validation**
+- Always validate LLM outputs before using them
+- Be cautious when using LLM outputs in executable contexts
+- Implement content moderation for user-facing outputs
+
+**4. Data Privacy**
+- Minimize sending sensitive data to LLMs
+- Implement data retention policies
+- Consider using local models for processing sensitive information
+
+**5. Audit and Logging**
+- Maintain detailed logs of all LLM interactions
+- Implement proper log redaction for sensitive content
+- Set up monitoring for unusual patterns or security incidents
+
+By following these best practices, you can build AI applications that are not only powerful but also efficient, cost-effective, and secure.
+
+## Conclusion
+
+Anyi provides a powerful framework for building AI agents and workflows. By combining different LLM providers, workflow steps, and validation techniques, you can create sophisticated AI applications that integrate with your existing systems.
+
+For more examples and the latest documentation, visit the [GitHub repository](https://github.com/jieliu2000/anyi).
+
+### Getting Help and Contributing
+
+If you encounter issues or have questions, consider:
+- Opening an issue on GitHub
+- Joining the community discussion
+- Reading the API documentation
+- Contributing improvements back to the project
+
+The Anyi framework is continuously evolving, and your feedback helps make it better for everyone.
