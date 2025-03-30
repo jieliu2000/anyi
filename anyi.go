@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 
 	log "github.com/sirupsen/logrus"
 
@@ -15,6 +16,7 @@ import (
 // anyiRegistry is the central registry for all components in the Anyi framework.
 // It stores clients, flows, validators, executors, and formatters for reuse across the application.
 type anyiRegistry struct {
+	mu                sync.RWMutex
 	Clients           map[string]llm.Client
 	Flows             map[string]*flow.Flow
 	Validators        map[string]flow.StepValidator
@@ -61,22 +63,34 @@ func RegisterDefaultClient(name string, client llm.Client) error {
 //   - The default LLM client
 //   - An error if no default client is found
 func GetDefaultClient() (llm.Client, error) {
+	GlobalRegistry.mu.RLock()
+	defer GlobalRegistry.mu.RUnlock()
 
-	defaultName := GlobalRegistry.defaultClientName
-	if defaultName == "" {
-		defaultName = "default"
-	}
-
-	client, ok := GlobalRegistry.Clients[defaultName]
-	if !ok {
-		if len(GlobalRegistry.Clients) == 1 {
-			for _, client := range GlobalRegistry.Clients {
-				return client, nil
-			}
+	if GlobalRegistry.defaultClientName != "" {
+		if client, ok := GlobalRegistry.Clients[GlobalRegistry.defaultClientName]; ok {
+			return client, nil
 		}
-		return nil, errors.New("no default client found")
 	}
-	return client, nil
+
+	if len(GlobalRegistry.Clients) == 1 {
+		for _, client := range GlobalRegistry.Clients {
+			return client, nil
+		}
+	}
+
+	if client, ok := GlobalRegistry.Clients["default"]; ok {
+		return client, nil
+	}
+
+	return nil, fmt.Errorf("no default client found (registered clients: %v)", getClientNames(GlobalRegistry.Clients))
+}
+
+func getClientNames(clients map[string]llm.Client) []string {
+	names := make([]string, 0, len(clients))
+	for name := range clients {
+		names = append(names, name)
+	}
+	return names
 }
 
 // NewClient creates a new client from a model configuration and optionally registers it.
@@ -114,6 +128,14 @@ func RegisterFlow(name string, flow *flow.Flow) error {
 	if name == "" {
 		return errors.New("name cannot be empty")
 	}
+
+	GlobalRegistry.mu.Lock()
+	defer GlobalRegistry.mu.Unlock()
+
+	if _, exists := GlobalRegistry.Flows[name]; exists {
+		return fmt.Errorf("flow with name %q already exists", name)
+	}
+
 	GlobalRegistry.Flows[name] = flow
 	return nil
 }
@@ -153,6 +175,14 @@ func RegisterClient(name string, client llm.Client) error {
 	if name == "" {
 		return errors.New("name cannot be empty")
 	}
+
+	GlobalRegistry.mu.Lock()
+	defer GlobalRegistry.mu.Unlock()
+
+	if _, exists := GlobalRegistry.Clients[name]; exists {
+		return fmt.Errorf("client with name %q already exists", name)
+	}
+
 	GlobalRegistry.Clients[name] = client
 	return nil
 }

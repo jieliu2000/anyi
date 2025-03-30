@@ -3,7 +3,9 @@ package anyi
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
+	"sync"
 	"testing"
 
 	"github.com/jieliu2000/anyi/flow"
@@ -67,6 +69,28 @@ func TestGetDefaultClient(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, client)
 	})
+	t.Run("Concurrent access", func(t *testing.T) {
+		// Setup
+		GlobalRegistry.Clients = make(map[string]llm.Client)
+		client1 := &test.MockClient{}
+		client2 := &test.MockClient{}
+		RegisterClient("client1", client1)
+		RegisterClient("client2", client2)
+		RegisterDefaultClient("client1", client1)
+
+		// Run concurrent reads
+		var wg sync.WaitGroup
+		for i := 0; i < 100; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				client, err := GetDefaultClient()
+				assert.NoError(t, err)
+				assert.NotNil(t, client)
+			}()
+		}
+		wg.Wait()
+	})
 }
 
 func TestRegisterClient(t *testing.T) {
@@ -101,6 +125,30 @@ func TestRegisterClient(t *testing.T) {
 		err := RegisterClient("", nil)
 		assert.Equal(t, err, errors.New("client cannot be empty"))
 	})
+
+	t.Run("ConcurrentRegistration", func(t *testing.T) {
+		// Reset registry for clean test
+		GlobalRegistry.Clients = make(map[string]llm.Client)
+
+		var wg sync.WaitGroup
+		clients := make([]llm.Client, 100)
+		for i := range clients {
+			clients[i] = &test.MockClient{}
+		}
+
+		for i := 0; i < 100; i++ {
+			wg.Add(1)
+			go func(idx int) {
+				defer wg.Done()
+				name := fmt.Sprintf("client%d", idx)
+				err := RegisterClient(name, clients[idx])
+				assert.NoError(t, err)
+			}(i)
+		}
+		wg.Wait()
+
+		assert.Equal(t, 100, len(GlobalRegistry.Clients))
+	})
 }
 
 func TestRegisterFlow(t *testing.T) {
@@ -127,6 +175,30 @@ func TestRegisterFlow(t *testing.T) {
 	t.Run("NilParams", func(t *testing.T) {
 		err := RegisterFlow("", nil)
 		assert.Equal(t, err, errors.New("name cannot be empty"))
+	})
+
+	t.Run("ConcurrentRegistration", func(t *testing.T) {
+		// Reset registry for clean test
+		GlobalRegistry.Flows = make(map[string]*flow.Flow)
+
+		var wg sync.WaitGroup
+		flows := make([]*flow.Flow, 100)
+		for i := range flows {
+			flows[i] = &flow.Flow{Name: fmt.Sprintf("flow%d", i)}
+		}
+
+		for i := 0; i < 100; i++ {
+			wg.Add(1)
+			go func(idx int) {
+				defer wg.Done()
+				name := fmt.Sprintf("flow%d", idx)
+				err := RegisterFlow(name, flows[idx])
+				assert.NoError(t, err)
+			}(i)
+		}
+		wg.Wait()
+
+		assert.Equal(t, 100, len(GlobalRegistry.Flows))
 	})
 }
 
