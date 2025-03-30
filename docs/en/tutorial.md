@@ -254,24 +254,7 @@ Anyi supports a wide range of LLM providers to suit different needs and use case
 
 #### OpenAI
 
-OpenAI is one of the most widely used AI service providers, offering powerful models like GPT-4 and GPT-3.5.
-
-##### Features and Advantages
-
-- Industry-leading language models including the latest GPT-4o
-- Support for diverse task types: text generation, code writing, logical reasoning, creative writing, etc.
-- Well-documented API and extensive community support
-- Support for function calling and tool use capabilities
-
-##### Supported Models
-
-Anyi framework supports all major OpenAI models, including:
-
-- `GPT4o`: Latest multimodal large language model
-- `GPT4oMini`: Lightweight version of GPT-4o
-- `GPT4Turbo`: High-performance variant of GPT-4
-- `GPT4`: OpenAI's powerful general-purpose model
-- `GPT3Dot5Turbo`: General-purpose model balancing performance and cost
+OpenAI is one of the most widely used AI service providers. Access via https://platform.openai.com.
 
 ##### Configuration Example
 
@@ -292,25 +275,16 @@ func main() {
 	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
 
 	// Configuration with specific model
-config := openai.NewConfigWithModel(os.Getenv("OPENAI_API_KEY"), openai.GPT4o)
-
-	// Configuration with custom base URL (for self-hosted or proxy services)
-	config := openai.NewConfig(
-		os.Getenv("OPENAI_API_KEY"), 
-		openai.GPT4, 
-		"https://your-openai-proxy.com/v1"
-	)
-
+	config := openai.NewConfigWithModel(os.Getenv("OPENAI_API_KEY"), openai.GPT4o)
+	
 	// Create client and use example
-	client, err := anyi.NewClient("openai-gpt4", config)
+	client, err := anyi.NewClient("openai", config)
 	if err != nil {
 		log.Fatalf("Failed to create OpenAI client: %v", err)
 	}
 	
-	// Use the client for text completion
 	messages := []chat.Message{
-		{Role: "system", Content: "You are an expert programmer who specializes in Go."},
-		{Role: "user", Content: "Write a function to check if a string is a palindrome"},
+		{Role: "user", Content: "What is the capital of France?"},
 	}
 	response, _, err := client.Chat(messages, nil)
 	if err != nil {
@@ -321,31 +295,9 @@ config := openai.NewConfigWithModel(os.Getenv("OPENAI_API_KEY"), openai.GPT4o)
 }
 ```
 
-##### Best Practices
-
-- Use lower temperature values (0.1-0.3) for sensitive applications requiring deterministic results
-- Use higher temperature values (0.7-1.0) for creative tasks
-- Utilize system messages to define the assistant's role and behavior
-- Store conversation history to maintain context coherence
-- Use environment variables for API keys rather than hardcoding them
-
 #### DeepSeek
 
-DeepSeek provides powerful AI models specifically optimized for code generation and understanding tasks.
-
-##### Features and Advantages
-
-- Specialized models for code generation (DeepSeek Coder)
-- Multilingual chat models with strong reasoning capabilities (DeepSeek Chat)
-- OpenAI-compatible API interface for easy migration
-- Strong multi-turn dialogue capabilities and context understanding
-
-##### Supported Models
-
-Anyi framework supports DeepSeek's main models:
-
-- `deepseek-chat`: General-purpose dialogue model suitable for multi-turn interactions
-- `deepseek-coder`: Professional model optimized for code generation and understanding
+DeepSeek provides specialized chat and code models, accessible via https://platform.deepseek.ai/.
 
 ##### Configuration Example
 
@@ -353,44 +305,36 @@ Anyi framework supports DeepSeek's main models:
 package main
 
 import (
-	"log"
-	"os"
-	
-	"github.com/jieliu2000/anyi/llm"
-	"github.com/jieliu2000/anyi/llm/deepseek"
-	"github.com/jieliu2000/anyi/llm/chat"
+    "log"
+    "os"
+    
+    "github.com/jieliu2000/anyi"
+    "github.com/jieliu2000/anyi/llm/deepseek"
+    "github.com/jieliu2000/anyi/llm/chat"
 )
 
 func main() {
-	// Default configuration
-	config := deepseek.DefaultConfig(os.Getenv("DEEPSEEK_API_KEY"), "deepseek-chat")
-	
-	// Using DeepSeek Coder model
-	config := deepseek.DefaultConfig(os.Getenv("DEEPSEEK_API_KEY"), "deepseek-coder")
-	
-	// Custom base URL configuration
-	config := deepseek.NewConfig(
-		os.Getenv("DEEPSEEK_API_KEY"),
-		"deepseek-chat",
-		"https://api.deepseek.com/v1"
-	)
-	
-	// Create client and use example
-client, err := llm.NewClient(config)
-	if err != nil {
-		log.Fatalf("Failed to create DeepSeek client: %v", err)
-	}
-	
-	// Use the client for code suggestions
-	messages := []chat.Message{
-		{Role: "user", Content: "Write a Go function that implements quicksort"},
-	}
-	response, _, err := client.Chat(messages, nil)
-	if err != nil {
-		log.Fatalf("Request failed: %v", err)
-	}
-	
-	log.Printf("DeepSeek response: %s", response.Content)
+    // Configuration with DeepSeek Chat model
+    config := deepseek.DefaultConfig(os.Getenv("DEEPSEEK_API_KEY"), "deepseek-chat")
+    
+    // Configuration with DeepSeek Coder model
+    config := deepseek.DefaultConfig(os.Getenv("DEEPSEEK_API_KEY"), "deepseek-coder")
+    
+    // Create client and use example
+    client, err := llm.NewClient(config)
+    if err != nil {
+        log.Fatalf("Failed to create DeepSeek client: %v", err)
+    }
+    
+    messages := []chat.Message{
+        {Role: "user", Content: "Write a Go function to check if a string is a palindrome"},
+    }
+    response, _, err := client.Chat(messages, nil)
+    if err != nil {
+        log.Fatalf("Request failed: %v", err)
+    }
+    
+    log.Printf("DeepSeek response: %s", response.Content)
 }
 ```
 
@@ -498,20 +442,21 @@ func main() {
 
 #### Other Providers
 
-Anyi also supports other LLM providers, including:
+Anyi also supports various other LLM providers:
 
-- **Zhipu AI**: `zhipu.DefaultConfig()` - Provides GLM series models optimized for Chinese language understanding
-- **Dashscope (Alibaba)**: `dashscope.DefaultConfig()` - Offers Qwen series models with strong multilingual capabilities
-- **SiliconCloud**: `siliconcloud.DefaultConfig()` - Enterprise-focused AI solutions
+- **Zhipu AI**: Access GLM series models via https://open.bigmodel.cn/. Use `zhipu.DefaultConfig()` for configuration.
+- **Dashscope (Alibaba)**: Access Qwen series models via https://help.aliyun.com/en/dashscope/. Use `dashscope.DefaultConfig()` for configuration.
+- **Anthropic**: Access Claude models via https://www.anthropic.com/claude. Use `anthropic.NewConfig()` for configuration.
+- **SiliconCloud**: Enterprise-focused AI solutions. Use `siliconcloud.DefaultConfig()` for configuration.
 
 ### How to Choose the Right LLM Provider
 
 When selecting an LLM provider, consider the following factors:
 
-1. **Task Type**: For code generation, consider DeepSeek Coder; for general conversation, OpenAI or Zhipu AI might be more suitable
-2. **Language Requirements**: For Chinese language processing, Zhipu AI and Dashscope may perform better
+1. **Task Type**: Choose the right model based on the task, e.g., Qwen-Max (complex problems), Llama (local deployment)
+2. **Language Requirements**: For Chinese language processing, prefer Zhipu AI or Dashscope
 3. **Privacy Requirements**: For sensitive data, consider using Ollama for local model deployment
-4. **Budget Considerations**: High-end models like OpenAI's GPT-4 are more expensive; consider alternatives like GPT-3.5
+4. **Budget Considerations**: Balance between functionality and cost based on actual needs
 5. **Latency Requirements**: Locally deployed Ollama may provide the lowest latency
 6. **Scalability**: Azure OpenAI provides enterprise-grade scaling options
 
@@ -828,7 +773,7 @@ if err != nil {
 }
 
 // Configure whether to output results in JSON format
-thinkFilter.OutputJSON = true // When true, returns both thinking and result content as JSON
+thinkFilter.OutputJSON = true // When true, returns both thinking and result content as JSON format
 
 // Use DeepSeekStyleResponseFilter as an executor
 thinkStep := flow.Step{
