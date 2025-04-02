@@ -401,3 +401,267 @@ func TestFlow_Run_WithMultipleThinkTags(t *testing.T) {
 	// Verify that the Text field contains the cleaned text from the last step
 	assert.Equal(t, "Second step processing. Final decision.", flowContext.Text)
 }
+
+func TestFlow_RunWithMemory(t *testing.T) {
+	flow, err := NewFlow(&test.MockClient{}, "Test Flow",
+		*NewStepWithValidatorAndExectorFunction("Step 1", func(flowContext FlowContext, step *Step) (*FlowContext, error) {
+			// Verify memory is correctly passed
+			if flowContext.Memory != "test memory" {
+				return nil, errors.New("memory not correctly passed")
+			}
+			return &flowContext, nil
+		}, nil, nil),
+	)
+
+	assert.NoError(t, err)
+	result, err := flow.RunWithMemory("test memory")
+
+	assert.NoError(t, err)
+	assert.Equal(t, "test memory", result.Memory)
+}
+
+func TestFlow_RunWithVariables(t *testing.T) {
+	flow, err := NewFlow(&test.MockClient{}, "Test Flow",
+		*NewStepWithValidatorAndExectorFunction("Step 1", func(flowContext FlowContext, step *Step) (*FlowContext, error) {
+			// Verify variables are correctly passed
+			if flowContext.Variables["key1"] != "value1" || flowContext.Variables["key2"] != 42 {
+				return nil, errors.New("variables not correctly passed")
+			}
+
+			// Add another variable
+			flowContext.Variables["key3"] = true
+			return &flowContext, nil
+		}, nil, nil),
+	)
+
+	assert.NoError(t, err)
+	variables := map[string]any{
+		"key1": "value1",
+		"key2": 42,
+	}
+
+	result, err := flow.RunWithVariables(variables)
+
+	assert.NoError(t, err)
+	assert.Equal(t, "value1", result.Variables["key1"])
+	assert.Equal(t, 42, result.Variables["key2"])
+	assert.Equal(t, true, result.Variables["key3"])
+}
+
+func TestFlow_RunWithInputAndVariables(t *testing.T) {
+	flow, err := NewFlow(&test.MockClient{}, "Test Flow",
+		*NewStepWithValidatorAndExectorFunction("Step 1", func(flowContext FlowContext, step *Step) (*FlowContext, error) {
+			// Verify input text and variables are correctly passed
+			if flowContext.Text != "test input" {
+				return nil, errors.New("input text not correctly passed")
+			}
+
+			if flowContext.Variables["name"] != "John" || flowContext.Variables["age"] != 30 {
+				return nil, errors.New("variables not correctly passed")
+			}
+
+			// Modify text and add a variable
+			flowContext.Text = "modified text"
+			flowContext.Variables["active"] = true
+
+			return &flowContext, nil
+		}, nil, nil),
+	)
+
+	assert.NoError(t, err)
+	variables := map[string]any{
+		"name": "John",
+		"age":  30,
+	}
+
+	result, err := flow.RunWithInputAndVariables("test input", variables)
+
+	assert.NoError(t, err)
+	assert.Equal(t, "modified text", result.Text)
+	assert.Equal(t, "John", result.Variables["name"])
+	assert.Equal(t, 30, result.Variables["age"])
+	assert.Equal(t, true, result.Variables["active"])
+}
+
+// Test with nil variables map
+func TestFlow_RunWithVariables_NilMap(t *testing.T) {
+	flow, err := NewFlow(&test.MockClient{}, "Test Flow",
+		*NewStepWithValidatorAndExectorFunction("Step 1", func(flowContext FlowContext, step *Step) (*FlowContext, error) {
+			// Verify variables map is initialized
+			if flowContext.Variables == nil {
+				return nil, errors.New("variables map not initialized")
+			}
+
+			// Verify it's empty
+			if len(flowContext.Variables) != 0 {
+				return nil, errors.New("variables map not empty")
+			}
+
+			return &flowContext, nil
+		}, nil, nil),
+	)
+
+	assert.NoError(t, err)
+	result, err := flow.RunWithVariables(nil)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result.Variables)
+	assert.Equal(t, 0, len(result.Variables))
+}
+
+func TestFlowContext_Variables(t *testing.T) {
+	// Test initialization of Variables in FlowContext constructors
+	t.Run("NewFlowContext initializes Variables", func(t *testing.T) {
+		fc := NewFlowContext("test", nil)
+		assert.NotNil(t, fc.Variables)
+		assert.Equal(t, 0, len(fc.Variables))
+	})
+
+	t.Run("Flow.NewFlowContext initializes Variables", func(t *testing.T) {
+		flow := &Flow{}
+		fc := flow.NewFlowContext("test", nil)
+		assert.NotNil(t, fc.Variables)
+		assert.Equal(t, 0, len(fc.Variables))
+	})
+
+	// Test GetVariable and SetVariable methods
+	t.Run("GetVariable and SetVariable", func(t *testing.T) {
+		fc := NewFlowContext("test", nil)
+
+		// Initially variable should be nil
+		assert.Nil(t, fc.GetVariable("key1"))
+
+		// Set and get a string variable
+		fc.SetVariable("key1", "value1")
+		assert.Equal(t, "value1", fc.GetVariable("key1"))
+
+		// Set and get an integer variable
+		fc.SetVariable("key2", 123)
+		assert.Equal(t, 123, fc.GetVariable("key2"))
+
+		// Set and get a boolean variable
+		fc.SetVariable("key3", true)
+		assert.Equal(t, true, fc.GetVariable("key3"))
+
+		// Override an existing variable
+		fc.SetVariable("key1", "new_value")
+		assert.Equal(t, "new_value", fc.GetVariable("key1"))
+	})
+
+	// Test typed getter methods
+	t.Run("GetVariableString", func(t *testing.T) {
+		fc := NewFlowContext("test", nil)
+
+		// Default value for non-existent key
+		assert.Equal(t, "default", fc.GetVariableString("missing", "default"))
+
+		// String value
+		fc.SetVariable("str_key", "value")
+		assert.Equal(t, "value", fc.GetVariableString("str_key", "default"))
+
+		// Non-string value should return default
+		fc.SetVariable("int_key", 123)
+		assert.Equal(t, "default", fc.GetVariableString("int_key", "default"))
+	})
+
+	t.Run("GetVariableInt", func(t *testing.T) {
+		fc := NewFlowContext("test", nil)
+
+		// Default value for non-existent key
+		assert.Equal(t, 42, fc.GetVariableInt("missing", 42))
+
+		// Integer value
+		fc.SetVariable("int_key", 123)
+		assert.Equal(t, 123, fc.GetVariableInt("int_key", 42))
+
+		// Non-integer value should return default
+		fc.SetVariable("str_key", "value")
+		assert.Equal(t, 42, fc.GetVariableInt("str_key", 42))
+	})
+
+	t.Run("GetVariableBool", func(t *testing.T) {
+		fc := NewFlowContext("test", nil)
+
+		// Default value for non-existent key
+		assert.Equal(t, true, fc.GetVariableBool("missing", true))
+
+		// Boolean value
+		fc.SetVariable("bool_key", false)
+		assert.Equal(t, false, fc.GetVariableBool("bool_key", true))
+
+		// Non-boolean value should return default
+		fc.SetVariable("str_key", "value")
+		assert.Equal(t, true, fc.GetVariableBool("str_key", true))
+	})
+
+	// Test WithVariable method
+	t.Run("WithVariable creates new context", func(t *testing.T) {
+		fc := NewFlowContext("test", nil)
+		fc.SetVariable("key1", "value1")
+
+		// Create new context with additional variable
+		newFc := fc.WithVariable("key2", "value2")
+
+		// Original context should be unchanged
+		assert.Equal(t, 1, len(fc.Variables))
+		assert.Equal(t, "value1", fc.GetVariable("key1"))
+		assert.Nil(t, fc.GetVariable("key2"))
+
+		// New context should have both variables
+		assert.Equal(t, 2, len(newFc.Variables))
+		assert.Equal(t, "value1", newFc.GetVariable("key1"))
+		assert.Equal(t, "value2", newFc.GetVariable("key2"))
+
+		// Modify new context should not affect original
+		newFc.SetVariable("key1", "modified")
+		assert.Equal(t, "value1", fc.GetVariable("key1"))
+		assert.Equal(t, "modified", newFc.GetVariable("key1"))
+	})
+
+	// Test variables passing through flow steps
+	t.Run("Variables are preserved in flow execution", func(t *testing.T) {
+		flow, err := NewFlow(&test.MockClient{}, "Test Flow",
+			*NewStepWithValidatorAndExectorFunction("Step 1", func(flowContext FlowContext, step *Step) (*FlowContext, error) {
+				// Verify variable from initial context
+				if flowContext.GetVariableString("initial", "") != "value" {
+					return nil, errors.New("initial variable not found or incorrect")
+				}
+
+				// Set a new variable
+				flowContext.SetVariable("step1", "executed")
+				return &flowContext, nil
+			}, nil, nil),
+			*NewStepWithValidatorAndExectorFunction("Step 2", func(flowContext FlowContext, step *Step) (*FlowContext, error) {
+				// Verify variables from initial context and step 1
+				if flowContext.GetVariableString("initial", "") != "value" {
+					return nil, errors.New("initial variable not found or incorrect")
+				}
+				if flowContext.GetVariableString("step1", "") != "executed" {
+					return nil, errors.New("step1 variable not found or incorrect")
+				}
+
+				// Set another variable
+				flowContext.SetVariable("step2", "completed")
+				return &flowContext, nil
+			}, nil, nil),
+		)
+
+		assert.NoError(t, err)
+
+		// Create context with initial variable
+		initialContext := FlowContext{Text: "Initial"}
+		initialContext.Variables = make(map[string]any)
+		initialContext.Variables["initial"] = "value"
+
+		// Run the flow
+		resultContext, err := flow.Run(initialContext)
+
+		// Verify no errors
+		assert.NoError(t, err)
+
+		// Verify all variables are present in the result
+		assert.Equal(t, "value", resultContext.GetVariable("initial"))
+		assert.Equal(t, "executed", resultContext.GetVariable("step1"))
+		assert.Equal(t, "completed", resultContext.GetVariable("step2"))
+	})
+}

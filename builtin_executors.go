@@ -23,6 +23,13 @@ type SetContextExecutor struct {
 	Force bool `json:"force" yaml:"force" mapstructure:"force"`
 }
 
+// SetVariablesExecutor is an executor that sets multiple variables in the flow context at once
+type SetVariablesExecutor struct {
+	// Variables to set, map of variable names to their corresponding values
+	// Example: { "var1": "value1", "var2": 123, "var3": true }
+	Variables map[string]any `json:"variables" yaml:"variables" mapstructure:"variables"`
+}
+
 // Init initializes the SetContextExecutor.
 // This implementation has no initialization requirements.
 func (executor *SetContextExecutor) Init() error {
@@ -461,4 +468,54 @@ func (executor *DeepSeekStyleResponseFilter) Run(flowContext flow.FlowContext, s
 	// Default behavior: set the clean content as Text
 	flowContext.Text = resultContent
 	return &flowContext, nil
+}
+
+// Run executes the variable setting operation for multiple variables at once
+//
+// Parameters:
+//   - flowContext: The current flow context
+//   - step: The current workflow step
+//
+// Returns:
+//   - Updated flow context with the new variables set
+//   - Any error encountered during execution
+//
+// Example usage in configuration:
+//
+//	{
+//	  "type": "setVariables",
+//	  "variables": {
+//	    "username": "john_doe",
+//	    "age": 30,
+//	    "isActive": true,
+//	    "preferences": { "theme": "dark", "notifications": false }
+//	  }
+//	}
+func (executor *SetVariablesExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
+	// Ensure Variables is initialized in flowContext
+	if flowContext.Variables == nil {
+		flowContext.Variables = make(map[string]any)
+	}
+
+	// Set multiple variables simultaneously. Each key in the map is a variable name,
+	// and its corresponding value will be assigned to that variable.
+	// For example, with Variables = {"name": "John", "age": 30, "active": true},
+	// this will create/update three different variables with their respective values.
+	if executor.Variables != nil {
+		for name, value := range executor.Variables {
+			if name == "" {
+				continue // Skip empty variable names
+			}
+
+			// Set the variable (always overwrite existing values)
+			flowContext.Variables[name] = value
+		}
+	}
+
+	return &flowContext, nil
+}
+
+// Init initializes SetVariablesExecutor
+func (executor *SetVariablesExecutor) Init() error {
+	return nil
 }

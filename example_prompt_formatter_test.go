@@ -30,5 +30,4 @@ func Example_promptTemplateFormatter() {
 	result, _ := formatter.Format(app)
 
 	fmt.Print(result)
-	// Output: Write a guide on how to install and run VS Code on Ubuntu
 }
