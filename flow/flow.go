@@ -21,6 +21,8 @@ type Flow struct {
 	Steps []Step
 	// The default ClientImpl for the flow
 	ClientImpl llm.Client
+	// Variables are key-value pairs that will be available to all steps in the flow
+	Variables map[string]any
 }
 type StepExecutor interface {
 	Init() error
@@ -265,6 +267,32 @@ func (flow *Flow) RunWithMemory(memory ShortTermMemory) (*FlowContext, error) {
 // Returns:
 //   - The updated flow context after flow execution
 //   - Any error encountered during flow execution
+//
+// GetVariables returns all variables in the flow
+func (flow *Flow) GetVariables() map[string]any {
+	if flow.Variables == nil {
+		return make(map[string]any)
+	}
+	return flow.Variables
+}
+
+// GetVariable gets the value of a variable and returns whether it exists
+func (flow *Flow) GetVariable(key string) (any, bool) {
+	if flow.Variables == nil {
+		return nil, false
+	}
+	value, exists := flow.Variables[key]
+	return value, exists
+}
+
+// SetVariable sets the value of a variable
+func (flow *Flow) SetVariable(key string, value any) {
+	if flow.Variables == nil {
+		flow.Variables = make(map[string]any)
+	}
+	flow.Variables[key] = value
+}
+
 func (flow *Flow) RunWithVariables(variables map[string]any) (*FlowContext, error) {
 
 	if variables == nil {
@@ -294,12 +322,8 @@ func (flow *Flow) RunWithInputAndVariables(input string, variables map[string]an
 		Text:      input,
 		Variables: make(map[string]any),
 	}
-
-	// Copy all variables
 	if variables != nil {
-		for k, v := range variables {
-			flowContext.Variables[k] = v
-		}
+		flowContext.Variables = variables
 	}
 
 	return flow.Run(flowContext)
@@ -312,6 +336,15 @@ func (flow *Flow) Run(initialFlowContext FlowContext) (*FlowContext, error) {
 	// Ensure Variables is initialized
 	if flowContext.Variables == nil {
 		flowContext.Variables = make(map[string]any)
+	}
+
+	// Merge flow variables into context (flowContext variables take precedence)
+	if flow.Variables != nil {
+		for k, v := range flow.Variables {
+			if _, exists := flowContext.Variables[k]; !exists {
+				flowContext.Variables[k] = v
+			}
+		}
 	}
 
 	// Compile regular expression to extract <think> tag content

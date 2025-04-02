@@ -509,6 +509,65 @@ func TestFlow_RunWithVariables_NilMap(t *testing.T) {
 	assert.Equal(t, 0, len(result.Variables))
 }
 
+func TestFlow_GetVariables(t *testing.T) {
+	// Test with empty variables
+	flow := &Flow{}
+	assert.Empty(t, flow.GetVariables())
+
+	// Test with variables
+	flow.Variables = map[string]any{
+		"key1": "value1",
+		"key2": 42,
+	}
+	assert.Equal(t, flow.Variables, flow.GetVariables())
+}
+
+func TestFlow_GetVariable(t *testing.T) {
+	flow := &Flow{
+		Variables: map[string]any{
+			"key1": "value1",
+			"key2": 42,
+		},
+	}
+
+	// Test existing key
+	val, exists := flow.GetVariable("key1")
+	assert.True(t, exists)
+	assert.Equal(t, "value1", val)
+
+	// Test non-existing key
+	val, exists = flow.GetVariable("key3")
+	assert.False(t, exists)
+	assert.Nil(t, val)
+
+	// Test with nil variables
+	emptyFlow := &Flow{}
+	val, exists = emptyFlow.GetVariable("key1")
+	assert.False(t, exists)
+	assert.Nil(t, val)
+}
+
+func TestFlow_SetVariable(t *testing.T) {
+	flow := &Flow{}
+
+	// Set first variable
+	flow.SetVariable("key1", "value1")
+	assert.Equal(t, "value1", flow.Variables["key1"])
+
+	// Set second variable
+	flow.SetVariable("key2", 42)
+	assert.Equal(t, 42, flow.Variables["key2"])
+
+	// Overwrite existing variable
+	flow.SetVariable("key1", "new value")
+	assert.Equal(t, "new value", flow.Variables["key1"])
+
+	// Test with nil variables map
+	emptyFlow := &Flow{}
+	emptyFlow.SetVariable("key1", "value")
+	assert.Equal(t, "value", emptyFlow.Variables["key1"])
+}
+
 func TestFlowContext_Variables(t *testing.T) {
 	// Test initialization of Variables in FlowContext constructors
 	t.Run("NewFlowContext initializes Variables", func(t *testing.T) {
