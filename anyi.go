@@ -11,6 +11,7 @@ import (
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/llm"
 	"github.com/jieliu2000/anyi/llm/chat"
+	"github.com/jieliu2000/anyi/mcp/server"
 )
 
 // anyiRegistry is the central registry for all components in the Anyi framework.
@@ -23,6 +24,7 @@ type anyiRegistry struct {
 	Executors         map[string]flow.StepExecutor
 	Formatters        map[string]chat.PromptFormatter
 	defaultClientName string
+	mcpServer         *server.MCPServer
 }
 
 // GlobalRegistry is the singleton instance of anyiRegistry.
@@ -137,6 +139,12 @@ func RegisterFlow(name string, flow *flow.Flow) error {
 	}
 
 	GlobalRegistry.Flows[name] = flow
+
+	// Also register flow to MCP server if it exists
+	if GlobalRegistry.mcpServer != nil {
+		GlobalRegistry.mcpServer.RegisterFlow(name, *flow)
+	}
+
 	return nil
 }
 
@@ -523,10 +531,42 @@ func NewLLMStep(tmplate string, systemMessage string, client llm.Client) (*flow.
 	return NewLLMStepWithTemplate(tmplate, systemMessage, client)
 }
 
+// StartMCPServer starts the MCP server to expose flows via HTTP API
+//
+// Parameters:
+//   - addr: Address to listen on (e.g. ":8080")
+//
+// Returns:
+//   - Any error encountered during server startup
+func StartMCPServer(addr string) error {
+	GlobalRegistry.mu.Lock()
+	defer GlobalRegistry.mu.Unlock()
+
+	if GlobalRegistry.mcpServer != nil {
+		return errors.New("MCP server already running")
+	}
+
+	GlobalRegistry.mcpServer = server.New()
+
+	// Register all existing flows
+	for name, flow := range GlobalRegistry.Flows {
+		GlobalRegistry.mcpServer.RegisterFlow(name, *flow)
+	}
+
+	// Start server in background
+	go func() {
+		err := GlobalRegistry.mcpServer.Start(addr)
+		if err != nil {
+			log.Errorf("MCP server error: %v", err)
+		}
+	}()
+
+	return nil
+}
+
 // Init initializes the Anyi framework by registering built-in executors and validators.
 // This should be called before using the framework, but is automatically called by Config.
 func Init() {
-
 	log.Debug("Initializing Anyi...")
 	RegisterExecutor("llm", &LLMExecutor{})
 	RegisterExecutor("condition", &ConditionalFlowExecutor{})
