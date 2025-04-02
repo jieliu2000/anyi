@@ -10,6 +10,7 @@ import (
 	"github.com/jieliu2000/anyi/llm/azureopenai"
 	"github.com/jieliu2000/anyi/llm/chat"
 	"github.com/jieliu2000/anyi/llm/dashscope"
+	"github.com/jieliu2000/anyi/llm/mcp"
 	"github.com/jieliu2000/anyi/llm/ollama"
 	"github.com/jieliu2000/anyi/llm/openai"
 	"github.com/jieliu2000/anyi/llm/siliconcloud"
@@ -35,6 +36,7 @@ type ClientConfig struct {
 	//	* "dashscope" - DashScope model
 	//	* "ollama" - Ollama model
 	//  * "anthropic" - Anthropic model
+	//  * "mcp" - Model Context Protocol
 	Type string `mapstructure:"type" json:"type"`
 
 	// The model config. The type of this field depends on the model. We define this property as map[string]interface{} for extensibility.
@@ -80,6 +82,8 @@ func NewModelConfigFromClientConfig(clientConfig *ClientConfig) (ModelConfig, er
 		modelConfig = ollama.DefaultConfig("")
 	case "anthropic":
 		modelConfig = anthropic.DefaultConfig("")
+	case "mcp":
+		modelConfig = mcp.DefaultConfig("")
 	default:
 		return nil, errors.New("unknown client type:" + clientConfig.Type)
 	}
@@ -146,6 +150,9 @@ func NewClient(config ModelConfig) (Client, error) {
 
 	case *anthropic.AnthropicModelConfig:
 		return anthropic.NewClient(config.(*anthropic.AnthropicModelConfig))
+
+	case *mcp.MCPModelConfig:
+		return mcp.NewClient(config.(*mcp.MCPModelConfig))
 	}
 	return nil, errors.New("unknown model config")
 }
