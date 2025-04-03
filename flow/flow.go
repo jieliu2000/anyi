@@ -211,6 +211,17 @@ func tryStep(step *Step, flowContext FlowContext) (*FlowContext, error) {
 	if err != nil {
 		return result, err
 	}
+
+	// Sync variables from flowContext to flow
+	if result != nil && result.Variables != nil && result.Flow != nil {
+		if result.Flow.Variables == nil {
+			result.Flow.Variables = make(map[string]any)
+		}
+		for k, v := range result.Variables {
+			result.Flow.Variables[k] = v
+		}
+	}
+
 	if step.runTimes > step.MaxRetryTimes+1 {
 		log.Error("Step retry times exceeded, returning error.")
 		return result, errors.New("step retry times exceeded")
@@ -362,6 +373,16 @@ func (flow *Flow) Run(initialFlowContext FlowContext) (*FlowContext, error) {
 		log.Debug("Step running finished. Error:", err, ".")
 		if err != nil {
 			return nil, err
+		}
+
+		// Sync variables from flowContext to flow after step execution
+		if flowContext.Variables != nil {
+			if flow.Variables == nil {
+				flow.Variables = make(map[string]any)
+			}
+			for k, v := range flowContext.Variables {
+				flow.Variables[k] = v
+			}
 		}
 
 		// Check if the result contains <think> tags

@@ -568,6 +568,54 @@ func TestFlow_SetVariable(t *testing.T) {
 	assert.Equal(t, "value", emptyFlow.Variables["key1"])
 }
 
+func TestVariableSync(t *testing.T) {
+	// Create a flow with a single step that modifies variables
+	flow, err := NewFlow(&test.MockClient{}, "Test Variable Sync",
+		*NewStepWithValidatorAndExectorFunction("Step 1", func(flowContext FlowContext, step *Step) (*FlowContext, error) {
+			// Modify variables in flowContext
+			flowContext.SetVariable("var1", "value1")
+			flowContext.SetVariable("var2", 42)
+			return &flowContext, nil
+		}, nil, nil),
+	)
+	assert.NoError(t, err)
+
+	// Test 1: flow.Variables is nil initially
+	assert.Nil(t, flow.Variables)
+
+	// Run the flow
+	_, err = flow.Run(FlowContext{Text: "Initial"})
+	assert.NoError(t, err)
+
+	// Verify variables were synced from flowContext to flow
+	assert.NotNil(t, flow.Variables)
+	assert.Equal(t, "value1", flow.Variables["var1"])
+	assert.Equal(t, 42, flow.Variables["var2"])
+
+	// Test 2: flow.Variables has existing values
+	flow.Variables["existing"] = "old"
+	flow.Variables["var1"] = "old_value"
+
+	// Run again with new variables
+	_, err = flow.Run(FlowContext{
+		Text: "New run",
+		Variables: map[string]any{
+			"var1": "new_value",
+			"var3": true,
+		},
+	})
+	assert.NoError(t, err)
+
+	// Verify:
+	// - Existing variables not overwritten if not in flowContext
+	// - New variables added
+	// - Overlapping variables updated
+	assert.Equal(t, "old", flow.Variables["existing"]) // should remain
+	assert.Equal(t, "value1", flow.Variables["var1"])  // updated
+	assert.Equal(t, 42, flow.Variables["var2"])        // remains from previous run
+	assert.Equal(t, true, flow.Variables["var3"])      // new variable
+}
+
 func TestFlowContext_Variables(t *testing.T) {
 	// Test initialization of Variables in FlowContext constructors
 	t.Run("NewFlowContext initializes Variables", func(t *testing.T) {
