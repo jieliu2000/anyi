@@ -1,0 +1,93 @@
+Clients:
+  - name: "openai"
+    type: "openai"
+    default: true
+    config:
+      apiKey: "${OPENAI_API_KEY}"
+      model: "gpt-4"
+
+Flows:
+  - name: "mcp_document_analysis"
+    clientName: "openai"
+    steps:
+      - name: "analyze_with_mcp"
+        clientName: "openai"
+        executor:
+          type: "mcp"
+          withconfig:
+            endpoint: "mcp.example.com"
+            api_key: "${MCP_API_KEY}"
+            agent_id: "document_analyst"
+            timeout: 180
+            use_ssl: true
+            include_metadata: true
+            data_transfer: "direct"
+            params_template: |
+              {
+                "query": "{{.query}}",
+                "max_tokens": 2000,
+                "options": {
+                  "format": "markdown",
+                  "depth": "detailed"
+                }
+              }
+            data_sources:
+              - name: "documents"
+                type: "file"
+                query_template: "{{.document_path}}"
+                config:
+                  base_dir: "./data/documents"
+              - name: "knowledge_base"
+                type: "file"
+                query_template: "{{.kb_path}}"
+                config:
+                  base_dir: "./data/knowledge"
+
+  - name: "mcp_code_review"
+    clientName: "openai"
+    steps:
+      - name: "review_with_mcp"
+        clientName: "openai"
+        executor:
+          type: "mcp"
+          withconfig:
+            endpoint: "mcp.example.com"
+            api_key: "${MCP_API_KEY}"
+            agent_id: "code_reviewer"
+            timeout: 120
+            use_ssl: true
+            include_metadata: false
+            data_sources:
+              - name: "source_code"
+                type: "file"
+                query_template: "{{.code_path}}"
+                config:
+                  base_dir: "./code"
+
+  - name: "mcp_document_generation"
+    clientName: "openai"
+    steps:
+      - name: "generate_with_mcp"
+        clientName: "openai"
+        executor:
+          type: "mcp"
+          withconfig:
+            endpoint: "mcp.example.com"
+            api_key: "${MCP_API_KEY}"
+            agent_id: "document_generator"
+            timeout: 240
+            use_ssl: true
+            include_metadata: true
+            params_template: |
+              {
+                "topic": "{{.topic}}",
+                "format": "{{.format}}",
+                "length": "{{.length}}",
+                "style": "{{.style}}"
+              }
+            data_sources:
+              - name: "reference_docs"
+                type: "file"
+                query_template: "{{.ref_path}}"
+                config:
+                  base_dir: "./references"
