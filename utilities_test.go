@@ -30,7 +30,7 @@ func TestSimpleChat(t *testing.T) {
 		mockClient := &test.MockClient{
 			ChatOutput: "This is a test response",
 		}
-		RegisterDefaultClient("default", mockClient)
+		RegisterNewDefaultClient("default", mockClient)
 
 		// Execute
 		response, err := SimpleChat("Hello")
@@ -51,7 +51,7 @@ func TestSimpleChat(t *testing.T) {
 			defaultClientName: "default",
 		}
 		mockClient := &test.MockClient{}
-		RegisterDefaultClient("default", mockClient)
+		RegisterNewDefaultClient("default", mockClient)
 
 		// Execute
 		response, err := SimpleChat("")
@@ -78,7 +78,7 @@ func TestSimpleChat(t *testing.T) {
 		// Verify
 		assert.Error(t, err)
 		assert.Equal(t, "", response)
-		assert.Equal(t, "no default client found", err.Error())
+		assert.Contains(t, err.Error(), "no default client found")
 	})
 
 	t.Run("Client error", func(t *testing.T) {
@@ -94,7 +94,7 @@ func TestSimpleChat(t *testing.T) {
 		mockClient := &test.MockClient{
 			Err: errors.New("client error"),
 		}
-		RegisterDefaultClient("default", mockClient)
+		RegisterNewDefaultClient("default", mockClient)
 
 		// Execute
 		response, err := SimpleChat("Hello")

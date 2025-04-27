@@ -37,7 +37,7 @@ var GlobalRegistry *anyiRegistry = &anyiRegistry{
 	Formatters: make(map[string]chat.PromptFormatter),
 }
 
-// RegisterDefaultClient registers a client as the default client in the global registry.
+// RegisterNewDefaultClient registers a client as the default client in the global registry.
 // If no name is provided, it uses "default" as the client name.
 //
 // Parameters:
@@ -46,7 +46,7 @@ var GlobalRegistry *anyiRegistry = &anyiRegistry{
 //
 // Returns:
 //   - Any error encountered during registration
-func RegisterDefaultClient(name string, client llm.Client) error {
+func RegisterNewDefaultClient(name string, client llm.Client) error {
 	if name == "" {
 		name = "default"
 	}
@@ -54,6 +54,29 @@ func RegisterDefaultClient(name string, client llm.Client) error {
 	if err != nil {
 		return err
 	}
+
+	GlobalRegistry.mu.Lock()
+	defer GlobalRegistry.mu.Unlock()
+
+	GlobalRegistry.defaultClientName = name
+	return nil
+}
+
+// SetDefaultClient sets the default client in the global registry.
+//
+// Parameters:
+//   - name: Name of the client to set as default
+//
+// Returns:
+//   - Any error encountered during setting the default client
+func SetDefaultClient(name string) error {
+	if name == "" {
+		return errors.New("name cannot be empty")
+	}
+
+	GlobalRegistry.mu.Lock()
+	defer GlobalRegistry.mu.Unlock()
+
 	GlobalRegistry.defaultClientName = name
 	return nil
 }
@@ -112,6 +135,10 @@ func NewClient(name string, model llm.ModelConfig) (llm.Client, error) {
 	}
 	// If name is not empty, Set the client to Anyi.Clients
 	if name != "" {
+		// Use mutex to protect access to the global registry
+		GlobalRegistry.mu.Lock()
+		defer GlobalRegistry.mu.Unlock()
+
 		GlobalRegistry.Clients[name] = client
 	}
 	return client, nil
@@ -160,6 +187,10 @@ func GetFlow(name string) (*flow.Flow, error) {
 	if name == "" {
 		return nil, errors.New("name cannot be empty")
 	}
+
+	GlobalRegistry.mu.RLock()
+	defer GlobalRegistry.mu.RUnlock()
+
 	f, ok := GlobalRegistry.Flows[name]
 	if !ok {
 		return nil, errors.New("no flow found with the given name: " + name)
@@ -208,6 +239,10 @@ func GetValidator(name string) (flow.StepValidator, error) {
 	if name == "" {
 		return nil, errors.New("name cannot be empty")
 	}
+
+	GlobalRegistry.mu.RLock()
+	defer GlobalRegistry.mu.RUnlock()
+
 	validatorType := GlobalRegistry.Validators[name]
 	if validatorType == nil {
 		return nil, errors.New("no validator found with the given name: " + name)
@@ -237,6 +272,10 @@ func GetExecutor(name string) (flow.StepExecutor, error) {
 	if name == "" {
 		return nil, errors.New("name cannot be empty")
 	}
+
+	GlobalRegistry.mu.RLock()
+	defer GlobalRegistry.mu.RUnlock()
+
 	executor := GlobalRegistry.Executors[name]
 	if executor == nil {
 		return nil, errors.New("no executor found with the given name: " + name)
@@ -264,6 +303,10 @@ func GetClient(name string) (llm.Client, error) {
 	if name == "" {
 		return nil, errors.New("name cannot be empty")
 	}
+
+	GlobalRegistry.mu.RLock()
+	defer GlobalRegistry.mu.RUnlock()
+
 	client, ok := GlobalRegistry.Clients[name]
 	if !ok {
 		return nil, errors.New("no client found with the given name: " + name)
@@ -288,6 +331,10 @@ func NewClientFromConfigFile(name string, configFile string) (llm.Client, error)
 	}
 	// If name is not empty, Set the client to Anyi.Clients
 	if name != "" {
+		// Use mutex to protect access to the global registry
+		GlobalRegistry.mu.Lock()
+		defer GlobalRegistry.mu.Unlock()
+
 		GlobalRegistry.Clients[name] = client
 	}
 	return client, nil
@@ -331,8 +378,9 @@ func NewFlowContextWithText(text string) *flow.FlowContext {
 //   - A new flow context with the specified text and memory
 func NewFlowContext(text string, memory flow.ShortTermMemory) *flow.FlowContext {
 	flowContext := flow.FlowContext{
-		Text:   text,
-		Memory: memory,
+		Text:      text,
+		Memory:    memory,
+		Variables: make(map[string]any),
 	}
 
 	return &flowContext
@@ -350,6 +398,28 @@ func NewFlowContextWithMemory(memory flow.ShortTermMemory) *flow.FlowContext {
 	return NewFlowContext("", memory)
 }
 
+// NewFlowContextWithVariables creates a FlowContext with initial variables
+//
+// Parameters:
+//   - text: Text content
+//   - memory: Short-term memory
+//   - variables: Initial variable collection
+//
+// Returns:
+//   - A new FlowContext with initial variables
+func NewFlowContextWithVariables(text string, memory flow.ShortTermMemory, variables map[string]any) *flow.FlowContext {
+	if variables == nil {
+		variables = make(map[string]any)
+	}
+	flowContext := flow.FlowContext{
+		Text:      text,
+		Memory:    memory,
+		Variables: variables,
+	}
+
+	return &flowContext
+}
+
 // GetFormatter retrieves a formatter from the global registry by name.
 //
 // Parameters:
@@ -358,6 +428,9 @@ func NewFlowContextWithMemory(memory flow.ShortTermMemory) *flow.FlowContext {
 // Returns:
 //   - The requested prompt formatter, or nil if not found
 func GetFormatter(name string) chat.PromptFormatter {
+	GlobalRegistry.mu.RLock()
+	defer GlobalRegistry.mu.RUnlock()
+
 	return GlobalRegistry.Formatters[name]
 }
 
@@ -374,6 +447,10 @@ func RegisterFormatter(name string, formatter chat.PromptFormatter) error {
 	if name == "" {
 		return errors.New("name cannot be empty")
 	}
+
+	GlobalRegistry.mu.Lock()
+	defer GlobalRegistry.mu.Unlock()
+
 	GlobalRegistry.Formatters[name] = formatter
 	return nil
 }
@@ -448,6 +525,9 @@ func NewFlow(name string, client llm.Client, steps ...flow.Step) (*flow.Flow, er
 		return nil, err
 	}
 
+	GlobalRegistry.mu.Lock()
+	defer GlobalRegistry.mu.Unlock()
+
 	GlobalRegistry.Flows[name] = f
 	return f, nil
 }
@@ -465,6 +545,9 @@ func RegisterExecutor(name string, executor flow.StepExecutor) error {
 	if name == "" {
 		return errors.New("name cannot be empty")
 	}
+
+	GlobalRegistry.mu.Lock()
+	defer GlobalRegistry.mu.Unlock()
 
 	if GlobalRegistry.Executors[name] != nil {
 		return fmt.Errorf("executor type with the name %s already exists", name)
@@ -487,6 +570,10 @@ func RegisterValidator(name string, validator flow.StepValidator) error {
 	if name == "" {
 		return errors.New("name cannot be empty")
 	}
+
+	GlobalRegistry.mu.Lock()
+	defer GlobalRegistry.mu.Unlock()
+
 	if GlobalRegistry.Validators[name] != nil {
 		return fmt.Errorf("validator type with the name %s already exists", name)
 	}
@@ -572,6 +659,9 @@ func Init() {
 	RegisterExecutor("condition", &ConditionalFlowExecutor{})
 	RegisterExecutor("exec", &RunCommandExecutor{})
 	RegisterExecutor("setContext", &SetContextExecutor{})
+	RegisterExecutor("setVariables", &SetVariablesExecutor{})
+	// Register with old name for backward compatibility
+	RegisterExecutor("setVariable", &SetVariablesExecutor{})
 
 	RegisterValidator("string", &StringValidator{})
 	RegisterValidator("json", &JsonValidator{})

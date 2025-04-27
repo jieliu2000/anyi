@@ -21,6 +21,8 @@ type Flow struct {
 	Steps []Step
 	// The default ClientImpl for the flow
 	ClientImpl llm.Client
+	// Variables are key-value pairs that will be available to all steps in the flow
+	Variables map[string]any
 }
 type StepExecutor interface {
 	Init() error
@@ -75,6 +77,7 @@ type ShortTermMemory any
 type FlowContext struct {
 	Text      string
 	Memory    ShortTermMemory
+	Variables map[string]any
 	Flow      *Flow
 	ImageURLs []string
 	Think     string // Stores thinking content extracted from <think> tags in model output
@@ -84,12 +87,95 @@ func (fc *FlowContext) UnmarshalJsonText(entity any) error {
 	return json.Unmarshal([]byte(fc.Text), entity)
 }
 
-func NewFlowContext(flowContext string, data any) *FlowContext {
-	return &FlowContext{Text: flowContext, Memory: data}
+// GetVariable gets the value of a variable. Returns nil if the variable doesn't exist
+func (fc *FlowContext) GetVariable(name string) any {
+	if fc.Variables == nil {
+		return nil
+	}
+	return fc.Variables[name]
 }
 
-func (flow *Flow) NewFlowContext(flowContext string, data any) *FlowContext {
-	return &FlowContext{Text: flowContext, Memory: data, Flow: flow}
+// SetVariable sets the value of a variable
+func (fc *FlowContext) SetVariable(name string, value any) {
+	if fc.Variables == nil {
+		fc.Variables = make(map[string]any)
+	}
+	fc.Variables[name] = value
+}
+
+// GetVariableString gets the string value of a variable. Returns the defaultValue if the variable
+// doesn't exist or is not a string
+func (fc *FlowContext) GetVariableString(name string, defaultValue string) string {
+	value := fc.GetVariable(name)
+	if value == nil {
+		return defaultValue
+	}
+	strValue, ok := value.(string)
+	if !ok {
+		return defaultValue
+	}
+	return strValue
+}
+
+// GetVariableInt gets the integer value of a variable. Returns the defaultValue if the variable
+// doesn't exist or is not an integer
+func (fc *FlowContext) GetVariableInt(name string, defaultValue int) int {
+	value := fc.GetVariable(name)
+	if value == nil {
+		return defaultValue
+	}
+	intValue, ok := value.(int)
+	if !ok {
+		return defaultValue
+	}
+	return intValue
+}
+
+// GetVariableBool gets the boolean value of a variable. Returns the defaultValue if the variable
+// doesn't exist or is not a boolean
+func (fc *FlowContext) GetVariableBool(name string, defaultValue bool) bool {
+	value := fc.GetVariable(name)
+	if value == nil {
+		return defaultValue
+	}
+	boolValue, ok := value.(bool)
+	if !ok {
+		return defaultValue
+	}
+	return boolValue
+}
+
+// WithVariable creates a copy of FlowContext with a new variable set
+// The original FlowContext is not modified
+func (fc *FlowContext) WithVariable(name string, value any) *FlowContext {
+	newContext := &FlowContext{
+		Text:      fc.Text,
+		Memory:    fc.Memory,
+		Flow:      fc.Flow,
+		ImageURLs: fc.ImageURLs,
+		Think:     fc.Think,
+		Variables: make(map[string]any),
+	}
+
+	// Copy all existing variables
+	if fc.Variables != nil {
+		for k, v := range fc.Variables {
+			newContext.Variables[k] = v
+		}
+	}
+
+	// Set the new variable
+	newContext.Variables[name] = value
+
+	return newContext
+}
+
+func NewFlowContext(flowContext string, memory any) *FlowContext {
+	return &FlowContext{Text: flowContext, Memory: memory, Variables: make(map[string]any)}
+}
+
+func (flow *Flow) NewFlowContext(flowContext string, memory any) *FlowContext {
+	return &FlowContext{Text: flowContext, Memory: memory, Flow: flow, Variables: make(map[string]any)}
 }
 
 func NewStep(executor StepExecutor, validator StepValidator, client llm.Client) *Step {
@@ -125,6 +211,17 @@ func tryStep(step *Step, flowContext FlowContext) (*FlowContext, error) {
 	if err != nil {
 		return result, err
 	}
+
+	// Sync variables from flowContext to flow
+	if result != nil && result.Variables != nil && result.Flow != nil {
+		if result.Flow.Variables == nil {
+			result.Flow.Variables = make(map[string]any)
+		}
+		for k, v := range result.Variables {
+			result.Flow.Variables[k] = v
+		}
+	}
+
 	if step.runTimes > step.MaxRetryTimes+1 {
 		log.Error("Step retry times exceeded, returning error.")
 		return result, errors.New("step retry times exceeded")
@@ -146,7 +243,98 @@ func tryStep(step *Step, flowContext FlowContext) (*FlowContext, error) {
 func (flow *Flow) RunWithInput(input string) (*FlowContext, error) {
 	// Create a new flowContext with the input
 	flowContext := FlowContext{
-		Text: input,
+		Text:      input,
+		Variables: make(map[string]any),
+	}
+
+	return flow.Run(flowContext)
+}
+
+// RunWithMemory runs the flow with the provided memory object.
+// This is a convenience method for creating a flow context with memory and running the flow.
+//
+// Parameters:
+//   - memory: The memory object to use in the flow context
+//
+// Returns:
+//   - The updated flow context after flow execution
+//   - Any error encountered during flow execution
+func (flow *Flow) RunWithMemory(memory ShortTermMemory) (*FlowContext, error) {
+	// Create a new flowContext with the memory
+	flowContext := FlowContext{
+		Memory:    memory,
+		Variables: make(map[string]any),
+	}
+
+	return flow.Run(flowContext)
+}
+
+// RunWithVariables runs the flow with the provided variables.
+// This is a convenience method for creating a flow context with variables and running the flow.
+//
+// Parameters:
+//   - variables: Map of variable names to values to use in the flow context
+//
+// Returns:
+//   - The updated flow context after flow execution
+//   - Any error encountered during flow execution
+//
+// GetVariables returns all variables in the flow
+func (flow *Flow) GetVariables() map[string]any {
+	if flow.Variables == nil {
+		return make(map[string]any)
+	}
+	return flow.Variables
+}
+
+// GetVariable gets the value of a variable and returns whether it exists
+func (flow *Flow) GetVariable(key string) (any, bool) {
+	if flow.Variables == nil {
+		return nil, false
+	}
+	value, exists := flow.Variables[key]
+	return value, exists
+}
+
+// SetVariable sets the value of a variable
+func (flow *Flow) SetVariable(key string, value any) {
+	if flow.Variables == nil {
+		flow.Variables = make(map[string]any)
+	}
+	flow.Variables[key] = value
+}
+
+func (flow *Flow) RunWithVariables(variables map[string]any) (*FlowContext, error) {
+
+	if variables == nil {
+		variables = make(map[string]any)
+	}
+	// Create a new flowContext with the variables
+	flowContext := FlowContext{
+		Variables: variables,
+	}
+
+	return flow.Run(flowContext)
+}
+
+// RunWithInputAndVariables runs the flow with the provided input text and variables.
+// This is a convenience method for creating a flow context with text and variables and running the flow.
+//
+// Parameters:
+//   - input: The input text to use in the flow context
+//   - variables: Map of variable names to values to use in the flow context
+//
+// Returns:
+//   - The updated flow context after flow execution
+//   - Any error encountered during flow execution
+func (flow *Flow) RunWithInputAndVariables(input string, variables map[string]any) (*FlowContext, error) {
+	// Create a new flowContext with the input and variables
+	flowContext := FlowContext{
+		Text:      input,
+		Variables: make(map[string]any),
+	}
+	if variables != nil {
+		flowContext.Variables = variables
 	}
 
 	return flow.Run(flowContext)
@@ -156,7 +344,21 @@ func (flow *Flow) Run(initialFlowContext FlowContext) (*FlowContext, error) {
 	flowContext := &initialFlowContext
 	flowContext.Flow = flow
 
-	// 编译正则表达式用于提取 <think> 标签内容
+	// Ensure Variables is initialized
+	if flowContext.Variables == nil {
+		flowContext.Variables = make(map[string]any)
+	}
+
+	// Merge flow variables into context (flowContext variables take precedence)
+	if flow.Variables != nil {
+		for k, v := range flow.Variables {
+			if _, exists := flowContext.Variables[k]; !exists {
+				flowContext.Variables[k] = v
+			}
+		}
+	}
+
+	// Compile regular expression to extract <think> tag content
 	thinkRegex, err := regexp.Compile(`(?s)<think>.*?</think>`)
 	if err != nil {
 		return nil, err
@@ -173,13 +375,23 @@ func (flow *Flow) Run(initialFlowContext FlowContext) (*FlowContext, error) {
 			return nil, err
 		}
 
-		// 检查结果中是否包含 <think> 标签
+		// Sync variables from flowContext to flow after step execution
+		if flowContext.Variables != nil {
+			if flow.Variables == nil {
+				flow.Variables = make(map[string]any)
+			}
+			for k, v := range flowContext.Variables {
+				flow.Variables[k] = v
+			}
+		}
+
+		// Check if the result contains <think> tags
 		if result != nil && result.Text != "" {
 			thinkMatch := thinkRegex.FindStringSubmatch(result.Text)
 			if len(thinkMatch) > 0 {
-				// 提取 <think> 标签内容到 Think 属性
+				// Extract <think> tag content to the Think property
 				result.Think = thinkMatch[0]
-				// 移除 <think> 标签内容，保留清理后的文本
+				// Remove <think> tag content, keep the cleaned text
 				result.Text = strings.TrimSpace(thinkRegex.ReplaceAllString(result.Text, ""))
 			}
 		}

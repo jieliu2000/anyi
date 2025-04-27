@@ -40,7 +40,12 @@ func (m MockValidator) Validate(stepOutput string, Step *flow.Step) bool {
 
 func TestNewFlowFromConfig_Success(t *testing.T) {
 	// Setup
-
+	GlobalRegistry = &anyiRegistry{
+		Flows:      make(map[string]*flow.Flow),
+		Clients:    make(map[string]llm.Client),
+		Executors:  make(map[string]flow.StepExecutor),
+		Validators: make(map[string]flow.StepValidator),
+	}
 	RegisterClient("test-client", &test.MockClient{})
 	RegisterExecutor("test-executor", &MockExecutor{})
 	RegisterValidator("test-validator", &MockValidator{})
@@ -48,6 +53,10 @@ func TestNewFlowFromConfig_Success(t *testing.T) {
 	flowConfig := &FlowConfig{
 		ClientName: "test-client",
 		Name:       "test-flow",
+		Variables: map[string]any{
+			"var1": "value1",
+			"var2": 123,
+		},
 		Steps: []StepConfig{
 			{
 				Name: "name1",
@@ -71,6 +80,14 @@ func TestNewFlowFromConfig_Success(t *testing.T) {
 	assert.Equal(t, 1, len(flowInstance.Steps))
 	step := flowInstance.Steps[0]
 	assert.Equal(t, "name1", step.Name)
+
+	var1, ok := flowInstance.GetVariable("var1")
+	assert.True(t, ok)
+	assert.Equal(t, "value1", var1)
+
+	var2, ok := flowInstance.GetVariable("var2")
+	assert.True(t, ok)
+	assert.Equal(t, 123, var2)
 }
 func TestNewFlowFromConfig_WithNil(t *testing.T) {
 	// Execute
@@ -235,7 +252,6 @@ func TestNewClientFromConfigWithInvalidType(t *testing.T) {
 	assert.Nil(t, client)
 	assert.Error(t, err)
 }
-
 func TestConfig(t *testing.T) {
 	RegisterExecutor("executor1", &MockExecutor{})
 	config := AnyiConfig{
@@ -253,6 +269,9 @@ func TestConfig(t *testing.T) {
 		Flows: []FlowConfig{
 			{
 				Name: "flow1",
+				Variables: map[string]any{
+					"testVar": "testValue",
+				},
 				Steps: []StepConfig{
 					{
 						Executor: &ExecutorConfig{
@@ -266,6 +285,14 @@ func TestConfig(t *testing.T) {
 		},
 	}
 	err := Config(&config)
+	assert.Nil(t, err)
+
+	// Verify flow variables are set
+	flow, err := GetFlow("flow1")
+	assert.NoError(t, err)
+	result, ok := flow.GetVariable("testVar")
+	assert.True(t, ok)
+	assert.Equal(t, "testValue", result)
 	assert.Nil(t, err)
 }
 

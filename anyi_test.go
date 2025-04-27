@@ -45,7 +45,7 @@ func TestGetDefaultClient(t *testing.T) {
 	})
 	t.Run("Set default client via RegisterDefaultClient", func(t *testing.T) {
 		client := &test.MockClient{}
-		RegisterDefaultClient("", client)
+		RegisterNewDefaultClient("", client)
 		got, err := GetDefaultClient()
 		assert.NoError(t, err)
 		assert.Equal(t, client, got)
@@ -76,7 +76,7 @@ func TestGetDefaultClient(t *testing.T) {
 		client2 := &test.MockClient{}
 		RegisterClient("client1", client1)
 		RegisterClient("client2", client2)
-		RegisterDefaultClient("client1", client1)
+		SetDefaultClient("client1")
 
 		// Run concurrent reads
 		var wg sync.WaitGroup
@@ -315,6 +315,43 @@ func TestNewFlowContext(t *testing.T) {
 	flowContext = NewFlowContextWithMemory(5)
 	assert.Equal(t, 5, flowContext.Memory)
 	assert.Equal(t, "", flowContext.Text)
+}
+
+func TestNewFlowContextWithVariables(t *testing.T) {
+	// Test with empty variables
+	t.Run("With nil variables", func(t *testing.T) {
+		text := "test text"
+		memory := 42
+		flowContext := NewFlowContextWithVariables(text, memory, nil)
+
+		assert.IsType(t, &flow.FlowContext{}, flowContext)
+		assert.Equal(t, text, flowContext.Text)
+		assert.Equal(t, memory, flowContext.Memory)
+		assert.NotNil(t, flowContext.Variables)
+		assert.Equal(t, 0, len(flowContext.Variables))
+	})
+
+	// Test with variables
+	t.Run("With provided variables", func(t *testing.T) {
+		text := "test text"
+		memory := "test memory"
+		variables := map[string]any{
+			"strVar":  "string value",
+			"intVar":  42,
+			"boolVar": true,
+		}
+
+		flowContext := NewFlowContextWithVariables(text, memory, variables)
+
+		assert.IsType(t, &flow.FlowContext{}, flowContext)
+		assert.Equal(t, text, flowContext.Text)
+		assert.Equal(t, memory, flowContext.Memory)
+		assert.NotNil(t, flowContext.Variables)
+		assert.Equal(t, 3, len(flowContext.Variables))
+		assert.Equal(t, "string value", flowContext.Variables["strVar"])
+		assert.Equal(t, 42, flowContext.Variables["intVar"])
+		assert.Equal(t, true, flowContext.Variables["boolVar"])
+	})
 
 }
 
@@ -361,10 +398,11 @@ func TestInit(t *testing.T) {
 	assert.NotNil(t, GlobalRegistry.Executors["condition"])
 	assert.NotNil(t, GlobalRegistry.Executors["exec"])
 	assert.NotNil(t, GlobalRegistry.Executors["setContext"])
+	assert.NotNil(t, GlobalRegistry.Executors["setVariables"])
+	assert.NotNil(t, GlobalRegistry.Executors["setVariable"]) // backward compatibility
 
 	assert.NotNil(t, GlobalRegistry.Validators["json"])
 	assert.NotNil(t, GlobalRegistry.Validators["string"])
-
 }
 
 func TestGetExecutor(t *testing.T) {

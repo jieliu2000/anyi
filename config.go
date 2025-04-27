@@ -50,6 +50,7 @@ type FlowConfig struct {
 	ClientConfig llm.ClientConfig `mapstructure:"clientConfig" json:"clientConfig" yaml:"clientConfig"`
 	Name         string           `mapstructure:"name" json:"name" yaml:"name"`
 	Steps        []StepConfig     `mapstructure:"steps" json:"steps" yaml:"steps"`
+	Variables    map[string]any   `mapstructure:"variables" json:"variables" yaml:"variables"`
 }
 
 // StepConfig defines the configuration structure for workflow steps.
@@ -92,7 +93,7 @@ func NewClientFromConfig(config *llm.ClientConfig) (llm.Client, error) {
 			log.Error("Default client is already set: ", GlobalRegistry.defaultClientName)
 			log.Error("New default client: ", config.Name)
 		}
-		RegisterDefaultClient("", client)
+		RegisterNewDefaultClient("", client)
 	}
 	return client, nil
 }
@@ -190,10 +191,18 @@ func NewFlowFromConfig(flowConfig *FlowConfig) (*flow.Flow, error) {
 	}
 
 	flow, err := flow.NewFlow(client, flowConfig.Name, steps...)
-
 	if err != nil {
 		return nil, err
 	}
+
+	// Set flow variables from config
+	if flowConfig.Variables != nil {
+		flow.Variables = make(map[string]any)
+		for k, v := range flowConfig.Variables {
+			flow.Variables[k] = v
+		}
+	}
+
 	err = RegisterFlow(flow.Name, flow)
 	return flow, err
 }

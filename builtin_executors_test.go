@@ -357,6 +357,117 @@ func TestRunForLLMStep(t *testing.T) {
 		assert.Equal(t, "Hello, world", output.Text)
 	})
 
+	t.Run("template formatter with Variables", func(t *testing.T) {
+		templateFromatter, _ := chat.NewPromptTemplateFormatter("Name: {{.Variables.name}}, Age: {{.Variables.age}}, Active: {{.Variables.active}}")
+		step := flow.Step{
+			ClientImpl: &test.MockClient{},
+		}
+		// Create FlowContext with variables
+		ctx := flow.FlowContext{
+			Variables: map[string]any{
+				"name":   "John Doe",
+				"age":    30,
+				"active": true,
+			},
+			Flow: &flow.Flow{
+				ClientImpl: &test.MockClient{},
+			},
+		}
+		executor := &LLMExecutor{
+			TemplateFormatter: templateFromatter,
+		}
+		output, err := executor.Run(ctx, &step)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "Name: John Doe, Age: 30, Active: true", output.Text)
+	})
+
+	t.Run("template formatter with nested Variables", func(t *testing.T) {
+		templateFromatter, _ := chat.NewPromptTemplateFormatter("User: {{.Variables.user.name}}, Theme: {{.Variables.settings.theme}}, Notifications: {{.Variables.settings.notifications}}")
+		step := flow.Step{
+			ClientImpl: &test.MockClient{},
+		}
+		// Create FlowContext with nested variables
+		ctx := flow.FlowContext{
+			Variables: map[string]any{
+				"user": map[string]any{
+					"name": "Alice",
+					"id":   12345,
+				},
+				"settings": map[string]any{
+					"theme":         "dark",
+					"notifications": false,
+				},
+			},
+			Flow: &flow.Flow{
+				ClientImpl: &test.MockClient{},
+			},
+		}
+		executor := &LLMExecutor{
+			TemplateFormatter: templateFromatter,
+		}
+		output, err := executor.Run(ctx, &step)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "User: Alice, Theme: dark, Notifications: false", output.Text)
+	})
+
+	t.Run("variables set by SetVariablesExecutor used in template", func(t *testing.T) {
+		// Create a flow with SetVariablesExecutor followed by LLMExecutor
+
+		// Step 1: SetVariablesExecutor to set variables
+		setVarExecutor := &SetVariablesExecutor{
+			Variables: map[string]any{
+				"product": "Laptop",
+				"specs": map[string]any{
+					"cpu":  "Intel i7",
+					"ram":  "16GB",
+					"disk": "512GB SSD",
+				},
+				"price": 1299.99,
+			},
+		}
+
+		// Step 2: LLMExecutor to use those variables in template
+		templateFormatter, _ := chat.NewPromptTemplateFormatter(
+			"Product: {{.Variables.product}}\n" +
+				"CPU: {{.Variables.specs.cpu}}\n" +
+				"RAM: {{.Variables.specs.ram}}\n" +
+				"Disk: {{.Variables.specs.disk}}\n" +
+				"Price: ${{.Variables.price}}")
+
+		llmExecutor := &LLMExecutor{
+			TemplateFormatter: templateFormatter,
+		}
+
+		// Create steps
+		step1 := flow.Step{
+			Name:     "Set Variables",
+			Executor: setVarExecutor,
+		}
+
+		step2 := flow.Step{
+			Name:       "Use Variables",
+			Executor:   llmExecutor,
+			ClientImpl: &test.MockClient{},
+		}
+
+		// Create flow
+		testFlow, _ := flow.NewFlow(&test.MockClient{}, "Test Flow", step1, step2)
+
+		// Run flow
+		result, err := testFlow.RunWithInput("This input will be ignored")
+
+		// Verify results
+		assert.NoError(t, err)
+		expectedOutput := "Product: Laptop\n" +
+			"CPU: Intel i7\n" +
+			"RAM: 16GB\n" +
+			"Disk: 512GB SSD\n" +
+			"Price: $1299.99"
+		assert.Equal(t, expectedOutput, result.Text)
+	})
+
 	t.Run("template formatter error", func(t *testing.T) {
 		templateFromatter, _ := chat.NewPromptTemplateFormatter("Hello, {{.None}}")
 		step := flow.Step{
@@ -433,7 +544,9 @@ func TestConditionalFlowExecutor_Init(t *testing.T) {
 		assert.Error(t, err)
 	})
 	t.Run("should return success if all switch values are existing flows", func(t *testing.T) {
-
+		GlobalRegistry = &anyiRegistry{
+			Flows: make(map[string]*flow.Flow),
+		}
 		RegisterFlow("bar", &flow.Flow{})
 		RegisterFlow("qux", &flow.Flow{})
 
@@ -447,8 +560,11 @@ func TestConditionalFlowExecutor_Init(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("should return success if all switch values are existing flows", func(t *testing.T) {
+	t.Run("should return success if all switch values contains nil values", func(t *testing.T) {
 
+		GlobalRegistry = &anyiRegistry{
+			Flows: make(map[string]*flow.Flow),
+		}
 		RegisterFlow("bar", &flow.Flow{})
 		RegisterFlow("qux", nil)
 
@@ -463,7 +579,9 @@ func TestConditionalFlowExecutor_Init(t *testing.T) {
 	})
 
 	t.Run("should return error if some switch values are not valid", func(t *testing.T) {
-
+		GlobalRegistry = &anyiRegistry{
+			Flows: make(map[string]*flow.Flow),
+		}
 		RegisterFlow("bar", &flow.Flow{})
 
 		executor := &ConditionalFlowExecutor{
@@ -663,6 +781,157 @@ func TestSetContextExecutor_Run(t *testing.T) {
 	})
 }
 
+func TestSetVariablesExecutor_Init(t *testing.T) {
+	executor := &SetVariablesExecutor{}
+	err := executor.Init()
+	assert.NoError(t, err)
+}
+
+func TestSetVariablesExecutor_Run(t *testing.T) {
+	// Test Case 1: Setting variables with an empty variable name
+	t.Run("Skip empty variable names", func(t *testing.T) {
+		executor := SetVariablesExecutor{
+			Variables: map[string]any{
+				"":      "emptyName",
+				"valid": "validValue",
+			},
+		}
+		flowContext := flow.FlowContext{
+			Variables: make(map[string]any),
+		}
+		step := &flow.Step{}
+		result, err := executor.Run(flowContext, step)
+		assert.NoError(t, err)
+		assert.Equal(t, 1, len(result.Variables))
+		assert.Equal(t, "validValue", result.Variables["valid"])
+	})
+
+	// Test Case 2: Setting multiple variables
+	t.Run("Set multiple variables", func(t *testing.T) {
+		executor := SetVariablesExecutor{
+			Variables: map[string]any{
+				"var1": "value1",
+				"var2": 42,
+				"var3": true,
+			},
+		}
+		flowContext := flow.FlowContext{
+			Variables: make(map[string]any),
+		}
+		step := &flow.Step{}
+		result, err := executor.Run(flowContext, step)
+		assert.NoError(t, err)
+		assert.Equal(t, 3, len(result.Variables))
+		assert.Equal(t, "value1", result.Variables["var1"])
+		assert.Equal(t, 42, result.Variables["var2"])
+		assert.Equal(t, true, result.Variables["var3"])
+	})
+
+	// Test Case 3: Setting a variable when Variables is nil
+	t.Run("Initialize Variables if nil", func(t *testing.T) {
+		executor := SetVariablesExecutor{
+			Variables: map[string]any{
+				"testVar": "testValue",
+			},
+		}
+		flowContext := flow.FlowContext{
+			Variables: nil,
+		}
+		step := &flow.Step{}
+		result, err := executor.Run(flowContext, step)
+		assert.NoError(t, err)
+		assert.NotNil(t, result.Variables)
+		assert.Equal(t, "testValue", result.Variables["testVar"])
+	})
+
+	// Test Case 4: Always overwrite existing variables
+	t.Run("Always overwrite existing variables", func(t *testing.T) {
+		executor := SetVariablesExecutor{
+			Variables: map[string]any{
+				"existingVar": "newValue",
+				"newVar":      "value",
+			},
+		}
+		flowContext := flow.FlowContext{
+			Variables: map[string]any{
+				"existingVar": "existingValue",
+			},
+		}
+		step := &flow.Step{}
+		result, err := executor.Run(flowContext, step)
+		assert.NoError(t, err)
+		assert.Equal(t, "newValue", result.Variables["existingVar"])
+		assert.Equal(t, "value", result.Variables["newVar"])
+	})
+
+	// Test Case 5: Complex variable values with different types
+	t.Run("Complex variable values with different types", func(t *testing.T) {
+		// Create a complex nested structure with different variable types
+		nestedMap := map[string]any{
+			"setting1": "enabled",
+			"setting2": 42,
+			"nested": map[string]bool{
+				"feature1": true,
+				"feature2": false,
+			},
+		}
+
+		// Create an array/slice
+		arrayData := []any{"item1", 2, true}
+
+		executor := SetVariablesExecutor{
+			Variables: map[string]any{
+				"stringVar": "Hello World",                       // String
+				"intVar":    42,                                  // Integer
+				"floatVar":  3.14159,                             // Float
+				"boolVar":   true,                                // Boolean
+				"mapVar":    nestedMap,                           // Nested map
+				"arrayVar":  arrayData,                           // Array/slice
+				"nullVar":   nil,                                 // Nil value
+				"structVar": struct{ Name string }{Name: "Test"}, // Struct
+			},
+		}
+
+		flowContext := flow.FlowContext{
+			Variables: make(map[string]any),
+		}
+		step := &flow.Step{}
+
+		// Run the executor
+		result, err := executor.Run(flowContext, step)
+
+		// Verify results
+		assert.NoError(t, err)
+		assert.Equal(t, 8, len(result.Variables))
+
+		// Check individual variables
+		assert.Equal(t, "Hello World", result.Variables["stringVar"])
+		assert.Equal(t, 42, result.Variables["intVar"])
+		assert.Equal(t, 3.14159, result.Variables["floatVar"])
+		assert.Equal(t, true, result.Variables["boolVar"])
+		assert.Equal(t, nil, result.Variables["nullVar"])
+
+		// Check nested map
+		resultMap, ok := result.Variables["mapVar"].(map[string]any)
+		assert.True(t, ok, "mapVar should be a map")
+		assert.Equal(t, "enabled", resultMap["setting1"])
+		assert.Equal(t, 42, resultMap["setting2"])
+
+		// Check array
+		resultArray, ok := result.Variables["arrayVar"].([]any)
+		assert.True(t, ok, "arrayVar should be an array")
+		assert.Equal(t, 3, len(resultArray))
+		assert.Equal(t, "item1", resultArray[0])
+		assert.Equal(t, 2, resultArray[1])
+		assert.Equal(t, true, resultArray[2])
+
+		// Check struct
+		resultStruct, ok := result.Variables["structVar"].(struct{ Name string })
+		assert.True(t, ok, "structVar should be a struct")
+		assert.Equal(t, "Test", resultStruct.Name)
+	})
+}
+
 func TestDeepSeekStyleResponseFilter_Think(t *testing.T) {
 	// Create a new filter
 	filter := &DeepSeekStyleResponseFilter{}
@@ -696,4 +965,8 @@ func TestDeepSeekStyleResponseFilter_Think(t *testing.T) {
 	// Check that Text field has JSON format with both thinking and result
 	expectedJSON := `{"think": "<think>This is my thinking process. I need to consider several factors.</think>", "result": "Let me think about this.  Based on my analysis, the answer is 42."}`
 	assert.Equal(t, expectedJSON, result.Text)
+}
+
+func TestDeepSeekStyleResponseFilter_Init(t *testing.T) {
+	// ... existing code ...
 }
