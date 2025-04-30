@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/jieliu2000/anyi/llm/chat"
+	"github.com/jieliu2000/anyi/llm/config"
 	"github.com/jieliu2000/anyi/llm/openai"
 	"github.com/jieliu2000/anyi/llm/tools"
 
@@ -11,6 +12,7 @@ import (
 )
 
 type AzureOpenAIModelConfig struct {
+	config.GeneralLLMConfig
 	APIKey            string `json:"apiKey" mapstructure:"apiKey" yaml:"apiKey"`
 	ModelDeploymentId string `json:"modelDeploymentId" mapstructure:"modelDeploymentId" yaml:"modelDeploymentId"`
 	Endpoint          string `json:"endpoint" mapstructure:"endpoint" yaml:"endpoint"`
@@ -23,7 +25,12 @@ type AzureOpenAIClient struct {
 }
 
 func NewConfig(apiKey string, modelDeploymentId string, endpoint string) *AzureOpenAIModelConfig {
-	return &AzureOpenAIModelConfig{APIKey: apiKey, ModelDeploymentId: modelDeploymentId, Endpoint: endpoint}
+	return &AzureOpenAIModelConfig{
+		GeneralLLMConfig:  config.DefaultGeneralConfig(),
+		APIKey:            apiKey,
+		ModelDeploymentId: modelDeploymentId,
+		Endpoint:          endpoint,
+	}
 }
 
 func NewClient(config *AzureOpenAIModelConfig) (*AzureOpenAIClient, error) {

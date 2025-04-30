@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/jieliu2000/anyi/llm/chat"
+	"github.com/jieliu2000/anyi/llm/config"
 	"github.com/jieliu2000/anyi/llm/openai"
 	"github.com/jieliu2000/anyi/llm/tools"
 
@@ -17,6 +18,7 @@ const (
 
 // AnthropicModelConfig defines configuration parameters for Anthropic models
 type AnthropicModelConfig struct {
+	config.GeneralLLMConfig
 	APIKey     string `json:"apiKey" mapstructure:"apiKey"`
 	BaseUrl    string `json:"baseUrl" mapstructure:"baseUrl"`
 	Model      string `json:"model" mapstructure:"model"`
@@ -32,10 +34,11 @@ type AnthropicClient struct {
 // DefaultConfig creates default Anthropic configuration
 func DefaultConfig(apiKey string) *AnthropicModelConfig {
 	return &AnthropicModelConfig{
-		APIKey:     apiKey,
-		Model:      DefaultModel,
-		BaseUrl:    DefaultBaseUrl,
-		APIVersion: "2023-06-01", // Use the latest API version
+		GeneralLLMConfig: config.DefaultGeneralConfig(),
+		APIKey:           apiKey,
+		Model:            DefaultModel,
+		BaseUrl:          DefaultBaseUrl,
+		APIVersion:       "2023-06-01", // Use the latest API version
 	}
 }
 
@@ -55,10 +58,11 @@ func NewConfig(apiKey string, model string, baseUrl string, apiVersion string) *
 		apiVersion = "2023-06-01"
 	}
 	return &AnthropicModelConfig{
-		APIKey:     apiKey,
-		Model:      model,
-		BaseUrl:    baseUrl,
-		APIVersion: apiVersion,
+		GeneralLLMConfig: config.DefaultGeneralConfig(),
+		APIKey:           apiKey,
+		Model:            model,
+		BaseUrl:          baseUrl,
+		APIVersion:       apiVersion,
 	}
 }
 

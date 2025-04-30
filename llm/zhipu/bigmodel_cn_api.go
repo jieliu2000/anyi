@@ -7,6 +7,7 @@ import (
 	"errors"
 
 	"github.com/jieliu2000/anyi/llm/chat"
+	"github.com/jieliu2000/anyi/llm/config"
 	"github.com/jieliu2000/anyi/llm/openai"
 	"github.com/jieliu2000/anyi/llm/tools"
 
@@ -18,6 +19,7 @@ const (
 )
 
 type ZhiPuModelConfig struct {
+	config.GeneralLLMConfig
 	APIKey  string `json:"apiKey" mapstructure:"apiKey"`
 	BaseUrl string `json:"baseUrl" mapstructure:"baseUrl"`
 	Model   string `json:"model" mapstructure:"model"`
@@ -31,9 +33,10 @@ type ZhipuClient struct {
 // Creats a default bigmodel.cn model config.
 func DefaultConfig(apiKey string, model string) *ZhiPuModelConfig {
 	return &ZhiPuModelConfig{
-		APIKey:  apiKey,
-		Model:   model,
-		BaseUrl: DefaultBaseUrl,
+		GeneralLLMConfig: config.DefaultGeneralConfig(),
+		APIKey:           apiKey,
+		Model:            model,
+		BaseUrl:          DefaultBaseUrl,
 	}
 }
 
@@ -42,9 +45,10 @@ func NewConfig(apiKey string, model string, baseUrl string) *ZhiPuModelConfig {
 		baseUrl = DefaultBaseUrl
 	}
 	return &ZhiPuModelConfig{
-		APIKey:  apiKey,
-		Model:   model,
-		BaseUrl: baseUrl,
+		GeneralLLMConfig: config.DefaultGeneralConfig(),
+		APIKey:           apiKey,
+		Model:            model,
+		BaseUrl:          baseUrl,
 	}
 }
 

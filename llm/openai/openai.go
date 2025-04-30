@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/jieliu2000/anyi/llm/chat"
+	"github.com/jieliu2000/anyi/llm/config"
 	"github.com/jieliu2000/anyi/llm/tools"
 	impl "github.com/sashabaranov/go-openai"
 )
@@ -49,6 +50,7 @@ const (
 )
 
 type OpenAIModelConfig struct {
+	config.GeneralLLMConfig
 	APIKey  string `json:"apiKey" mapstructure:"apiKey"`
 	BaseURL string `json:"baseUrl" mapstructure:"baseUrl"`
 	Model   string `json:"model" mapstructure:"model"`
@@ -60,11 +62,15 @@ type OpenAIClient struct {
 }
 
 func DefaultConfig(apiKey string) *OpenAIModelConfig {
-	return NewConfig(apiKey, "", "")
+	cfg := NewConfig(apiKey, "", "")
+	cfg.GeneralLLMConfig = config.DefaultGeneralConfig()
+	return cfg
 }
 
 func NewConfigWithModel(apiKey string, model string) *OpenAIModelConfig {
-	return NewConfig(apiKey, model, "")
+	cfg := NewConfig(apiKey, model, "")
+	cfg.GeneralLLMConfig = config.DefaultGeneralConfig()
+	return cfg
 }
 
 // Create a new config with the given API, model, and baseURL
@@ -76,7 +82,12 @@ func NewConfig(apiKey string, model string, baseURL string) *OpenAIModelConfig {
 	if baseURL == "" {
 		baseURL = DefaultBaseURL
 	}
-	return &OpenAIModelConfig{APIKey: apiKey, Model: model, BaseURL: baseURL}
+	return &OpenAIModelConfig{
+		GeneralLLMConfig: config.DefaultGeneralConfig(),
+		APIKey:           apiKey,
+		Model:            model,
+		BaseURL:          baseURL,
+	}
 }
 
 func NewClient(config *OpenAIModelConfig) (*OpenAIClient, error) {

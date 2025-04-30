@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/jieliu2000/anyi/llm/chat"
+	"github.com/jieliu2000/anyi/llm/config"
 	"github.com/jieliu2000/anyi/llm/tools"
 )
 
@@ -18,6 +19,7 @@ const (
 )
 
 type OllamaModelConfig struct {
+	config.GeneralLLMConfig
 	//The url of the ollama server. Note that don't add "/chat" to the end of this url. In [Chat] function it will be added automatically.
 	OllamaApiURL string `json:"ollamaApiURL" mapstructure:"ollamaApiURL"`
 
@@ -35,8 +37,9 @@ type OllamaClient struct {
 // Creats a default Ollama model config.
 func DefaultConfig(model string) *OllamaModelConfig {
 	return &OllamaModelConfig{
-		Model:        model,
-		OllamaApiURL: DefaultOllamaUrl,
+		GeneralLLMConfig: config.DefaultGeneralConfig(),
+		Model:            model,
+		OllamaApiURL:     DefaultOllamaUrl,
 	}
 }
 
@@ -51,8 +54,9 @@ func NewConfig(model string, ollamaApiURL string) *OllamaModelConfig {
 		ollamaApiURL = DefaultOllamaUrl
 	}
 	return &OllamaModelConfig{
-		Model:        model,
-		OllamaApiURL: ollamaApiURL,
+		GeneralLLMConfig: config.DefaultGeneralConfig(),
+		Model:            model,
+		OllamaApiURL:     ollamaApiURL,
 	}
 }
 
@@ -86,11 +90,17 @@ func NewClient(config *OllamaModelConfig) (*OllamaClient, error) {
 }
 
 type OllamaRequest struct {
-	Model    string                   `json:"model"`
-	Messages []OllamaMessage          `json:"messages"`
-	Stream   bool                     `json:"stream"`
-	Tools    []map[string]interface{} `json:"tools,omitempty"`
-	Format   string                   `json:"format,omitempty"`
+	Model            string                   `json:"model"`
+	Messages         []OllamaMessage          `json:"messages"`
+	Stream           bool                     `json:"stream"`
+	Tools            []map[string]interface{} `json:"tools,omitempty"`
+	Format           string                   `json:"format,omitempty"`
+	Temperature      float32                  `json:"temperature,omitempty"`
+	TopP             float32                  `json:"top_p,omitempty"`
+	MaxTokens        int                      `json:"num_predict,omitempty"`
+	PresencePenalty  float32                  `json:"presence_penalty,omitempty"`
+	FrequencyPenalty float32                  `json:"frequency_penalty,omitempty"`
+	Stop             []string                 `json:"stop,omitempty"`
 }
 
 type OllamaParameterDetail struct {
@@ -186,6 +196,28 @@ func (c *OllamaClient) ChatWithFunctions(messages []chat.Message, functions []to
 	request.Messages = ollamaMessages
 	request.Tools = tools
 
+	// 应用通用配置
+	if options != nil {
+		if options.Temperature != 0 {
+			request.Temperature = options.Temperature
+		}
+		if options.TopP != 0 {
+			request.TopP = options.TopP
+		}
+		if options.MaxTokens != 0 {
+			request.MaxTokens = options.MaxTokens
+		}
+		if options.PresencePenalty != 0 {
+			request.PresencePenalty = options.PresencePenalty
+		}
+		if options.FrequencyPenalty != 0 {
+			request.FrequencyPenalty = options.FrequencyPenalty
+		}
+		if len(options.Stop) > 0 {
+			request.Stop = options.Stop
+		}
+	}
+
 	return c.callOllamaAPI(request, response, httpClient)
 }
 
@@ -207,6 +239,28 @@ func (c *OllamaClient) Chat(messages []chat.Message, options *chat.ChatOptions) 
 	chat.SetChatOptions(options, &request)
 	request.Model = c.Config.Model
 	request.Messages = ollamaMessages
+
+	// 应用通用配置
+	if options != nil {
+		if options.Temperature != 0 {
+			request.Temperature = options.Temperature
+		}
+		if options.TopP != 0 {
+			request.TopP = options.TopP
+		}
+		if options.MaxTokens != 0 {
+			request.MaxTokens = options.MaxTokens
+		}
+		if options.PresencePenalty != 0 {
+			request.PresencePenalty = options.PresencePenalty
+		}
+		if options.FrequencyPenalty != 0 {
+			request.FrequencyPenalty = options.FrequencyPenalty
+		}
+		if len(options.Stop) > 0 {
+			request.Stop = options.Stop
+		}
+	}
 
 	return c.callOllamaAPI(request, response, httpClient)
 }
