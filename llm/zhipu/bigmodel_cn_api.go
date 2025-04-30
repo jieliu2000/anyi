@@ -78,11 +78,23 @@ func NewClient(config *ZhiPuModelConfig) (*ZhipuClient, error) {
 func (c *ZhipuClient) ChatWithFunctions(messages []chat.Message, functions []tools.FunctionConfig, options *chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
 	client := c.clientImpl
 
-	return openai.ExecuteChatWithFunctions(client, c.Config.Model, messages, functions, options)
+	// 创建一个与OpenAIModelConfig兼容的临时配置对象
+	openaiConfig := &openai.OpenAIModelConfig{
+		GeneralLLMConfig: c.Config.GeneralLLMConfig,
+		Model:            c.Config.Model,
+	}
+
+	return openai.ExecuteChatWithFunctions(client, c.Config.Model, messages, functions, options, openaiConfig)
 }
 
 func (c *ZhipuClient) Chat(messages []chat.Message, options *chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
 	client := c.clientImpl
 
-	return openai.ExecuteChat(client, c.Config.Model, messages, options)
+	// 创建一个与OpenAIModelConfig兼容的临时配置对象
+	openaiConfig := &openai.OpenAIModelConfig{
+		GeneralLLMConfig: c.Config.GeneralLLMConfig,
+		Model:            c.Config.Model,
+	}
+
+	return openai.ExecuteChat(client, c.Config.Model, messages, options, openaiConfig)
 }

@@ -62,13 +62,23 @@ func NewClient(config *AzureOpenAIModelConfig) (*AzureOpenAIClient, error) {
 func (c *AzureOpenAIClient) ChatWithFunctions(messages []chat.Message, functions []tools.FunctionConfig, options *chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
 	client := c.clientImpl
 
-	return openai.ExecuteChatWithFunctions(client, c.Config.ModelDeploymentId, messages, functions, options)
+	// 创建一个与OpenAIModelConfig兼容的临时配置对象
+	openaiConfig := &openai.OpenAIModelConfig{
+		GeneralLLMConfig: c.Config.GeneralLLMConfig,
+		Model:            c.Config.ModelDeploymentId,
+	}
+
+	return openai.ExecuteChatWithFunctions(client, c.Config.ModelDeploymentId, messages, functions, options, openaiConfig)
 }
 
 func (c *AzureOpenAIClient) Chat(messages []chat.Message, options *chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
-
 	client := c.clientImpl
 
-	return openai.ExecuteChat(client, c.Config.ModelDeploymentId, messages, options)
+	// 创建一个与OpenAIModelConfig兼容的临时配置对象
+	openaiConfig := &openai.OpenAIModelConfig{
+		GeneralLLMConfig: c.Config.GeneralLLMConfig,
+		Model:            c.Config.ModelDeploymentId,
+	}
 
+	return openai.ExecuteChat(client, c.Config.ModelDeploymentId, messages, options, openaiConfig)
 }

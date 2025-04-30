@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/jieliu2000/anyi/llm/chat"
+	"github.com/jieliu2000/anyi/llm/config"
 	"github.com/jieliu2000/anyi/llm/openai"
 	"github.com/jieliu2000/anyi/llm/tools"
 
@@ -15,6 +16,7 @@ const (
 )
 
 type DeepSeekModelConfig struct {
+	config.GeneralLLMConfig
 	APIKey  string `json:"apiKey" mapstructure:"apiKey"`
 	BaseUrl string `json:"baseUrl" mapstructure:"baseUrl"`
 	Model   string `json:"model" mapstructure:"model"`
@@ -27,9 +29,10 @@ type DeepSeekClient struct {
 
 func DefaultConfig(apiKey string, model string) *DeepSeekModelConfig {
 	return &DeepSeekModelConfig{
-		APIKey:  apiKey,
-		Model:   model,
-		BaseUrl: DefaultBaseUrl,
+		GeneralLLMConfig: config.DefaultGeneralConfig(),
+		APIKey:           apiKey,
+		Model:            model,
+		BaseUrl:          DefaultBaseUrl,
 	}
 }
 
@@ -38,9 +41,10 @@ func NewConfig(apiKey string, model string, baseUrl string) *DeepSeekModelConfig
 		baseUrl = DefaultBaseUrl
 	}
 	return &DeepSeekModelConfig{
-		APIKey:  apiKey,
-		Model:   model,
-		BaseUrl: baseUrl,
+		GeneralLLMConfig: config.DefaultGeneralConfig(),
+		APIKey:           apiKey,
+		Model:            model,
+		BaseUrl:          baseUrl,
 	}
 }
 
@@ -59,9 +63,21 @@ func NewClient(config *DeepSeekModelConfig) (*DeepSeekClient, error) {
 }
 
 func (c *DeepSeekClient) ChatWithFunctions(messages []chat.Message, functions []tools.FunctionConfig, options *chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
-	return openai.ExecuteChatWithFunctions(c.clientImpl, c.Config.Model, messages, functions, options)
+	// 创建一个与OpenAIModelConfig兼容的临时配置对象
+	openaiConfig := &openai.OpenAIModelConfig{
+		GeneralLLMConfig: c.Config.GeneralLLMConfig,
+		Model:            c.Config.Model,
+	}
+
+	return openai.ExecuteChatWithFunctions(c.clientImpl, c.Config.Model, messages, functions, options, openaiConfig)
 }
 
 func (c *DeepSeekClient) Chat(messages []chat.Message, options *chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
-	return openai.ExecuteChat(c.clientImpl, c.Config.Model, messages, options)
+	// 创建一个与OpenAIModelConfig兼容的临时配置对象
+	openaiConfig := &openai.OpenAIModelConfig{
+		GeneralLLMConfig: c.Config.GeneralLLMConfig,
+		Model:            c.Config.Model,
+	}
+
+	return openai.ExecuteChat(c.clientImpl, c.Config.Model, messages, options, openaiConfig)
 }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/jieliu2000/anyi/internal/test"
 	"github.com/jieliu2000/anyi/llm/chat"
+	"github.com/jieliu2000/anyi/llm/config"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -69,6 +70,179 @@ func TestNewClient(t *testing.T) {
 		assert.NotNil(t, client.clientImpl)
 		assert.Equal(t, config, client.Config)
 	})
+}
+
+// 测试GeneralLLMConfig配置项
+func TestGeneralLLMConfig(t *testing.T) {
+	// 创建配置
+	config := &OllamaModelConfig{
+		GeneralLLMConfig: config.GeneralLLMConfig{
+			Temperature:      0.7,
+			TopP:             0.9,
+			MaxTokens:        100,
+			PresencePenalty:  0.5,
+			FrequencyPenalty: 0.5,
+			Stop:             []string{"stop1", "stop2"},
+		},
+		Model:        "test-model",
+		OllamaApiURL: "http://localhost:11434/api",
+	}
+
+	client, err := NewClient(config)
+	assert.NoError(t, err)
+	assert.NotNil(t, client)
+
+	// 检查配置是否正确保存
+	assert.Equal(t, float32(0.7), client.Config.Temperature)
+	assert.Equal(t, float32(0.9), client.Config.TopP)
+	assert.Equal(t, 100, client.Config.MaxTokens)
+	assert.Equal(t, float32(0.5), client.Config.PresencePenalty)
+	assert.Equal(t, float32(0.5), client.Config.FrequencyPenalty)
+	assert.Equal(t, []string{"stop1", "stop2"}, client.Config.Stop)
+}
+
+// 测试请求应用GeneralLLMConfig
+func TestChatWithGeneralLLMConfig(t *testing.T) {
+	mockServer := test.NewTestServer()
+
+	mockServer.RequestHandler = func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "POST", r.Method, "Expected POST method")
+		assert.Equal(t, "/chat", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		assert.NoError(t, err)
+
+		requestMap := make(map[string]interface{})
+		err = json.Unmarshal(body, &requestMap)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "test-model", requestMap["model"])
+
+		// 验证GeneralLLMConfig中的参数是否被正确传递
+		assert.Equal(t, float64(0.7), requestMap["temperature"])
+		assert.Equal(t, float64(0.9), requestMap["top_p"])
+		assert.Equal(t, float64(100), requestMap["num_predict"])
+		assert.Equal(t, float64(0.5), requestMap["presence_penalty"])
+		assert.Equal(t, float64(0.5), requestMap["frequency_penalty"])
+
+		// 验证stop词列表
+		stopWords, ok := requestMap["stop"].([]interface{})
+		assert.True(t, ok)
+		assert.Equal(t, 2, len(stopWords))
+		assert.Equal(t, "stop1", stopWords[0])
+		assert.Equal(t, "stop2", stopWords[1])
+
+		io.WriteString(w, `{
+    "model": "mistral",
+    "created_at": "2024-07-27T00:21:55.1718475Z",
+    "message": {
+        "role": "assistant",
+        "content": "Reply to your input"
+    },
+    "done_reason": "stop",
+    "done": true,
+    "total_duration": 8369719900,
+    "load_duration": 5773330000,
+    "prompt_eval_count": 11,
+    "prompt_eval_duration": 32476000,
+    "eval_count": 134,
+    "eval_duration": 2548614000
+}`)
+	}
+
+	defer mockServer.Close()
+	mockServer.Start()
+
+	// 创建具有GeneralLLMConfig配置的客户端
+	config := &OllamaModelConfig{
+		GeneralLLMConfig: config.GeneralLLMConfig{
+			Temperature:      0.7,
+			TopP:             0.9,
+			MaxTokens:        100,
+			PresencePenalty:  0.5,
+			FrequencyPenalty: 0.5,
+			Stop:             []string{"stop1", "stop2"},
+		},
+		Model:        "test-model",
+		OllamaApiURL: mockServer.URL(),
+	}
+
+	client, err := NewClient(config)
+	assert.NoError(t, err)
+
+	messages := []chat.Message{
+		{Role: "user", Content: "Hello"},
+	}
+
+	// 调用Chat方法，验证GeneralLLMConfig参数是否被应用
+	response, _, err := client.Chat(messages, nil)
+	assert.NoError(t, err)
+	assert.NotNil(t, response)
+	assert.Equal(t, "Reply to your input", response.Content)
+}
+
+// 测试覆盖format设置
+func TestChatWithFormatOption(t *testing.T) {
+	mockServer := test.NewTestServer()
+
+	mockServer.RequestHandler = func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "POST", r.Method, "Expected POST method")
+		assert.Equal(t, "/chat", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		assert.NoError(t, err)
+
+		requestMap := make(map[string]interface{})
+		err = json.Unmarshal(body, &requestMap)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "test-model", requestMap["model"])
+
+		// 验证format选项是否被正确设置
+		assert.Equal(t, "json", requestMap["format"])
+
+		io.WriteString(w, `{
+    "model": "mistral",
+    "created_at": "2024-07-27T00:21:55.1718475Z",
+    "message": {
+        "role": "assistant",
+        "content": "Reply to your input"
+    },
+    "done_reason": "stop",
+    "done": true,
+    "total_duration": 8369719900,
+    "load_duration": 5773330000,
+    "prompt_eval_count": 11,
+    "prompt_eval_duration": 32476000,
+    "eval_count": 134,
+    "eval_duration": 2548614000
+}`)
+	}
+
+	defer mockServer.Close()
+	mockServer.Start()
+
+	config := &OllamaModelConfig{
+		Model:        "test-model",
+		OllamaApiURL: mockServer.URL(),
+	}
+
+	client, err := NewClient(config)
+	assert.NoError(t, err)
+
+	messages := []chat.Message{
+		{Role: "user", Content: "Hello"},
+	}
+
+	options := &chat.ChatOptions{
+		Format: "json",
+	}
+
+	// 调用Chat方法，验证format选项是否被应用
+	response, _, err := client.Chat(messages, options)
+	assert.NoError(t, err)
+	assert.NotNil(t, response)
+	assert.Equal(t, "Reply to your input", response.Content)
 }
 
 func TestChat(t *testing.T) {

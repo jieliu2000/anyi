@@ -45,7 +45,7 @@ func convertToFuncDesc(function tools.FunctionConfig) impl.FunctionDefinition {
 	}
 }
 
-func ExecuteChatWithFunctions(client *impl.Client, model string, messages []chat.Message, functions []tools.FunctionConfig, options *chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
+func ExecuteChatWithFunctions(client *impl.Client, model string, messages []chat.Message, functions []tools.FunctionConfig, options *chat.ChatOptions, config *OpenAIModelConfig) (*chat.Message, chat.ResponseInfo, error) {
 	info := chat.ResponseInfo{}
 
 	if client == nil {
@@ -56,7 +56,6 @@ func ExecuteChatWithFunctions(client *impl.Client, model string, messages []chat
 	toolsImpl := []impl.Tool{}
 
 	for _, f := range functions {
-
 		funcDefinition := convertToFuncDesc(f)
 		toolImpl := impl.Tool{
 			Type:     impl.ToolTypeFunction,
@@ -70,6 +69,27 @@ func ExecuteChatWithFunctions(client *impl.Client, model string, messages []chat
 		Model:    model,
 		Messages: messagesInput,
 		Tools:    toolsImpl,
+	}
+
+	if options != nil {
+		if strings.ToLower(options.Format) == "json" {
+			request.ResponseFormat = &impl.ChatCompletionResponseFormat{
+				Type: "json_object",
+			}
+		}
+	}
+
+	if config != nil {
+		request.Temperature = config.Temperature
+		request.TopP = config.TopP
+		if config.MaxTokens > 0 {
+			request.MaxTokens = config.MaxTokens
+		}
+		request.PresencePenalty = config.PresencePenalty
+		request.FrequencyPenalty = config.FrequencyPenalty
+		if len(config.Stop) > 0 {
+			request.Stop = config.Stop
+		}
 	}
 
 	resp, err := client.CreateChatCompletion(
@@ -91,7 +111,6 @@ func ExecuteChatWithFunctions(client *impl.Client, model string, messages []chat
 
 	if choice.Message.ToolCalls != nil {
 		for _, call := range choice.Message.ToolCalls {
-
 			params := make(map[string]any)
 			json.Unmarshal([]byte(call.Function.Arguments), &params)
 			funcCall := chat.FunctionCall{
@@ -111,7 +130,7 @@ func ExecuteChatWithFunctions(client *impl.Client, model string, messages []chat
 	return &result, info, nil
 }
 
-func ExecuteChat(client *impl.Client, model string, messages []chat.Message, options *chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
+func ExecuteChat(client *impl.Client, model string, messages []chat.Message, options *chat.ChatOptions, config *OpenAIModelConfig) (*chat.Message, chat.ResponseInfo, error) {
 	info := chat.ResponseInfo{}
 
 	if client == nil {
@@ -131,6 +150,20 @@ func ExecuteChat(client *impl.Client, model string, messages []chat.Message, opt
 			}
 		}
 	}
+
+	if config != nil {
+		request.Temperature = config.Temperature
+		request.TopP = config.TopP
+		if config.MaxTokens > 0 {
+			request.MaxTokens = config.MaxTokens
+		}
+		request.PresencePenalty = config.PresencePenalty
+		request.FrequencyPenalty = config.FrequencyPenalty
+		if len(config.Stop) > 0 {
+			request.Stop = config.Stop
+		}
+	}
+
 	log.Debugf("Sending request now")
 	resp, err := client.CreateChatCompletion(
 		context.Background(),

@@ -191,31 +191,25 @@ func (c *OllamaClient) ChatWithFunctions(messages []chat.Message, functions []to
 	}
 
 	request := &OllamaRequest{}
-	chat.SetChatOptions(options, &request)
 	request.Model = c.Config.Model
 	request.Messages = ollamaMessages
 	request.Tools = tools
 
-	// 应用通用配置
-	if options != nil {
-		if options.Temperature != 0 {
-			request.Temperature = options.Temperature
-		}
-		if options.TopP != 0 {
-			request.TopP = options.TopP
-		}
-		if options.MaxTokens != 0 {
-			request.MaxTokens = options.MaxTokens
-		}
-		if options.PresencePenalty != 0 {
-			request.PresencePenalty = options.PresencePenalty
-		}
-		if options.FrequencyPenalty != 0 {
-			request.FrequencyPenalty = options.FrequencyPenalty
-		}
-		if len(options.Stop) > 0 {
-			request.Stop = options.Stop
-		}
+	// 从GeneralLLMConfig应用通用配置
+	request.Temperature = c.Config.Temperature
+	request.TopP = c.Config.TopP
+	if c.Config.MaxTokens > 0 {
+		request.MaxTokens = c.Config.MaxTokens
+	}
+	request.PresencePenalty = c.Config.PresencePenalty
+	request.FrequencyPenalty = c.Config.FrequencyPenalty
+	if len(c.Config.Stop) > 0 {
+		request.Stop = c.Config.Stop
+	}
+
+	// 设置options中的格式选项
+	if options != nil && options.Format != "" {
+		request.Format = options.Format
 	}
 
 	return c.callOllamaAPI(request, response, httpClient)
@@ -236,30 +230,24 @@ func (c *OllamaClient) Chat(messages []chat.Message, options *chat.ChatOptions) 
 	}
 
 	request := &OllamaRequest{}
-	chat.SetChatOptions(options, &request)
 	request.Model = c.Config.Model
 	request.Messages = ollamaMessages
 
-	// 应用通用配置
-	if options != nil {
-		if options.Temperature != 0 {
-			request.Temperature = options.Temperature
-		}
-		if options.TopP != 0 {
-			request.TopP = options.TopP
-		}
-		if options.MaxTokens != 0 {
-			request.MaxTokens = options.MaxTokens
-		}
-		if options.PresencePenalty != 0 {
-			request.PresencePenalty = options.PresencePenalty
-		}
-		if options.FrequencyPenalty != 0 {
-			request.FrequencyPenalty = options.FrequencyPenalty
-		}
-		if len(options.Stop) > 0 {
-			request.Stop = options.Stop
-		}
+	// 从GeneralLLMConfig应用通用配置
+	request.Temperature = c.Config.Temperature
+	request.TopP = c.Config.TopP
+	if c.Config.MaxTokens > 0 {
+		request.MaxTokens = c.Config.MaxTokens
+	}
+	request.PresencePenalty = c.Config.PresencePenalty
+	request.FrequencyPenalty = c.Config.FrequencyPenalty
+	if len(c.Config.Stop) > 0 {
+		request.Stop = c.Config.Stop
+	}
+
+	// 设置options中的格式选项
+	if options != nil && options.Format != "" {
+		request.Format = options.Format
 	}
 
 	return c.callOllamaAPI(request, response, httpClient)

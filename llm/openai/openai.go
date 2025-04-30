@@ -112,7 +112,7 @@ func NewClient(config *OpenAIModelConfig) (*OpenAIClient, error) {
 func (c *OpenAIClient) ChatWithFunctions(messages []chat.Message, functions []tools.FunctionConfig, options *chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
 	client := c.clientImpl
 
-	return ExecuteChatWithFunctions(client, c.Config.Model, messages, functions, options)
+	return ExecuteChatWithFunctions(client, c.Config.Model, messages, functions, options, c.Config)
 }
 
 func (c *OpenAIClient) Chat(messages []chat.Message, options *chat.ChatOptions) (message *chat.Message, responseInfo chat.ResponseInfo, err error) {
@@ -124,5 +124,6 @@ func (c *OpenAIClient) Chat(messages []chat.Message, options *chat.ChatOptions) 
 	if c.Config == nil {
 		return nil, chat.ResponseInfo{}, errors.New("config cannot be null")
 	}
-	return ExecuteChat(client, c.Config.Model, messages, options)
+
+	return ExecuteChat(client, c.Config.Model, messages, options, c.Config)
 }

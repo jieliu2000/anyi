@@ -8,6 +8,8 @@ import (
 
 	"github.com/jieliu2000/anyi/internal/test"
 	"github.com/jieliu2000/anyi/llm/chat"
+	"github.com/jieliu2000/anyi/llm/config"
+	"github.com/jieliu2000/anyi/llm/tools"
 	impl "github.com/sashabaranov/go-openai"
 	"github.com/stretchr/testify/assert"
 )
@@ -146,4 +148,282 @@ func TestChat(t *testing.T) {
 	assert.NotNil(t, response)
 
 	assert.Equal(t, "Reply to your input", response.Content)
+}
+
+// 测试GeneralLLMConfig配置项
+func TestGeneralLLMConfig(t *testing.T) {
+	// 创建配置
+	config := &OpenAIModelConfig{
+		GeneralLLMConfig: config.GeneralLLMConfig{
+			Temperature:      0.7,
+			TopP:             0.9,
+			MaxTokens:        100,
+			PresencePenalty:  0.5,
+			FrequencyPenalty: 0.5,
+			Stop:             []string{"stop1", "stop2"},
+		},
+		APIKey:  "test-api-key",
+		Model:   "gpt-4",
+		BaseURL: DefaultBaseURL,
+	}
+
+	client, err := NewClient(config)
+	assert.NoError(t, err)
+	assert.NotNil(t, client)
+
+	// 检查配置是否正确保存
+	assert.Equal(t, float32(0.7), client.Config.Temperature)
+	assert.Equal(t, float32(0.9), client.Config.TopP)
+	assert.Equal(t, 100, client.Config.MaxTokens)
+	assert.Equal(t, float32(0.5), client.Config.PresencePenalty)
+	assert.Equal(t, float32(0.5), client.Config.FrequencyPenalty)
+	assert.Equal(t, []string{"stop1", "stop2"}, client.Config.Stop)
+}
+
+// 测试请求应用GeneralLLMConfig
+func TestChatWithGeneralLLMConfig(t *testing.T) {
+	mockServer := test.NewTestServer()
+
+	mockServer.RequestHandler = func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "POST", r.Method, "Expected POST method")
+		assert.Equal(t, "Bearer test-api-key", r.Header.Get("Authorization"))
+
+		body, err := io.ReadAll(r.Body)
+		assert.NoError(t, err)
+
+		requestMap := make(map[string]interface{})
+		err = json.Unmarshal(body, &requestMap)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "gpt-4", requestMap["model"])
+
+		// 验证GeneralLLMConfig中的参数是否被正确传递
+		assert.Equal(t, float64(0.7), requestMap["temperature"])
+		assert.Equal(t, float64(0.9), requestMap["top_p"])
+		assert.Equal(t, float64(100), requestMap["max_tokens"])
+		assert.Equal(t, float64(0.5), requestMap["presence_penalty"])
+		assert.Equal(t, float64(0.5), requestMap["frequency_penalty"])
+
+		// 验证stop词列表
+		stopWords, ok := requestMap["stop"].([]interface{})
+		assert.True(t, ok)
+		assert.Equal(t, 2, len(stopWords))
+		assert.Equal(t, "stop1", stopWords[0])
+		assert.Equal(t, "stop2", stopWords[1])
+
+		io.WriteString(w, `{
+		"id":"chat-123",
+		"object":"chat.completion",
+		"choices":[
+			{
+			"message":{
+				"role":"assistant",
+				"content":"Reply to your input"
+				},
+			"finish_reason":"stop"
+			}
+		],
+		"usage":{
+			"prompt_tokens":10,
+			"completion_tokens":25,
+			"total_tokens":35
+			},
+		"model":"gpt-4",
+		"created":1624850937,
+		"model_version":"2021-06-25"
+		}`)
+	}
+
+	defer mockServer.Close()
+	mockServer.Start()
+
+	// 创建具有GeneralLLMConfig配置的客户端
+	config := &OpenAIModelConfig{
+		GeneralLLMConfig: config.GeneralLLMConfig{
+			Temperature:      0.7,
+			TopP:             0.9,
+			MaxTokens:        100,
+			PresencePenalty:  0.5,
+			FrequencyPenalty: 0.5,
+			Stop:             []string{"stop1", "stop2"},
+		},
+		APIKey:  "test-api-key",
+		Model:   "gpt-4",
+		BaseURL: mockServer.URL(),
+	}
+
+	client, err := NewClient(config)
+	assert.NoError(t, err)
+
+	messages := []chat.Message{
+		{Role: "user", Content: "Hello"},
+	}
+
+	// 调用Chat方法，验证GeneralLLMConfig参数是否被应用
+	response, _, err := client.Chat(messages, nil)
+	assert.NoError(t, err)
+	assert.NotNil(t, response)
+	assert.Equal(t, "Reply to your input", response.Content)
+}
+
+// 测试ChatWithFunctions应用GeneralLLMConfig
+func TestChatWithFunctionsAndGeneralLLMConfig(t *testing.T) {
+	mockServer := test.NewTestServer()
+
+	mockServer.RequestHandler = func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "POST", r.Method, "Expected POST method")
+		assert.Equal(t, "Bearer test-api-key", r.Header.Get("Authorization"))
+
+		body, err := io.ReadAll(r.Body)
+		assert.NoError(t, err)
+
+		requestMap := make(map[string]interface{})
+		err = json.Unmarshal(body, &requestMap)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "gpt-4", requestMap["model"])
+
+		// 验证GeneralLLMConfig中的参数是否被正确传递
+		assert.Equal(t, float64(0.7), requestMap["temperature"])
+		assert.Equal(t, float64(0.9), requestMap["top_p"])
+		assert.Equal(t, float64(100), requestMap["max_tokens"])
+		assert.Equal(t, float64(0.5), requestMap["presence_penalty"])
+		assert.Equal(t, float64(0.5), requestMap["frequency_penalty"])
+
+		// 验证tools数组存在
+		_, ok := requestMap["tools"].([]interface{})
+		assert.True(t, ok)
+
+		io.WriteString(w, `{
+		"id":"chat-123",
+		"object":"chat.completion",
+		"choices":[
+			{
+			"message":{
+				"role":"assistant",
+				"content":"Reply to your input"
+				},
+			"finish_reason":"stop"
+			}
+		],
+		"usage":{
+			"prompt_tokens":10,
+			"completion_tokens":25,
+			"total_tokens":35
+			},
+		"model":"gpt-4",
+		"created":1624850937,
+		"model_version":"2021-06-25"
+		}`)
+	}
+
+	defer mockServer.Close()
+	mockServer.Start()
+
+	// 创建具有GeneralLLMConfig配置的客户端
+	config := &OpenAIModelConfig{
+		GeneralLLMConfig: config.GeneralLLMConfig{
+			Temperature:      0.7,
+			TopP:             0.9,
+			MaxTokens:        100,
+			PresencePenalty:  0.5,
+			FrequencyPenalty: 0.5,
+			Stop:             []string{"stop1", "stop2"},
+		},
+		APIKey:  "test-api-key",
+		Model:   "gpt-4",
+		BaseURL: mockServer.URL(),
+	}
+
+	client, err := NewClient(config)
+	assert.NoError(t, err)
+
+	messages := []chat.Message{
+		{Role: "user", Content: "Hello"},
+	}
+
+	// 创建函数定义
+	function := tools.FunctionConfig{
+		Name:        "test_function",
+		Description: "A test function",
+		Params:      []tools.ParameterConfig{},
+	}
+
+	// 调用ChatWithFunctions方法，验证GeneralLLMConfig参数是否被应用
+	response, _, err := client.ChatWithFunctions(messages, []tools.FunctionConfig{function}, nil)
+	assert.NoError(t, err)
+	assert.NotNil(t, response)
+	assert.Equal(t, "Reply to your input", response.Content)
+}
+
+// 测试覆盖format设置
+func TestChatWithFormatOption(t *testing.T) {
+	mockServer := test.NewTestServer()
+
+	mockServer.RequestHandler = func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "POST", r.Method, "Expected POST method")
+		assert.Equal(t, "Bearer test-api-key", r.Header.Get("Authorization"))
+
+		body, err := io.ReadAll(r.Body)
+		assert.NoError(t, err)
+
+		requestMap := make(map[string]interface{})
+		err = json.Unmarshal(body, &requestMap)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "gpt-4", requestMap["model"])
+
+		// 验证format选项是否被正确设置
+		responseFormat, ok := requestMap["response_format"].(map[string]interface{})
+		assert.True(t, ok)
+		assert.Equal(t, "json_object", responseFormat["type"])
+
+		io.WriteString(w, `{
+		"id":"chat-123",
+		"object":"chat.completion",
+		"choices":[
+			{
+			"message":{
+				"role":"assistant",
+				"content":"{ \"result\": \"Reply to your input\" }"
+				},
+			"finish_reason":"stop"
+			}
+		],
+		"usage":{
+			"prompt_tokens":10,
+			"completion_tokens":25,
+			"total_tokens":35
+			},
+		"model":"gpt-4",
+		"created":1624850937,
+		"model_version":"2021-06-25"
+		}`)
+	}
+
+	defer mockServer.Close()
+	mockServer.Start()
+
+	config := &OpenAIModelConfig{
+		APIKey:  "test-api-key",
+		Model:   "gpt-4",
+		BaseURL: mockServer.URL(),
+	}
+
+	client, err := NewClient(config)
+	assert.NoError(t, err)
+
+	messages := []chat.Message{
+		{Role: "user", Content: "Hello"},
+	}
+
+	options := &chat.ChatOptions{
+		Format: "json",
+	}
+
+	// 调用Chat方法，验证format选项是否被应用
+	response, _, err := client.Chat(messages, options)
+	assert.NoError(t, err)
+	assert.NotNil(t, response)
+	assert.Contains(t, response.Content, "Reply to your input")
 }
