@@ -10,12 +10,12 @@ import (
 )
 
 func Example_deepseek() {
-	// 请确保已设置DEEPSEEK_API_KEY环境变量
+	// Make sure DEEPSEEK_API_KEY environment variable is set
 	config := deepseek.DefaultConfig(os.Getenv("DEEPSEEK_API_KEY"), "deepseek-chat")
 	client, err := llm.NewClient(config)
 
 	if err != nil {
-		log.Fatalf("创建客户端失败: %v", err)
+		log.Fatalf("Failed to create client: %v", err)
 	}
 
 	messages := []chat.Message{
@@ -23,5 +23,5 @@ func Example_deepseek() {
 	}
 	message, _, _ := client.Chat(messages, nil)
 
-	log.Printf("响应结果: %s\n", message.Content)
+	log.Printf("Response: %s\n", message.Content)
 }

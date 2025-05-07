@@ -1,6 +1,6 @@
 // Use the openai compatible interface to access the DashScope service.
 // See [Dashscope Document] for details.
-// [Dashscope Document]: https://help.aliyun.com/zh/dashscope/developer-reference/compatibility-of-openai-with-dashscope/?spm=a2c4g.11186623.0.0.17504ad0abpnzJ
+// [Dashscope Document]: https://help.aliyun.com/en/dashscope/developer-reference/compatibility-of-openai-with-dashscope/
 package dashscope
 
 import (
@@ -78,7 +78,7 @@ func NewClient(config *DashScopeModelConfig) (*DashScopeClient, error) {
 func (c *DashScopeClient) ChatWithFunctions(messages []chat.Message, functions []tools.FunctionConfig, options *chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
 	client := c.clientImpl
 
-	// 创建一个与OpenAIModelConfig兼容的临时配置对象
+	// Create a temporary config object compatible with OpenAIModelConfig
 	openaiConfig := &openai.OpenAIModelConfig{
 		GeneralLLMConfig: c.Config.GeneralLLMConfig,
 		Model:            c.Config.Model,
@@ -90,7 +90,7 @@ func (c *DashScopeClient) ChatWithFunctions(messages []chat.Message, functions [
 func (c *DashScopeClient) Chat(messages []chat.Message, options *chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
 	client := c.clientImpl
 
-	// 创建一个与OpenAIModelConfig兼容的临时配置对象
+	// Create a temporary config object compatible with OpenAIModelConfig
 	openaiConfig := &openai.OpenAIModelConfig{
 		GeneralLLMConfig: c.Config.GeneralLLMConfig,
 		Model:            c.Config.Model,

@@ -10,24 +10,24 @@ import (
 )
 
 func Example_anthropic() {
-	// 确保设置ANTHROPIC_API_KEY环境变量
+	// Make sure to set ANTHROPIC_API_KEY environment variable
 	config := anthropic.DefaultConfig(os.Getenv("ANTHROPIC_API_KEY"))
 
-	// 可以指定特定模型，例如Claude 3 Sonnet
+	// You can specify a specific model, such as Claude 3 Sonnet
 	config.Model = "claude-3-sonnet-20240229"
 
 	client, err := llm.NewClient(config)
 	if err != nil {
-		log.Fatalf("创建客户端失败: %v", err)
+		log.Fatalf("Failed to create client: %v", err)
 	}
 
 	messages := []chat.Message{
-		{Role: "user", Content: "你能简要介绍一下你自己吗？"},
+		{Role: "user", Content: "Can you briefly introduce yourself?"},
 	}
 	message, _, err := client.Chat(messages, nil)
 	if err != nil {
-		log.Fatalf("聊天失败: %v", err)
+		log.Fatalf("Chat failed: %v", err)
 	}
 
-	log.Printf("响应结果: %s\n", message.Content)
+	log.Printf("Response: %s\n", message.Content)
 }

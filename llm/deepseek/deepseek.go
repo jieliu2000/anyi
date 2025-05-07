@@ -63,7 +63,7 @@ func NewClient(config *DeepSeekModelConfig) (*DeepSeekClient, error) {
 }
 
 func (c *DeepSeekClient) ChatWithFunctions(messages []chat.Message, functions []tools.FunctionConfig, options *chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
-	// 创建一个与OpenAIModelConfig兼容的临时配置对象
+	// Create a temporary config object compatible with OpenAIModelConfig
 	openaiConfig := &openai.OpenAIModelConfig{
 		GeneralLLMConfig: c.Config.GeneralLLMConfig,
 		Model:            c.Config.Model,
@@ -73,7 +73,7 @@ func (c *DeepSeekClient) ChatWithFunctions(messages []chat.Message, functions []
 }
 
 func (c *DeepSeekClient) Chat(messages []chat.Message, options *chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
-	// 创建一个与OpenAIModelConfig兼容的临时配置对象
+	// Create a temporary config object compatible with OpenAIModelConfig
 	openaiConfig := &openai.OpenAIModelConfig{
 		GeneralLLMConfig: c.Config.GeneralLLMConfig,
 		Model:            c.Config.Model,

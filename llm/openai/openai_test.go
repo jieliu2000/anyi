@@ -150,9 +150,9 @@ func TestChat(t *testing.T) {
 	assert.Equal(t, "Reply to your input", response.Content)
 }
 
-// 测试GeneralLLMConfig配置项
+// Test GeneralLLMConfig configuration options
 func TestGeneralLLMConfig(t *testing.T) {
-	// 创建配置
+	// Create configuration
 	config := &OpenAIModelConfig{
 		GeneralLLMConfig: config.GeneralLLMConfig{
 			Temperature:      0.7,
@@ -171,7 +171,7 @@ func TestGeneralLLMConfig(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, client)
 
-	// 检查配置是否正确保存
+	// Check if the configuration is correctly saved
 	assert.Equal(t, float32(0.7), client.Config.Temperature)
 	assert.Equal(t, float32(0.9), client.Config.TopP)
 	assert.Equal(t, 100, client.Config.MaxTokens)
@@ -180,7 +180,7 @@ func TestGeneralLLMConfig(t *testing.T) {
 	assert.Equal(t, []string{"stop1", "stop2"}, client.Config.Stop)
 }
 
-// 测试请求应用GeneralLLMConfig
+// Test request applying GeneralLLMConfig
 func TestChatWithGeneralLLMConfig(t *testing.T) {
 	mockServer := test.NewTestServer()
 
@@ -197,14 +197,14 @@ func TestChatWithGeneralLLMConfig(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "gpt-4", requestMap["model"])
 
-		// 验证GeneralLLMConfig中的参数是否被正确传递
+		// Verify that parameters from GeneralLLMConfig are correctly passed
 		assert.Equal(t, float64(0.7), requestMap["temperature"])
 		assert.Equal(t, float64(0.9), requestMap["top_p"])
 		assert.Equal(t, float64(100), requestMap["max_tokens"])
 		assert.Equal(t, float64(0.5), requestMap["presence_penalty"])
 		assert.Equal(t, float64(0.5), requestMap["frequency_penalty"])
 
-		// 验证stop词列表
+		// Verify stop word list
 		stopWords, ok := requestMap["stop"].([]interface{})
 		assert.True(t, ok)
 		assert.Equal(t, 2, len(stopWords))
@@ -237,7 +237,7 @@ func TestChatWithGeneralLLMConfig(t *testing.T) {
 	defer mockServer.Close()
 	mockServer.Start()
 
-	// 创建具有GeneralLLMConfig配置的客户端
+	// Create client with GeneralLLMConfig configuration
 	config := &OpenAIModelConfig{
 		GeneralLLMConfig: config.GeneralLLMConfig{
 			Temperature:      0.7,
@@ -259,14 +259,14 @@ func TestChatWithGeneralLLMConfig(t *testing.T) {
 		{Role: "user", Content: "Hello"},
 	}
 
-	// 调用Chat方法，验证GeneralLLMConfig参数是否被应用
+	// Call Chat method, verify that GeneralLLMConfig parameters are applied
 	response, _, err := client.Chat(messages, nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, response)
 	assert.Equal(t, "Reply to your input", response.Content)
 }
 
-// 测试ChatWithFunctions应用GeneralLLMConfig
+// Test ChatWithFunctions applying GeneralLLMConfig
 func TestChatWithFunctionsAndGeneralLLMConfig(t *testing.T) {
 	mockServer := test.NewTestServer()
 
@@ -283,14 +283,14 @@ func TestChatWithFunctionsAndGeneralLLMConfig(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "gpt-4", requestMap["model"])
 
-		// 验证GeneralLLMConfig中的参数是否被正确传递
+		// Verify that parameters from GeneralLLMConfig are correctly passed
 		assert.Equal(t, float64(0.7), requestMap["temperature"])
 		assert.Equal(t, float64(0.9), requestMap["top_p"])
 		assert.Equal(t, float64(100), requestMap["max_tokens"])
 		assert.Equal(t, float64(0.5), requestMap["presence_penalty"])
 		assert.Equal(t, float64(0.5), requestMap["frequency_penalty"])
 
-		// 验证tools数组存在
+		// Verify tools array exists
 		_, ok := requestMap["tools"].([]interface{})
 		assert.True(t, ok)
 
@@ -320,7 +320,7 @@ func TestChatWithFunctionsAndGeneralLLMConfig(t *testing.T) {
 	defer mockServer.Close()
 	mockServer.Start()
 
-	// 创建具有GeneralLLMConfig配置的客户端
+	// Create client with GeneralLLMConfig configuration
 	config := &OpenAIModelConfig{
 		GeneralLLMConfig: config.GeneralLLMConfig{
 			Temperature:      0.7,
@@ -342,21 +342,21 @@ func TestChatWithFunctionsAndGeneralLLMConfig(t *testing.T) {
 		{Role: "user", Content: "Hello"},
 	}
 
-	// 创建函数定义
+	// Create function definition
 	function := tools.FunctionConfig{
 		Name:        "test_function",
 		Description: "A test function",
 		Params:      []tools.ParameterConfig{},
 	}
 
-	// 调用ChatWithFunctions方法，验证GeneralLLMConfig参数是否被应用
+	// Call ChatWithFunctions method, verify that GeneralLLMConfig parameters are applied
 	response, _, err := client.ChatWithFunctions(messages, []tools.FunctionConfig{function}, nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, response)
 	assert.Equal(t, "Reply to your input", response.Content)
 }
 
-// 测试覆盖format设置
+// Test covering format setting
 func TestChatWithFormatOption(t *testing.T) {
 	mockServer := test.NewTestServer()
 
@@ -373,7 +373,7 @@ func TestChatWithFormatOption(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "gpt-4", requestMap["model"])
 
-		// 验证format选项是否被正确设置
+		// Verify format option is correctly set
 		responseFormat, ok := requestMap["response_format"].(map[string]interface{})
 		assert.True(t, ok)
 		assert.Equal(t, "json_object", responseFormat["type"])
@@ -421,7 +421,7 @@ func TestChatWithFormatOption(t *testing.T) {
 		Format: "json",
 	}
 
-	// 调用Chat方法，验证format选项是否被应用
+	// Call Chat method, verify that format option is applied
 	response, _, err := client.Chat(messages, options)
 	assert.NoError(t, err)
 	assert.NotNil(t, response)

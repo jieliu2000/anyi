@@ -195,7 +195,7 @@ func (c *OllamaClient) ChatWithFunctions(messages []chat.Message, functions []to
 	request.Messages = ollamaMessages
 	request.Tools = tools
 
-	// 从GeneralLLMConfig应用通用配置
+	// Apply general configuration from GeneralLLMConfig
 	request.Temperature = c.Config.Temperature
 	request.TopP = c.Config.TopP
 	if c.Config.MaxTokens > 0 {
@@ -207,7 +207,7 @@ func (c *OllamaClient) ChatWithFunctions(messages []chat.Message, functions []to
 		request.Stop = c.Config.Stop
 	}
 
-	// 设置options中的格式选项
+	// Set format options from options
 	if options != nil && options.Format != "" {
 		request.Format = options.Format
 	}
@@ -233,7 +233,7 @@ func (c *OllamaClient) Chat(messages []chat.Message, options *chat.ChatOptions) 
 	request.Model = c.Config.Model
 	request.Messages = ollamaMessages
 
-	// 从GeneralLLMConfig应用通用配置
+	// Apply general configuration from GeneralLLMConfig
 	request.Temperature = c.Config.Temperature
 	request.TopP = c.Config.TopP
 	if c.Config.MaxTokens > 0 {
@@ -245,7 +245,7 @@ func (c *OllamaClient) Chat(messages []chat.Message, options *chat.ChatOptions) 
 		request.Stop = c.Config.Stop
 	}
 
-	// 设置options中的格式选项
+	// Set format options from options
 	if options != nil && options.Format != "" {
 		request.Format = options.Format
 	}

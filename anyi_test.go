@@ -407,36 +407,36 @@ func TestInit(t *testing.T) {
 
 func TestGetExecutor(t *testing.T) {
 	t.Run("PointerTypeExecutor", func(t *testing.T) {
-		// 注册指针类型的executor（需要完整参数）
+		// Register pointer type executor (requires complete parameters)
 		exec := &LLMExecutor{
-			Template:      "test template", // 必须设置模板
+			Template:      "test template", // Template must be set
 			SystemMessage: "test system",
 			OutputJSON:    true,
 		}
 		name := "pointer_llm_exec"
 		RegisterExecutor(name, exec)
 
-		// 第一次获取
+		// First retrieval
 		got1, err := GetExecutor(name)
 		assert.NoError(t, err)
 		assert.IsType(t, &LLMExecutor{}, got1)
 		assert.Equal(t, "test template", got1.(*LLMExecutor).Template)
 
-		// 验证返回的是新实例
+		// Verify that a new instance is returned
 		got2, err := GetExecutor(name)
 		assert.NoError(t, err)
-		assert.NotSame(t, got1, got2, "应该返回新的实例指针")
+		assert.NotSame(t, got1, got2, "Should return a new instance pointer")
 	})
 
 	t.Run("ValueTypeExecutor", func(t *testing.T) {
-		// 注册值类型的executor（需要完整参数）
+		// Register value type executor (requires complete parameters)
 		name := "value_llm_exec"
 		RegisterExecutor(name, &LLMExecutor{
-			TemplateFile:  "test.tmpl", // 使用模板文件
+			TemplateFile:  "test.tmpl", // Using template file
 			SystemMessage: "value system",
 		})
 
-		// 获取executor
+		// Get executor
 		got, err := GetExecutor(name)
 		assert.NoError(t, err)
 		assert.IsType(t, &LLMExecutor{}, got)
@@ -452,33 +452,33 @@ func TestGetExecutor(t *testing.T) {
 
 func TestGetValidator(t *testing.T) {
 	t.Run("PointerTypeValidator", func(t *testing.T) {
-		// 注册指针类型的validator
+		// Register pointer type validator
 		val := &StringValidator{
 			EqualTo: "test",
 		}
 		name := "pointer_string_val"
 		RegisterValidator(name, val)
 
-		// 第一次获取
+		// First retrieval
 		got1, err := GetValidator(name)
 		assert.NoError(t, err)
 		assert.IsType(t, &StringValidator{}, got1)
 		assert.Equal(t, "test", got1.(*StringValidator).EqualTo)
 
-		// 验证返回的是同一个实例（假设validator是单例模式）
+		// Verify that a new instance is returned (assuming validators follow singleton pattern)
 		got2, err := GetValidator(name)
 		assert.NoError(t, err)
-		assert.NotSame(t, got1, got2, "应该返回新的实例指针")
+		assert.NotSame(t, got1, got2, "Should return a new instance pointer")
 	})
 
 	t.Run("ValueTypeValidator", func(t *testing.T) {
-		// 注册值类型的validator
+		// Register value type validator
 		name := "value_string_val"
 		RegisterValidator(name, &StringValidator{
 			EqualTo: "test",
 		})
 
-		// 获取validator
+		// Get validator
 		got, err := GetValidator(name)
 		assert.NoError(t, err)
 		assert.IsType(t, &StringValidator{}, got)
