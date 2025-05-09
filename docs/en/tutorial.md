@@ -84,12 +84,12 @@ func main() {
 	messages := []chat.Message{
 		{Role: "user", Content: "Please briefly explain quantum computing"},
 	}
-	
+
 	response, _, err := client.Chat(messages, nil)
 	if err != nil {
 		log.Fatalf("Request failed: %v", err)
 	}
-	
+
 	fmt.Println("Response:", response.Content)
 }
 ```
@@ -111,6 +111,7 @@ Anyi is an open-source Autonomous AI Agent framework written in Go, designed to 
 ### When to Use Anyi
 
 Anyi is particularly useful when:
+
 - You need to orchestrate complex interactions between multiple AI models
 - You want to build reliable AI workflows with validation and error handling
 - You need to switch between different LLM providers without changing your code
@@ -148,6 +149,7 @@ Anyi provides a unified interface for accessing various large language models. T
 #### When to Use Named vs. Unregistered Clients
 
 - **Named Clients** are ideal when you need to:
+
   - Access the same client instance from different parts of your application
   - Configure once and reuse throughout your codebase
   - Manage multiple clients with different configurations
@@ -186,7 +188,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to retrieve client: %v", err)
 	}
-	
+
 	// Use the client
 	messages := []chat.Message{
 		{Role: "user", Content: "What is the capital of France?"},
@@ -195,7 +197,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Chat failed: %v", err)
 	}
-	
+
 	log.Printf("Response: %s", response.Content)
 }
 ```
@@ -218,12 +220,12 @@ func main() {
 	// Create a client without registering it
 	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
 	config.Model = openai.GPT3Dot5Turbo
-	
+
 	client, err := llm.NewClient(config)
 	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)
 	}
-	
+
 	// Use the client directly
 	messages := []chat.Message{
 		{Role: "user", Content: "Explain quantum computing in simple terms"},
@@ -232,7 +234,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Chat failed: %v", err)
 	}
-	
+
 	log.Printf("Response: %s", response.Content)
 }
 ```
@@ -241,10 +243,74 @@ func main() {
 
 Each LLM provider has its own configuration structure. Understanding the specific configuration options for each provider is crucial for optimizing your interactions with different models.
 
+#### Common LLM Configuration Options
+
+All LLM providers support a common set of configuration options provided through the `GeneralLLMConfig` structure. Understanding these options can help you optimize model outputs:
+
+```go
+// All LLM configuration structures embed GeneralLLMConfig
+type SomeProviderConfig struct {
+    config.GeneralLLMConfig
+    // Other provider-specific configurations...
+}
+```
+
+The GeneralLLMConfig includes the following options:
+
+- **Temperature**: Controls the randomness of the output. Higher values make the output more random; lower values make it more deterministic.
+
+  - The range is typically between 0.0 and 2.0, with a default value of 1.0
+  - Example: `config.Temperature = 0.7` // More deterministic output
+
+- **TopP**: Controls the diversity of the output. Higher values make the output more diverse; lower values make it more conservative.
+
+  - The range is typically between 0.0 and 1.0, with a default value of 1.0
+  - Example: `config.TopP = 0.9` // Maintains some diversity
+
+- **MaxTokens**: Controls the maximum number of tokens to generate
+
+  - 0 means no limit
+  - Example: `config.MaxTokens = 2000` // Limits response length
+
+- **PresencePenalty**: Controls how much the model avoids repeating content
+
+  - Positive values increase the likelihood of avoiding repetition, negative values increase the likelihood of repetition
+  - Example: `config.PresencePenalty = 0.5` // Moderately avoids repetition
+
+- **FrequencyPenalty**: Controls how much the model avoids using common words
+
+  - Positive values increase the likelihood of avoiding common words, negative values increase the likelihood of using common words
+  - Example: `config.FrequencyPenalty = 0.5` // Moderately avoids common words
+
+- **Stop**: Specifies a list of tokens that signal when to stop generating
+  - Example: `config.Stop = []string{"###", "END"}` // Stops generation when encountering these tokens
+
+##### Example Configuration
+
+```go
+import (
+    "github.com/jieliu2000/anyi/llm/openai"
+    "github.com/jieliu2000/anyi/llm/config"
+)
+
+// Create configuration
+config := openai.DefaultConfig(apiKey)
+
+// Adjust common parameters
+config.Temperature = 0.7      // Lower temperature for more deterministic output
+config.TopP = 0.9             // Slightly restrict token selection
+config.MaxTokens = 500        // Limit response length
+config.PresencePenalty = 0.2  // Slightly discourage repetition
+config.FrequencyPenalty = 0.3 // Slightly discourage common words
+config.Stop = []string{"END"} // Stop generation when encountering "END"
+```
+
 #### Configuration Best Practices
 
 - Store API keys in environment variables rather than hardcoding them
 - Use provider-specific default configurations as starting points
+- Use higher Temperature (0.7-1.0) for creative tasks
+- Use lower Temperature (0.1-0.3) for factual/precise tasks
 - Consider setting custom timeouts for production environments
 - Use custom base URLs for self-hosted models or proxy services
 
@@ -264,7 +330,7 @@ package main
 import (
 	"log"
 	"os"
-	
+
 	"github.com/jieliu2000/anyi"
 	"github.com/jieliu2000/anyi/llm/openai"
 	"github.com/jieliu2000/anyi/llm/chat"
@@ -276,13 +342,13 @@ func main() {
 
 	// Configuration with specific model
 	config := openai.NewConfigWithModel(os.Getenv("OPENAI_API_KEY"), openai.GPT4o)
-	
+
 	// Create client and use example
 	client, err := anyi.NewClient("openai", config)
 	if err != nil {
 		log.Fatalf("Failed to create OpenAI client: %v", err)
 	}
-	
+
 	messages := []chat.Message{
 		{Role: "user", Content: "What is the capital of France?"},
 	}
@@ -290,7 +356,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Request failed: %v", err)
 	}
-	
+
 	log.Printf("OpenAI response: %s", response.Content)
 }
 ```
@@ -307,7 +373,7 @@ package main
 import (
     "log"
     "os"
-    
+
     "github.com/jieliu2000/anyi"
     "github.com/jieliu2000/anyi/llm/deepseek"
     "github.com/jieliu2000/anyi/llm/chat"
@@ -316,16 +382,16 @@ import (
 func main() {
     // Configuration with DeepSeek Chat model
     config := deepseek.DefaultConfig(os.Getenv("DEEPSEEK_API_KEY"), "deepseek-chat")
-    
+
     // Configuration with DeepSeek Coder model
     config := deepseek.DefaultConfig(os.Getenv("DEEPSEEK_API_KEY"), "deepseek-coder")
-    
+
     // Create client and use example
     client, err := llm.NewClient(config)
     if err != nil {
         log.Fatalf("Failed to create DeepSeek client: %v", err)
     }
-    
+
     messages := []chat.Message{
         {Role: "user", Content: "Write a Go function to check if a string is a palindrome"},
     }
@@ -333,7 +399,7 @@ func main() {
     if err != nil {
         log.Fatalf("Request failed: %v", err)
     }
-    
+
     log.Printf("DeepSeek response: %s", response.Content)
 }
 ```
@@ -357,7 +423,7 @@ package main
 import (
 	"log"
 	"os"
-	
+
 	"github.com/jieliu2000/anyi"
 	"github.com/jieliu2000/anyi/llm/azureopenai"
 	"github.com/jieliu2000/anyi/llm/chat"
@@ -369,13 +435,13 @@ func main() {
 		os.Getenv("AZ_OPENAI_MODEL_DEPLOYMENT_ID"),
 		os.Getenv("AZ_OPENAI_ENDPOINT")
 	)
-	
+
 	// Create client and use example
 	client, err := anyi.NewClient("azure-openai", config)
 	if err != nil {
 		log.Fatalf("Failed to create Azure OpenAI client: %v", err)
 	}
-	
+
 	// Use the client
 	messages := []chat.Message{
 		{Role: "user", Content: "What are the major differences between machine learning and deep learning?"},
@@ -384,7 +450,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Request failed: %v", err)
 	}
-	
+
 	log.Printf("Azure OpenAI response: %s", response.Content)
 }
 ```
@@ -407,7 +473,7 @@ package main
 
 import (
 	"log"
-	
+
 	"github.com/jieliu2000/anyi"
 	"github.com/jieliu2000/anyi/llm/ollama"
 	"github.com/jieliu2000/anyi/llm/chat"
@@ -416,16 +482,16 @@ import (
 func main() {
 	// Default configuration (local server)
 	config := ollama.DefaultConfig("llama3")
-	
+
 	// Custom server configuration
 	config := ollama.NewConfig("mixtral", "http://your-ollama-server:11434")
-	
+
 	// Create client and use example
 	client, err := anyi.NewClient("local-llm", config)
 	if err != nil {
 		log.Fatalf("Failed to create Ollama client: %v", err)
 	}
-	
+
 	// Use the client for local inference
 	messages := []chat.Message{
 		{Role: "system", Content: "You are a math expert specializing in number theory."},
@@ -435,7 +501,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Local inference failed: %v", err)
 	}
-	
+
 	log.Printf("Ollama model response: %s", response.Content)
 }
 ```
@@ -469,6 +535,7 @@ The core functionality of Anyi is to interact with LLMs through the Chat API. Th
 ### Understanding the Chat Lifecycle
 
 A typical chat interaction with an LLM follows these steps:
+
 1. **Prepare Messages**: Create a sequence of messages representing the conversation
 2. **Configure Options**: Set parameters like temperature, max tokens, etc.
 3. **Send Request**: Call the Chat method on your client
@@ -484,7 +551,7 @@ type Message struct {
 	Role    string // "user", "assistant", "system"
 	Content string // Text content of the message
 	Name    string // Optional name (for multi-agent contexts)
-	
+
 	// For multimodal content
 	ContentParts []ContentPart
 }
@@ -493,6 +560,7 @@ type Message struct {
 ### Return Values Explained
 
 When calling the Chat method, you receive three values:
+
 1. **Response Message**: The model's reply as a `chat.Message`
 2. **Response Info**: Metadata about the response (tokens used, model name, etc.)
 3. **Error**: Any error that occurred during the request
@@ -516,7 +584,7 @@ import (
 func main() {
 	// Create client
 	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
-client, err := anyi.NewClient("openai", config)
+	client, err := anyi.NewClient("openai", config)
 	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)
 	}
@@ -526,30 +594,30 @@ client, err := anyi.NewClient("openai", config)
 		{Role: "system", Content: "You are a helpful assistant."},
 		{Role: "user", Content: "What can machine learning be used for?"},
 	}
-	
+
 	// Send chat request
 	response, info, err := client.Chat(messages, nil)
 	if err != nil {
 		log.Fatalf("Chat failed: %v", err)
 	}
-	
+
 	// Process response
 	log.Printf("Model: %s", info.Model)
 	log.Printf("Response: %s", response.Content)
-	
+
 	// Continue the conversation
 	messages = append(messages, *response) // Add assistant's response
 	messages = append(messages, chat.Message{
-		Role: "user", 
+		Role: "user",
 		Content: "Can you give a specific example in healthcare?",
 	})
-	
+
 	// Send follow-up
 	response, _, err = client.Chat(messages, nil)
 	if err != nil {
 		log.Fatalf("Chat failed: %v", err)
 	}
-	
+
 	log.Printf("Follow-up response: %s", response.Content)
 }
 ```
@@ -616,13 +684,13 @@ func main() {
 			},
 		},
 	}
-	
+
 	// Send chat request
 	response, _, err := client.Chat(messages, nil)
 	if err != nil {
 		log.Fatalf("Chat failed: %v", err)
 	}
-	
+
 	log.Printf("Description: %s", response.Content)
 }
 ```
@@ -681,16 +749,16 @@ func main() {
 	messages := []chat.Message{
 		{Role: "user", Content: "What's the weather like in Boston?"},
 	}
-	
+
 	// Request with function calling
 	response, _, err := client.ChatWithFunctions(messages, functions, nil)
 	if err != nil {
 		log.Fatalf("Chat failed: %v", err)
 	}
-	
+
 	log.Printf("Response type: %s", response.FunctionCall.Name)
 	log.Printf("Arguments: %s", response.FunctionCall.Arguments)
-	
+
 	// Here you would handle the function call, execute the requested function
 	// and send the result back in another message
 }
@@ -742,14 +810,14 @@ flowContext := anyi.NewFlowContext("Initial input", taskData)
 func (executor *MyExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
     // Access data in Memory (requires type assertion)
     taskData := flowContext.Memory.(TaskData)
-    
+
     // Update memory data
     taskData.Progress++
     flowContext.Memory = taskData
-    
+
     // Update output text
     flowContext.Text = fmt.Sprintf("Current progress: %d/%d", taskData.Progress, len(taskData.Steps))
-    
+
     return &flowContext, nil
 }
 ```
@@ -761,7 +829,6 @@ Anyi supports special `<think>` tags where models can express their thinking pro
 There are two ways to handle `<think>` tags:
 
 1. **Automatic processing**: The `Flow.Run` method automatically detects and extracts content within `<think>` tags to the `FlowContext.Think` field, while cleaning the tag content from the `Text` field.
-    
 2. **Using DeepSeekStyleResponseFilter**: A dedicated executor for processing thinking tags:
 
 ```go
@@ -796,6 +863,7 @@ Anyi's configuration system allows you to manage clients, flows, and other setti
 ### Dynamic Configuration
 
 Dynamic configuration allows you to programmatically define and update settings at runtime. This is useful when:
+
 - Your configuration needs to be generated dynamically based on user input
 - You're building a system that needs to adapt its behavior on the fly
 - You want to test different configurations without restarting your application
@@ -870,14 +938,14 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to get flow: %v", err)
 	}
-	
+
 	input := "Artificial intelligence (AI) is intelligence demonstrated by machines, as opposed to natural intelligence displayed by animals including humans. AI research has been defined as the field of study of intelligent agents, which refers to any system that perceives its environment and takes actions that maximize its chance of achieving its goals. The term \"artificial intelligence\" had previously been used to describe machines that mimic and display \"human\" cognitive skills that are associated with the human mind, such as \"learning\" and \"problem-solving\". This definition has since been rejected by major AI researchers who now describe AI in terms of rationality and acting rationally, which does not limit how intelligence can be articulated."
-	
+
 	result, err := flow.RunWithInput(input)
 	if err != nil {
 		log.Fatalf("Flow execution failed: %v", err)
 	}
-	
+
 	log.Printf("Result: %s", result.Text)
 }
 ```
@@ -887,6 +955,7 @@ func main() {
 Using configuration files is often the most practical approach for production applications. Anyi supports multiple file formats (YAML, JSON, TOML) and provides an easy way to load them.
 
 **Benefits of using configuration files:**
+
 - Keep sensitive information (like API keys) out of your codebase
 - Easily switch between different configurations without changing code
 - Allow non-developers to modify application behavior
@@ -908,19 +977,19 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
-	
+
 	// Access the flow by name
 	flow, err := anyi.GetFlow("content_creator")
 	if err != nil {
 		log.Fatalf("Failed to get flow: %v", err)
 	}
-	
+
 	// Run the flow
 	result, err := flow.RunWithInput("autonomous vehicles")
 	if err != nil {
 		log.Fatalf("Flow execution failed: %v", err)
 	}
-	
+
 	fmt.Println("Generated content:", result.Text)
 }
 ```
@@ -934,7 +1003,7 @@ clients:
     config:
       model: "gpt-4"
       apiKey: "$OPENAI_API_KEY"
-  
+
   - name: "anthropic"
     type: "anthropic"
     config:
@@ -952,7 +1021,7 @@ flows:
             template: "Research the following topic and provide key facts and insights: {{.Text}}"
             systemMessage: "You are a research assistant."
         maxRetryTimes: 2
-      
+
       - name: "draft_article"
         clientName: "anthropic"
         executor:
@@ -969,6 +1038,7 @@ flows:
 ### Environment Variables
 
 Anyi supports environment variables for configuration, which is especially useful for:
+
 - Secrets management (API keys, tokens)
 - Deployment-specific settings
 - CI/CD pipelines
@@ -977,6 +1047,7 @@ Anyi supports environment variables for configuration, which is especially usefu
 Environment variables are referenced in configuration files using the `$` prefix. For example, `$OPENAI_API_KEY` in a configuration file will be replaced with the value of the `OPENAI_API_KEY` environment variable.
 
 **Best Practices for Environment Variables:**
+
 - Use a `.env` file for local development
 - Keep sensitive information in environment variables, not in code or configuration files
 - Use descriptive names for your environment variables
@@ -993,16 +1064,19 @@ Executors are the workhorses of the Anyi workflow system. They perform the actua
 #### Types of Built-in Executors
 
 1. **LLMExecutor**: The most commonly used executor, it sends prompts to an LLM and captures the response.
+
    - Supports template-based prompts with variable substitution
    - Can use different system messages for different steps
    - Works with any registered LLM client
 
 2. **SetContextExecutor**: Directly modifies the flow context without external calls.
+
    - Useful for initializing variables
    - Can overwrite or append to existing context
    - Often used at the beginning of workflows
 
 3. **ConditionalFlowExecutor**: Enables branching logic in workflows.
+
    - Routes to different steps based on conditions
    - Can evaluate simple expressions
    - Allows for complex decision trees
@@ -1015,6 +1089,7 @@ Executors are the workhorses of the Anyi workflow system. They perform the actua
 ### Validators
 
 Validators are crucial components in the Anyi workflow system that ensure outputs meet specific criteria before proceeding to the next step. They serve as quality control mechanisms that can:
+
 - Prevent low-quality or invalid outputs from propagating through your workflow
 - Automatically trigger retries when outputs don't meet requirements
 - Enforce data schemas and formatting requirements
@@ -1033,7 +1108,7 @@ Validators are crucial components in the Anyi workflow system that ensure output
        MaxLength: 1000,           // Maximum length
        MatchRegex: `\d{3}-\d{2}`, // Must contain pattern (e.g., SSN format)
    }
-   ```
+```
 
 2. **JsonValidator**: Ensures output is valid JSON and can validate against a schema.
    - Checks for valid JSON syntax
@@ -1045,11 +1120,12 @@ Validators are crucial components in the Anyi workflow system that ensure output
        RequiredFields: []string{"name", "email"},
        Schema: `{"type": "object", "properties": {"name": {"type": "string"}, "email": {"type": "string", "format": "email"}}}`,
    }
-   ```
+```
 
 #### Using Validators Effectively
 
 To get the most out of validators:
+
 - Start with simpler validations and gradually add complexity
 - Use validators in combination with retry logic
 - Consider creating custom validators for specific business rules
@@ -1081,38 +1157,38 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create OpenAI client: %v", err)
 	}
-	
+
 	// Create Ollama local client for simple tasks
 	ollamaConfig := ollama.DefaultConfig("llama3")
 	ollamaClient, err := anyi.NewClient("local", ollamaConfig)
 	if err != nil {
 		log.Fatalf("Failed to create Ollama client: %v", err)
 	}
-	
+
 	// Use OpenAI client for complex problem solving
 	complexMessages := []chat.Message{
 		{Role: "user", Content: "Analyze the potential impact of artificial intelligence on the job market over the next decade"},
 	}
-	
+
 	complexResponse, _, err := openaiClient.Chat(complexMessages, nil)
 	if err != nil {
 		log.Fatalf("OpenAI request failed: %v", err)
 	}
-	
+
 	log.Printf("Complex question answer (GPT): %s", complexResponse.Content)
-	
+
 	// Use local Ollama client for simple computations
 	simpleMessages := []chat.Message{
 		{Role: "user", Content: "Calculate the result of 342 + 781"},
 	}
-	
+
 	simpleResponse, _, err := ollamaClient.Chat(simpleMessages, nil)
 	if err != nil {
 		log.Fatalf("Ollama request failed: %v", err)
 	}
-	
+
 	log.Printf("Simple calculation answer (Ollama): %s", simpleResponse.Content)
-	
+
 	// In a workflow, you could switch clients based on step requirements
 	// Workflow code...
 }
@@ -1238,27 +1314,27 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)
 	}
-	
+
 	// Prepare messages
 	messages := []chat.Message{
 		{Role: "user", Content: "Explain the basic principles of quantum mechanics"},
 	}
-	
+
 	// Implement retry logic
 	maxRetries := 3
 	backoff := 1 * time.Second
-	
+
 	var response *chat.Message
 	var info chat.ResponseInfo
-	
+
 	for i := 0; i < maxRetries; i++ {
 		response, info, err = client.Chat(messages, nil)
-		
+
 		if err == nil {
 			// Successfully got response, break the loop
 			break
 		}
-		
+
 		// Check if error is retryable (like network errors, timeouts, etc.)
 		if i < maxRetries-1 {
 			log.Printf("Attempt %d failed: %v, retrying in %v", i+1, err, backoff)
@@ -1266,15 +1342,15 @@ func main() {
 			backoff *= 2 // Exponential backoff
 		}
 	}
-	
+
 	if err != nil {
 		log.Fatalf("Still failed after %d attempts: %v", maxRetries, err)
 	}
-	
+
 	// Process successful response
 	log.Printf("Response: %s", response.Content)
 	log.Printf("Tokens used: %d", info.PromptTokens + info.CompletionTokens)
-	
+
 	// Error logging and monitoring
 	// In a real application, you should implement more sophisticated error logging and monitoring
 	// For example, sending errors to a log management system or monitoring service
@@ -1288,7 +1364,7 @@ func main() {
 func processLargeText(text string, client *llm.Client) (string, error) {
     // Split text into smaller chunks
     chunks := splitIntoChunks(text, 1000) // About 1000 words per chunk
-    
+
     var results []string
     // Process each chunk
     for _, chunk := range chunks {
@@ -1300,7 +1376,7 @@ func processLargeText(text string, client *llm.Client) (string, error) {
         }
         results = append(results, response.Content)
     }
-    
+
     // Combine the results
     return combineResults(results), nil
 }
@@ -1318,10 +1394,10 @@ import (
 
 func setupRouter() *gin.Engine {
     r := gin.Default()
-    
+
     // Initialize Anyi client
     // ...
-    
+
     r.POST("/ask", func(c *gin.Context) {
         var req struct {
             Question string `json:"question"`
@@ -1330,20 +1406,20 @@ func setupRouter() *gin.Engine {
             c.JSON(400, gin.H{"error": err.Error()})
             return
         }
-        
+
         // Use Anyi client to process the request
         response, _, err := client.Chat([]chat.Message{
             {Role: "user", Content: req.Question},
         }, nil)
-        
+
         if err != nil {
             c.JSON(500, gin.H{"error": err.Error()})
             return
         }
-        
+
         c.JSON(200, gin.H{"answer": response.Content})
     })
-    
+
     return r
 }
 ```
@@ -1357,26 +1433,41 @@ Building effective AI applications requires more than just technical knowledge. 
 Optimizing your Anyi workflows for performance can significantly improve user experience and reduce costs:
 
 **1. Choose the Right Model for the Task**
+
 - Use smaller, faster models for simple tasks
 - Reserve more powerful models for complex reasoning
 - Consider fine-tuned models for specialized domains
 
-**2. Implement Caching**
+**2. Configure Generation Parameters Properly**
+
+- Adjust `Temperature` based on the task:
+  - Use 0.1-0.3 for factual responses, coding, and precision tasks
+  - Use 0.7-1.0 for creative writing, brainstorming, and diverse outputs
+- Set appropriate `MaxTokens` to avoid unnecessary long responses
+- Use `PresencePenalty` (0.1-0.5) to reduce repetitive outputs in longer generations
+- Apply `FrequencyPenalty` (0.1-0.5) to encourage more varied vocabulary
+- Use `Stop` tokens to automatically end generation at appropriate points
+
+**3. Implement Caching**
+
 - Cache common LLM responses to avoid redundant API calls
 - Use a distributed cache for multi-instance deployments
 - Set appropriate cache expiration times
 
-**3. Optimize Prompts**
+**4. Optimize Prompts**
+
 - Keep prompts concise while including necessary context
 - Use clear instructions to reduce back-and-forth
 - Test and iterate on prompts to minimize token usage
 
-**4. Local Deployment Options**
+**5. Local Deployment Options**
+
 - For frequent, non-critical tasks, use Ollama with local models
 - Balance between cloud and local models based on requirements
 - Consider quantized models for resource-constrained environments
 
-**5. Parallel Execution**
+**6. Parallel Execution**
+
 - Identify workflow steps that can run in parallel
 - Use goroutines for concurrent LLM calls when appropriate
 - Implement proper error handling for parallel steps
@@ -1386,26 +1477,31 @@ Optimizing your Anyi workflows for performance can significantly improve user ex
 Managing costs is essential when working with commercial LLM providers:
 
 **1. Token Monitoring**
+
 - Implement token counting to track usage
 - Set up alerts for unusual spending patterns
 - Regularly audit your token consumption
 
 **2. Tiered Model Strategy**
+
 - Use a cascading approach: try cheaper models first
 - Upgrade to more expensive models only when necessary
 - Implement fallbacks for service outages
 
 **3. Response Length Control**
+
 - Set appropriate MaxTokens limits for each use case
 - Use validation to ensure outputs aren't unnecessarily verbose
 - Implement truncation strategies for excessive outputs
 
 **4. Batching Requests**
+
 - Combine multiple small requests when possible
 - Implement queue systems for non-urgent processing
 - Schedule batch processing during off-peak hours
 
 **5. Cost Attribution**
+
 - Track costs by workflow, feature, or user
 - Implement per-user quotas or rate limits
 - Consider passing costs to end-users for premium features
@@ -1415,26 +1511,31 @@ Managing costs is essential when working with commercial LLM providers:
 Security is paramount when building AI systems:
 
 **1. API Key Management**
+
 - Never hardcode API keys in your application
 - Use environment variables or a secrets manager
 - Rotate keys regularly and limit their permissions
 
 **2. Input Sanitization**
+
 - Validate and sanitize all user inputs
 - Implement rate limiting to prevent abuse
 - Use context filtering to prevent prompt injection
 
 **3. Output Validation**
+
 - Always validate LLM outputs before using them
 - Be cautious when using LLM outputs in executable contexts
 - Implement content moderation for user-facing outputs
 
 **4. Data Privacy**
+
 - Minimize sending sensitive data to LLMs
 - Implement data retention policies
 - Consider using local models for processing sensitive information
 
 **5. Audit and Logging**
+
 - Maintain detailed logs of all LLM interactions
 - Implement proper log redaction for sensitive content
 - Set up monitoring for unusual patterns or security incidents
@@ -1459,7 +1560,7 @@ step1.MaxRetryTimes = 3
 func processLargeText(text string, client *llm.Client) (string, error) {
     // Split text into smaller chunks
     chunks := splitIntoChunks(text, 1000) // About 1000 words per chunk
-    
+
     var results []string
     // Process each chunk
     for _, chunk := range chunks {
@@ -1471,7 +1572,7 @@ func processLargeText(text string, client *llm.Client) (string, error) {
         }
         results = append(results, response.Content)
     }
-    
+
     // Combine the results
     return combineResults(results), nil
 }
@@ -1489,10 +1590,10 @@ import (
 
 func setupRouter() *gin.Engine {
     r := gin.Default()
-    
+
     // Initialize Anyi client
     // ...
-    
+
     r.POST("/ask", func(c *gin.Context) {
         var req struct {
             Question string `json:"question"`
@@ -1501,20 +1602,20 @@ func setupRouter() *gin.Engine {
             c.JSON(400, gin.H{"error": err.Error()})
             return
         }
-        
+
         // Use Anyi client to process the request
         response, _, err := client.Chat([]chat.Message{
             {Role: "user", Content: req.Question},
         }, nil)
-        
+
         if err != nil {
             c.JSON(500, gin.H{"error": err.Error()})
             return
         }
-        
+
         c.JSON(200, gin.H{"answer": response.Content})
     })
-    
+
     return r
 }
 ```
@@ -1534,6 +1635,7 @@ For more examples and the latest documentation, visit the [GitHub repository](ht
 ### Getting Help and Contributing
 
 If you encounter issues or have questions, consider:
+
 - Opening an issue on GitHub
 - Joining the community discussion
 - Reading the API documentation
