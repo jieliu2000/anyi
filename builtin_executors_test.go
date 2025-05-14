@@ -970,3 +970,5 @@ func TestDeepSeekStyleResponseFilter_Think(t *testing.T) {
 func TestDeepSeekStyleResponseFilter_Init(t *testing.T) {
 	// ... existing code ...
 }
+
+// MCP Executor tests have been moved to mcp_executor_test.go

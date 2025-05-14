@@ -622,6 +622,8 @@ func Init() {
 	RegisterExecutor("setVariables", &SetVariablesExecutor{})
 	// Register with old name for backward compatibility
 	RegisterExecutor("setVariable", &SetVariablesExecutor{})
+	// Register MCP executor
+	RegisterExecutor("mcp", &MCPExecutor{})
 
 	RegisterValidator("string", &StringValidator{})
 	RegisterValidator("json", &JsonValidator{})
