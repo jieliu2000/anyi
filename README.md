@@ -1,4 +1,4 @@
-# Anyi - Open Source Autonomous AI Agent Framework 
+# Anyi - Open Source Autonomous AI Agent Framework
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/jieliu2000/anyi.svg)](https://pkg.go.dev/github.com/jieliu2000/anyi)
 [![Go Report Card](https://goreportcard.com/badge/github.com/jieliu2000/anyi)](https://goreportcard.com/report/github.com/jieliu2000/anyi)
@@ -68,7 +68,7 @@ func main() {
 	// Create client - just change imports and config to use different providers
 	config := openai.DefaultConfig("gpt-4")
 	config.APIKey = os.Getenv("OPENAI_API_KEY")
-	
+
 	client, err := anyi.NewClient("gpt4", config)
 	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)
@@ -78,12 +78,12 @@ func main() {
 	messages := []chat.Message{
 		{Role: "user", Content: "How many countries are in Africa?"},
 	}
-	
+
 	response, _, err := client.Chat(messages, nil)
 	if err != nil {
 		log.Fatalf("Chat failed: %v", err)
 	}
-	
+
 	log.Printf("Response: %s", response.Content)
 }
 ```
@@ -110,7 +110,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)
 	}
-	
+
 	// Create a two-step workflow
 	step1, _ := anyi.NewLLMStepWithTemplate(
 		"Generate a short story about {{.Text}}",
@@ -118,21 +118,21 @@ func main() {
 		client,
 	)
 	step1.Name = "story_generation"
-	
+
 	step2, _ := anyi.NewLLMStepWithTemplate(
 		"Create an engaging title for the following story:\n\n{{.Text}}",
 		"You are an editor skilled at creating titles.",
 		client,
 	)
 	step2.Name = "title_creation"
-	
+
 	// Create and register the flow
 	myFlow, _ := anyi.NewFlow("story_flow", client, *step1, *step2)
 	anyi.RegisterFlow("story_flow", myFlow)
-	
+
 	// Run the workflow
 	result, _ := myFlow.RunWithInput("a detective in future London")
-	
+
 	log.Printf("Title: %s", result.Text)
 }
 ```
@@ -148,17 +148,17 @@ clients:
     type: "openai"
     config:
       model: "gpt-4"
-      apiKey: "$OPENAI_API_KEY"  # References environment variable
-  
+      apiKey: "$OPENAI_API_KEY" # References environment variable
+
   - name: "ollama"
     type: "ollama"
     config:
       model: "llama3"
-      baseURL: "http://localhost:11434"  # Default Ollama server address
+      baseURL: "http://localhost:11434" # Default Ollama server address
 
 flows:
   - name: "story_flow"
-    clientName: "gpt4"  # Default client for the flow
+    clientName: "gpt4" # Default client for the flow
     steps:
       - name: "story_generation"
         executor:
@@ -167,14 +167,14 @@ flows:
             template: "Generate a short story about {{.Text}}"
             systemMessage: "You are a creative fiction writer."
         maxRetryTimes: 2
-      
+
       - name: "title_creation"
         executor:
           type: "llm"
           withconfig:
             template: "Create an engaging title for the following story:\n\n{{.Text}}"
             systemMessage: "You are an editor skilled at creating titles."
-        clientName: "ollama"  # Override client for this step
+        clientName: "ollama" # Override client for this step
 ```
 
 Load and use this configuration:
@@ -193,18 +193,18 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
-	
+
 	// Get and run the configured flow
 	flow, err := anyi.GetFlow("story_flow")
 	if err != nil {
 		log.Fatalf("Failed to get flow: %v", err)
 	}
-	
+
 	result, err := flow.RunWithInput("a detective in future London")
 	if err != nil {
 		log.Fatalf("Flow execution failed: %v", err)
 	}
-	
+
 	log.Printf("Result: %s", result.Text)
 }
 ```
@@ -217,6 +217,7 @@ func main() {
 - **SetContextExecutor** - Modifies workflow context
 - **ConditionalFlowExecutor** - Branches based on conditions
 - **RunCommandExecutor** - Executes system commands
+- **MCPExecutor** - Interfaces with Model Control Protocol to access external models, resources, and tools
 
 ### Validators
 
@@ -228,6 +229,7 @@ func main() {
 For comprehensive guides and detailed examples, check out our [Programming Guide](/docs/en/tutorial.md).
 
 Topics covered include:
+
 - [LLM Client Configuration](/docs/en/tutorial.md#client-configuration)
 - [Workflow Creation](/docs/en/tutorial.md#workflow-system)
 - [Using Configuration Files](/docs/en/tutorial.md#configuration-files)
