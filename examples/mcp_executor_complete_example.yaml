@@ -1,0 +1,162 @@
+name: "MCP Executor Complete Examples"
+description: "演示 MCP Executor 支持的所有传输方式：HTTP、SSE 和 STDIO"
+
+flows:
+  # HTTP 传输示例 - 调用工具
+  - name: "http_tool_call"
+    description: "通过 HTTP 传输调用 MCP 工具"
+    steps:
+      - name: "call_http_tool"
+        executor: "mcp"
+        config:
+          transport: "http"
+          serverEndpoint: "http://localhost:8080/mcp"
+          apiKey: "${MCP_API_KEY}"
+          operation: "tool_call"
+          toolName: "file_reader"
+          toolArgs:
+            path: "/tmp/example.txt"
+          outputToContext: true
+          resultVarName: "fileContent"
+          timeout: "30s"
+          retryAttempts: 3
+
+  # SSE 传输示例 - 读取资源
+  - name: "sse_resource_read"
+    description: "通过 SSE 传输读取 MCP 资源"
+    steps:
+      - name: "read_sse_resource"
+        executor: "mcp"
+        config:
+          transport: "sse"
+          serverEndpoint: "http://localhost:8080/mcp/events"
+          apiKey: "${MCP_API_KEY}"
+          operation: "resource_read"
+          resourceUri: "file://documents/report.pdf"
+          outputToContext: true
+          resultVarName: "resourceData"
+          timeout: "45s"
+
+  # STDIO 传输示例 - 列出工具
+  - name: "stdio_list_tools"
+    description: "通过 STDIO 传输列出可用工具"
+    steps:
+      - name: "list_stdio_tools"
+        executor: "mcp"
+        config:
+          transport: "stdio"
+          serverCommand: "python"
+          serverArgs: ["-m", "mcp_server.tools"]
+          operation: "list_tools"
+          outputToContext: true
+          resultVarName: "availableTools"
+          timeout: "20s"
+
+  # STDIO 传输示例 - 获取提示
+  - name: "stdio_get_prompt"
+    description: "通过 STDIO 传输获取 MCP 提示"
+    steps:
+      - name: "get_stdio_prompt"
+        executor: "mcp"
+        config:
+          transport: "stdio"
+          serverCommand: "node"
+          serverArgs: ["./mcp-server.js"]
+          operation: "prompt_get"
+          promptName: "code_review"
+          promptArgs:
+            language: "python"
+            complexity: "high"
+          outputToContext: true
+          resultVarName: "reviewPrompt"
+          timeout: "30s"
+
+  # 复杂工作流示例 - 组合多种传输方式
+  - name: "complex_mcp_workflow"
+    description: "组合使用多种 MCP 传输方式的复杂工作流"
+    steps:
+      # 步骤1：通过 STDIO 列出可用工具
+      - name: "discover_tools"
+        executor: "mcp"
+        config:
+          transport: "stdio"
+          serverCommand: "python"
+          serverArgs: ["-m", "analysis_server"]
+          operation: "list_tools"
+          resultVarName: "tools"
+
+      # 步骤2：通过 HTTP 调用数据分析工具
+      - name: "analyze_data"
+        executor: "mcp"
+        config:
+          transport: "http"
+          serverEndpoint: "http://analytics.example.com/mcp"
+          apiKey: "${ANALYTICS_API_KEY}"
+          operation: "tool_call"
+          toolName: "data_analyzer"
+          toolArgs:
+            dataset: "${datasetPath}"
+            algorithm: "ml_regression"
+          resultVarName: "analysisResult"
+
+      # 步骤3：通过 SSE 获取实时更新
+      - name: "monitor_progress"
+        executor: "mcp"
+        config:
+          transport: "sse"
+          serverEndpoint: "http://analytics.example.com/mcp/stream"
+          apiKey: "${ANALYTICS_API_KEY}"
+          operation: "tool_call"
+          toolName: "progress_monitor"
+          toolArgs:
+            taskId: "${analysisResult.taskId}"
+          resultVarName: "progressUpdates"
+
+  # 错误处理和重试示例
+  - name: "resilient_mcp_call"
+    description: "具有错误处理和重试机制的 MCP 调用"
+    steps:
+      - name: "resilient_tool_call"
+        executor: "mcp"
+        config:
+          transport: "http"
+          serverEndpoint: "http://unreliable-service.example.com/mcp"
+          operation: "tool_call"
+          toolName: "flaky_processor"
+          toolArgs:
+            input: "sensitive_data"
+          outputToContext: true
+          resultVarName: "processedData"
+          timeout: "60s"
+          retryAttempts: 5 # 增加重试次数以处理不稳定的服务
+
+  # 动态参数示例
+  - name: "dynamic_mcp_call"
+    description: "使用动态参数的 MCP 调用"
+    steps:
+      # 设置变量
+      - name: "set_variables"
+        executor: "variable"
+        config:
+          variables:
+            serverPath: "/usr/local/bin/mcp-server"
+            configFile: "/etc/mcp/config.json"
+            inputFile: "${workDir}/input.txt"
+
+      # 使用动态参数调用 STDIO MCP 服务
+      - name: "dynamic_stdio_call"
+        executor: "mcp"
+        config:
+          transport: "stdio"
+          serverCommand: "${serverPath}"
+          serverArgs: ["--config", "${configFile}"]
+          operation: "tool_call"
+          toolName: "file_processor"
+          toolArgVars: ["inputFile"] # 从流程变量中获取参数
+          resultVarName: "processResult"
+# 环境变量配置说明
+# 在运行这些示例之前，请设置以下环境变量：
+# export MCP_API_KEY="your-mcp-api-key"
+# export ANALYTICS_API_KEY="your-analytics-api-key"
+# export workDir="/path/to/working/directory"
+# export datasetPath="/path/to/dataset.csv"

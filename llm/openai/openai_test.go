@@ -50,7 +50,7 @@ func TestNewClient(t *testing.T) {
 	assert.NotNil(t, client1)
 	assert.Equal(t, apiKey, client1.Config.APIKey)
 	assert.Equal(t, DefaultModel, client1.Config.Model)
-	assert.Equal(t, DefaultBaseURL, client1.Config.BaseURL)
+	assert.Equal(t, DefaultBaseUrl, client1.Config.BaseURL)
 	assert.NotNil(t, client1.clientImpl)
 
 	// Test with all parameters provided
@@ -80,7 +80,7 @@ func TestDefaultConfig(t *testing.T) {
 	config := DefaultConfig("test-api-key")
 	assert.Equal(t, "test-api-key", config.APIKey)
 	assert.Equal(t, DefaultModel, config.Model)
-	assert.Equal(t, DefaultBaseURL, config.BaseURL)
+	assert.Equal(t, DefaultBaseUrl, config.BaseURL)
 }
 
 func TestChat(t *testing.T) {
@@ -164,7 +164,7 @@ func TestGeneralLLMConfig(t *testing.T) {
 		},
 		APIKey:  "test-api-key",
 		Model:   "gpt-4",
-		BaseURL: DefaultBaseURL,
+		BaseURL: DefaultBaseUrl,
 	}
 
 	client, err := NewClient(config)

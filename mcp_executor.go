@@ -1,6 +1,7 @@
 package anyi
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -9,6 +10,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"os/exec"
 	"strings"
 	"sync"
@@ -552,7 +554,10 @@ type SSEMCPClient struct {
 	endpoint string
 	apiKey   string
 	timeout  time.Duration
-	// TODO: Implement SSE-specific fields
+	client   *http.Client
+	eventCh  chan []byte
+	done     chan struct{}
+	mutex    sync.RWMutex
 }
 
 // NewSSEMCPClient creates a new SSE MCP client
@@ -561,88 +566,506 @@ func NewSSEMCPClient(endpoint, apiKey string, timeout time.Duration) (*SSEMCPCli
 		endpoint: endpoint,
 		apiKey:   apiKey,
 		timeout:  timeout,
+		client:   &http.Client{Timeout: timeout},
+		eventCh:  make(chan []byte, 100),
+		done:     make(chan struct{}),
 	}, nil
 }
 
-// Implement MCPClient interface for SSEMCPClient
+// Initialize initializes the SSE connection
 func (c *SSEMCPClient) Initialize(ctx context.Context) error {
-	// TODO: Implement SSE initialization
-	return errors.New("SSE transport not yet implemented")
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	// Create SSE connection
+	req, err := http.NewRequestWithContext(ctx, "GET", c.endpoint, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create SSE request: %w", err)
+	}
+
+	req.Header.Set("Accept", "text/event-stream")
+	req.Header.Set("Cache-Control", "no-cache")
+	if c.apiKey != "" {
+		req.Header.Set("Authorization", "Bearer "+c.apiKey)
+	}
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to connect to SSE endpoint: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		resp.Body.Close()
+		return fmt.Errorf("SSE connection failed with status %d: %s", resp.StatusCode, resp.Status)
+	}
+
+	// Start reading SSE events
+	go c.readSSEEvents(resp.Body)
+
+	return nil
+}
+
+// readSSEEvents reads Server-Sent Events from the response body
+func (c *SSEMCPClient) readSSEEvents(body io.ReadCloser) {
+	defer body.Close()
+	defer close(c.eventCh)
+
+	scanner := bufio.NewScanner(body)
+	var eventData bytes.Buffer
+
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		// Handle SSE format
+		if strings.HasPrefix(line, "data: ") {
+			data := strings.TrimPrefix(line, "data: ")
+			if data == "[DONE]" {
+				return
+			}
+			eventData.WriteString(data)
+		} else if line == "" {
+			// Empty line indicates end of event
+			if eventData.Len() > 0 {
+				select {
+				case c.eventCh <- eventData.Bytes():
+				case <-c.done:
+					return
+				}
+				eventData.Reset()
+			}
+		}
+	}
+}
+
+// sendSSERequest sends a request via SSE and waits for response
+func (c *SSEMCPClient) sendSSERequest(ctx context.Context, request MCPRequest) (*MCPResponse, error) {
+	// For SSE, we typically send requests via a separate HTTP POST endpoint
+	// and receive responses via the SSE stream
+	postEndpoint := strings.TrimSuffix(c.endpoint, "/events") + "/request"
+
+	jsonData, err := json.Marshal(request)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", postEndpoint, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if c.apiKey != "" {
+		req.Header.Set("Authorization", "Bearer "+c.apiKey)
+	}
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("HTTP error %d: %s", resp.StatusCode, resp.Status)
+	}
+
+	// Wait for response via SSE
+	timeout := time.NewTimer(c.timeout)
+	defer timeout.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-timeout.C:
+			return nil, errors.New("timeout waiting for SSE response")
+		case eventData := <-c.eventCh:
+			if eventData == nil {
+				return nil, errors.New("SSE connection closed")
+			}
+
+			var response MCPResponse
+			if err := json.Unmarshal(eventData, &response); err != nil {
+				continue // Skip malformed events
+			}
+
+			// Check if this response matches our request ID
+			if response.ID == request.ID {
+				return &response, nil
+			}
+		}
+	}
 }
 
 func (c *SSEMCPClient) CallTool(ctx context.Context, name string, arguments map[string]interface{}) (*MCPResponse, error) {
-	return nil, errors.New("SSE transport not yet implemented")
+	request := MCPRequest{
+		JSONRPC: "2.0",
+		ID:      fmt.Sprintf("tool-%d", time.Now().UnixNano()),
+		Method:  "tools/call",
+		Params: map[string]interface{}{
+			"name":      name,
+			"arguments": arguments,
+		},
+	}
+
+	return c.sendSSERequest(ctx, request)
 }
 
 func (c *SSEMCPClient) ReadResource(ctx context.Context, uri string) (*MCPResponse, error) {
-	return nil, errors.New("SSE transport not yet implemented")
+	request := MCPRequest{
+		JSONRPC: "2.0",
+		ID:      fmt.Sprintf("resource-%d", time.Now().UnixNano()),
+		Method:  "resources/read",
+		Params: map[string]interface{}{
+			"uri": uri,
+		},
+	}
+
+	return c.sendSSERequest(ctx, request)
 }
 
 func (c *SSEMCPClient) GetPrompt(ctx context.Context, name string, arguments map[string]interface{}) (*MCPResponse, error) {
-	return nil, errors.New("SSE transport not yet implemented")
+	request := MCPRequest{
+		JSONRPC: "2.0",
+		ID:      fmt.Sprintf("prompt-%d", time.Now().UnixNano()),
+		Method:  "prompts/get",
+		Params: map[string]interface{}{
+			"name":      name,
+			"arguments": arguments,
+		},
+	}
+
+	return c.sendSSERequest(ctx, request)
 }
 
 func (c *SSEMCPClient) ListTools(ctx context.Context) (*MCPResponse, error) {
-	return nil, errors.New("SSE transport not yet implemented")
+	request := MCPRequest{
+		JSONRPC: "2.0",
+		ID:      fmt.Sprintf("list-tools-%d", time.Now().UnixNano()),
+		Method:  "tools/list",
+	}
+
+	return c.sendSSERequest(ctx, request)
 }
 
 func (c *SSEMCPClient) ListResources(ctx context.Context) (*MCPResponse, error) {
-	return nil, errors.New("SSE transport not yet implemented")
+	request := MCPRequest{
+		JSONRPC: "2.0",
+		ID:      fmt.Sprintf("list-resources-%d", time.Now().UnixNano()),
+		Method:  "resources/list",
+	}
+
+	return c.sendSSERequest(ctx, request)
 }
 
 func (c *SSEMCPClient) Close() error {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	close(c.done)
 	return nil
 }
 
 // STDIOMCPClient implements MCPClient for STDIO transport
 type STDIOMCPClient struct {
-	command string
-	args    []string
-	timeout time.Duration
-	cmd     *exec.Cmd
-	stdin   io.WriteCloser
-	stdout  io.ReadCloser
+	command   string
+	args      []string
+	timeout   time.Duration
+	cmd       *exec.Cmd
+	stdin     io.WriteCloser
+	stdout    io.ReadCloser
+	stderr    io.ReadCloser
+	scanner   *bufio.Scanner
+	responses map[string]chan *MCPResponse
+	mutex     sync.RWMutex
+	done      chan struct{}
 }
 
 // NewSTDIOMCPClient creates a new STDIO MCP client
 func NewSTDIOMCPClient(command string, args []string, timeout time.Duration) (*STDIOMCPClient, error) {
 	return &STDIOMCPClient{
-		command: command,
-		args:    args,
-		timeout: timeout,
+		command:   command,
+		args:      args,
+		timeout:   timeout,
+		responses: make(map[string]chan *MCPResponse),
+		done:      make(chan struct{}),
 	}, nil
 }
 
-// Implement MCPClient interface for STDIOMCPClient
+// Initialize initializes the STDIO connection by starting the MCP server process
 func (c *STDIOMCPClient) Initialize(ctx context.Context) error {
-	// TODO: Implement STDIO initialization
-	return errors.New("STDIO transport not yet implemented")
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	if c.cmd != nil {
+		return nil // Already initialized
+	}
+
+	// Create the command
+	c.cmd = exec.CommandContext(ctx, c.command, c.args...)
+
+	// Set up pipes
+	stdin, err := c.cmd.StdinPipe()
+	if err != nil {
+		return fmt.Errorf("failed to create stdin pipe: %w", err)
+	}
+	c.stdin = stdin
+
+	stdout, err := c.cmd.StdoutPipe()
+	if err != nil {
+		c.stdin.Close()
+		return fmt.Errorf("failed to create stdout pipe: %w", err)
+	}
+	c.stdout = stdout
+
+	stderr, err := c.cmd.StderrPipe()
+	if err != nil {
+		c.stdin.Close()
+		c.stdout.Close()
+		return fmt.Errorf("failed to create stderr pipe: %w", err)
+	}
+	c.stderr = stderr
+
+	// Start the process
+	if err := c.cmd.Start(); err != nil {
+		c.stdin.Close()
+		c.stdout.Close()
+		c.stderr.Close()
+		return fmt.Errorf("failed to start MCP server process: %w", err)
+	}
+
+	// Set up scanner for reading responses
+	c.scanner = bufio.NewScanner(c.stdout)
+
+	// Start goroutines to handle I/O
+	go c.readResponses()
+	go c.readErrors()
+
+	// Send initialization request
+	initRequest := MCPRequest{
+		JSONRPC: "2.0",
+		ID:      "init",
+		Method:  "initialize",
+		Params: map[string]interface{}{
+			"protocolVersion": "2024-11-05",
+			"capabilities": map[string]interface{}{
+				"roots": map[string]interface{}{
+					"listChanged": true,
+				},
+				"sampling": map[string]interface{}{},
+			},
+			"clientInfo": map[string]interface{}{
+				"name":    "anyi-mcp-client",
+				"version": "1.0.0",
+			},
+		},
+	}
+
+	response, err := c.sendSTDIORequest(ctx, initRequest)
+	if err != nil {
+		c.Close()
+		return fmt.Errorf("failed to initialize MCP server: %w", err)
+	}
+
+	if response.Error != nil {
+		c.Close()
+		return fmt.Errorf("MCP server initialization error: %s", response.Error.Message)
+	}
+
+	return nil
+}
+
+// readResponses reads JSON-RPC responses from stdout
+func (c *STDIOMCPClient) readResponses() {
+	defer func() {
+		c.mutex.Lock()
+		for _, ch := range c.responses {
+			close(ch)
+		}
+		c.mutex.Unlock()
+	}()
+
+	for c.scanner.Scan() {
+		line := c.scanner.Bytes()
+		if len(line) == 0 {
+			continue
+		}
+
+		var response MCPResponse
+		if err := json.Unmarshal(line, &response); err != nil {
+			log.Printf("Failed to unmarshal MCP response: %v", err)
+			continue
+		}
+
+		c.mutex.RLock()
+		if ch, exists := c.responses[response.ID]; exists {
+			select {
+			case ch <- &response:
+			case <-c.done:
+				c.mutex.RUnlock()
+				return
+			}
+		}
+		c.mutex.RUnlock()
+	}
+}
+
+// readErrors reads error messages from stderr
+func (c *STDIOMCPClient) readErrors() {
+	scanner := bufio.NewScanner(c.stderr)
+	for scanner.Scan() {
+		log.Printf("MCP server stderr: %s", scanner.Text())
+	}
+}
+
+// sendSTDIORequest sends a JSON-RPC request via STDIO and waits for response
+func (c *STDIOMCPClient) sendSTDIORequest(ctx context.Context, request MCPRequest) (*MCPResponse, error) {
+	// Create response channel
+	responseCh := make(chan *MCPResponse, 1)
+
+	c.mutex.Lock()
+	c.responses[request.ID] = responseCh
+	c.mutex.Unlock()
+
+	// Clean up response channel when done
+	defer func() {
+		c.mutex.Lock()
+		delete(c.responses, request.ID)
+		c.mutex.Unlock()
+		close(responseCh)
+	}()
+
+	// Marshal and send request
+	jsonData, err := json.Marshal(request)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	// Add newline for JSON-RPC over STDIO
+	jsonData = append(jsonData, '\n')
+
+	if _, err := c.stdin.Write(jsonData); err != nil {
+		return nil, fmt.Errorf("failed to write request to stdin: %w", err)
+	}
+
+	// Wait for response
+	timeout := time.NewTimer(c.timeout)
+	defer timeout.Stop()
+
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case <-timeout.C:
+		return nil, errors.New("timeout waiting for STDIO response")
+	case response := <-responseCh:
+		if response == nil {
+			return nil, errors.New("STDIO connection closed")
+		}
+		return response, nil
+	case <-c.done:
+		return nil, errors.New("STDIO client closed")
+	}
 }
 
 func (c *STDIOMCPClient) CallTool(ctx context.Context, name string, arguments map[string]interface{}) (*MCPResponse, error) {
-	return nil, errors.New("STDIO transport not yet implemented")
+	request := MCPRequest{
+		JSONRPC: "2.0",
+		ID:      fmt.Sprintf("tool-%d", time.Now().UnixNano()),
+		Method:  "tools/call",
+		Params: map[string]interface{}{
+			"name":      name,
+			"arguments": arguments,
+		},
+	}
+
+	return c.sendSTDIORequest(ctx, request)
 }
 
 func (c *STDIOMCPClient) ReadResource(ctx context.Context, uri string) (*MCPResponse, error) {
-	return nil, errors.New("STDIO transport not yet implemented")
+	request := MCPRequest{
+		JSONRPC: "2.0",
+		ID:      fmt.Sprintf("resource-%d", time.Now().UnixNano()),
+		Method:  "resources/read",
+		Params: map[string]interface{}{
+			"uri": uri,
+		},
+	}
+
+	return c.sendSTDIORequest(ctx, request)
 }
 
 func (c *STDIOMCPClient) GetPrompt(ctx context.Context, name string, arguments map[string]interface{}) (*MCPResponse, error) {
-	return nil, errors.New("STDIO transport not yet implemented")
+	request := MCPRequest{
+		JSONRPC: "2.0",
+		ID:      fmt.Sprintf("prompt-%d", time.Now().UnixNano()),
+		Method:  "prompts/get",
+		Params: map[string]interface{}{
+			"name":      name,
+			"arguments": arguments,
+		},
+	}
+
+	return c.sendSTDIORequest(ctx, request)
 }
 
 func (c *STDIOMCPClient) ListTools(ctx context.Context) (*MCPResponse, error) {
-	return nil, errors.New("STDIO transport not yet implemented")
+	request := MCPRequest{
+		JSONRPC: "2.0",
+		ID:      fmt.Sprintf("list-tools-%d", time.Now().UnixNano()),
+		Method:  "tools/list",
+	}
+
+	return c.sendSTDIORequest(ctx, request)
 }
 
 func (c *STDIOMCPClient) ListResources(ctx context.Context) (*MCPResponse, error) {
-	return nil, errors.New("STDIO transport not yet implemented")
+	request := MCPRequest{
+		JSONRPC: "2.0",
+		ID:      fmt.Sprintf("list-resources-%d", time.Now().UnixNano()),
+		Method:  "resources/list",
+	}
+
+	return c.sendSTDIORequest(ctx, request)
 }
 
 func (c *STDIOMCPClient) Close() error {
-	if c.cmd != nil && c.cmd.Process != nil {
-		return c.cmd.Process.Kill()
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	// Signal shutdown
+	close(c.done)
+
+	// Close pipes
+	if c.stdin != nil {
+		c.stdin.Close()
 	}
+	if c.stdout != nil {
+		c.stdout.Close()
+	}
+	if c.stderr != nil {
+		c.stderr.Close()
+	}
+
+	// Terminate process
+	if c.cmd != nil && c.cmd.Process != nil {
+		// Try graceful shutdown first
+		c.cmd.Process.Signal(os.Interrupt)
+
+		// Wait for process to exit or kill it
+		done := make(chan error, 1)
+		go func() {
+			done <- c.cmd.Wait()
+		}()
+
+		select {
+		case <-time.After(5 * time.Second):
+			// Force kill if not exited within 5 seconds
+			c.cmd.Process.Kill()
+			c.cmd.Wait()
+		case <-done:
+			// Process exited gracefully
+		}
+	}
+
 	return nil
 }
 
