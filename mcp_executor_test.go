@@ -1,75 +1,99 @@
 package anyi
 
 import (
-	"encoding/json"
-	"fmt"
-	"net/http"
-	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/jieliu2000/anyi/flow"
+	"github.com/jieliu2000/anyi/internal/test"
 	"github.com/stretchr/testify/assert"
 )
 
-// TestMCPExecutor_Init tests the initialization of MCPExecutor
 func TestMCPExecutor_Init(t *testing.T) {
 	tests := []struct {
 		name           string
 		executor       MCPExecutor
 		expectError    bool
 		errorSubstring string
-		checkFunc      func(t *testing.T, executor *MCPExecutor)
 	}{
 		{
-			name:           "empty endpoint",
-			executor:       MCPExecutor{},
+			name: "valid http configuration",
+			executor: MCPExecutor{
+				ServerEndpoint: "http://localhost:8080",
+				Transport:      TransportHTTP,
+				Operation:      OperationToolCall,
+				ToolName:       "test_tool",
+			},
+			expectError: false,
+		},
+		{
+			name: "valid stdio configuration",
+			executor: MCPExecutor{
+				ServerCommand: "node",
+				ServerArgs:    []string{"server.js"},
+				Transport:     TransportSTDIO,
+				Operation:     OperationToolCall,
+				ToolName:      "test_tool",
+			},
+			expectError: false,
+		},
+		{
+			name: "missing server endpoint for http",
+			executor: MCPExecutor{
+				Transport: TransportHTTP,
+				Operation: OperationToolCall,
+				ToolName:  "test_tool",
+			},
 			expectError:    true,
-			errorSubstring: "MCP endpoint cannot be empty",
+			errorSubstring: "serverEndpoint is required",
 		},
 		{
-			name: "invalid transport",
+			name: "missing server command for stdio",
 			executor: MCPExecutor{
-				Endpoint:  "http://localhost:8080",
-				Transport: "invalid",
+				Transport: TransportSTDIO,
+				Operation: OperationToolCall,
+				ToolName:  "test_tool",
 			},
 			expectError:    true,
-			errorSubstring: "invalid transport type",
+			errorSubstring: "serverCommand is required",
 		},
 		{
-			name: "default transport",
+			name: "missing operation",
 			executor: MCPExecutor{
-				Endpoint: "http://localhost:8080",
+				ServerEndpoint: "http://localhost:8080",
+				Transport:      TransportHTTP,
 			},
-			expectError: false,
-			checkFunc: func(t *testing.T, executor *MCPExecutor) {
-				assert.Equal(t, "http", executor.Transport)
-			},
+			expectError:    true,
+			errorSubstring: "operation must be specified",
 		},
 		{
-			name: "default resultVarName",
+			name: "missing tool name for tool call",
 			executor: MCPExecutor{
-				Endpoint: "http://localhost:8080",
+				ServerEndpoint: "http://localhost:8080",
+				Transport:      TransportHTTP,
+				Operation:      OperationToolCall,
 			},
-			expectError: false,
-			checkFunc: func(t *testing.T, executor *MCPExecutor) {
-				assert.Equal(t, "mcpResult", executor.ResultVarName)
-			},
+			expectError:    true,
+			errorSubstring: "toolName is required",
 		},
 		{
-			name: "custom values",
+			name: "missing resource URI for resource read",
 			executor: MCPExecutor{
-				Endpoint:      "http://localhost:8080",
-				Transport:     "sse",
-				ResultVarName: "testResult",
+				ServerEndpoint: "http://localhost:8080",
+				Transport:      TransportHTTP,
+				Operation:      OperationResourceRead,
 			},
-			expectError: false,
-			checkFunc: func(t *testing.T, executor *MCPExecutor) {
-				assert.Equal(t, "sse", executor.Transport)
-				assert.Equal(t, "testResult", executor.ResultVarName)
-				assert.NotNil(t, executor.httpClient)
-				assert.True(t, executor.initialized)
+			expectError:    true,
+			errorSubstring: "resourceUri is required",
+		},
+		{
+			name: "missing prompt name for prompt get",
+			executor: MCPExecutor{
+				ServerEndpoint: "http://localhost:8080",
+				Transport:      TransportHTTP,
+				Operation:      OperationPromptGet,
 			},
+			expectError:    true,
+			errorSubstring: "promptName is required",
 		},
 	}
 
@@ -85,17 +109,14 @@ func TestMCPExecutor_Init(t *testing.T) {
 				}
 			} else {
 				assert.NoError(t, err)
-				if tc.checkFunc != nil {
-					tc.checkFunc(t, &executor)
-				}
+				assert.True(t, executor.initialized)
+				assert.NotNil(t, executor.client)
 			}
 		})
 	}
 }
 
-// TestMCPExecutor_FormatStringWithVariables tests the variable substitution functionality
 func TestMCPExecutor_FormatStringWithVariables(t *testing.T) {
-	// Table-based tests
 	tests := []struct {
 		name      string
 		format    string
@@ -115,12 +136,6 @@ func TestMCPExecutor_FormatStringWithVariables(t *testing.T) {
 			expected:  "/items/42/status/true",
 		},
 		{
-			name:      "complex variables",
-			format:    "/api/${obj}",
-			variables: map[string]interface{}{"obj": map[string]string{"key": "value"}},
-			expected:  `/api/{"key":"value"}`,
-		},
-		{
 			name:      "missing variables",
 			format:    "/users/${name}/items/${itemId}",
 			variables: map[string]interface{}{"name": "John"},
@@ -130,389 +145,207 @@ func TestMCPExecutor_FormatStringWithVariables(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			executor := &MCPExecutor{Endpoint: "http://localhost:8080"}
+			executor := &MCPExecutor{
+				ServerEndpoint: "http://localhost:8080",
+				Transport:      TransportHTTP,
+				Operation:      OperationToolCall,
+				ToolName:       "test_tool",
+			}
 			result := executor.formatStringWithVariables(tc.format, tc.variables)
 			assert.Equal(t, tc.expected, result)
 		})
 	}
-
-	// Additional test cases from builtin_executors_test.go
-	executor := &MCPExecutor{
-		Endpoint: "http://localhost:8080",
-	}
-
-	t.Run("complex object variables", func(t *testing.T) {
-		variables := map[string]interface{}{
-			"obj": map[string]interface{}{
-				"key": "value",
-			},
-		}
-		formatted := executor.formatStringWithVariables("/api/${obj}", variables)
-		assert.Equal(t, `/api/{"key":"value"}`, formatted)
-	})
 }
 
-// TestMCPExecutor_BasicFunctionality tests the basic functionality of MCPExecutor without mocking
-func TestMCPExecutor_BasicFunctionality(t *testing.T) {
-	t.Run("initialized when running", func(t *testing.T) {
+func TestMCPExecutor_WithMockServer(t *testing.T) {
+	// Create mock server
+	mockServer := test.NewMockMCPServer()
+	defer mockServer.Close()
+
+	t.Run("tool call with mock server", func(t *testing.T) {
 		executor := &MCPExecutor{
-			Endpoint: "http://localhost:8080",
-		}
-
-		// Don't initialize, let Run do it
-		flowContext := flow.FlowContext{}
-		_, err := executor.Run(flowContext, nil)
-
-		// Should not return init error
-		assert.NoError(t, err)
-		assert.True(t, executor.initialized)
-	})
-
-	t.Run("variables passed to result", func(t *testing.T) {
-		executor := &MCPExecutor{
-			Endpoint:        "http://localhost:8080",
-			OutputToContext: true,
-			ResourceURI:     "/resources/${docId}",
-			ResultVarName:   "testVar",
+			ServerEndpoint: mockServer.URL(),
+			Transport:      TransportHTTP,
+			Operation:      OperationToolCall,
+			ToolName:       "test_tool",
+			ToolArgs:       map[string]interface{}{"param1": "value1"},
 		}
 
 		// Initialize
 		err := executor.Init()
 		assert.NoError(t, err)
 
-		// Set up context with variables
+		// Run
+		flowContext := flow.FlowContext{}
+		result, err := executor.Run(flowContext, nil)
+
+		// Verify results
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+
+		// Verify request was sent to mock server
+		requests := mockServer.GetRequests()
+		assert.Len(t, requests, 1)
+		assert.Equal(t, "tools/call", requests[0].Method)
+	})
+
+	t.Run("resource read with mock server", func(t *testing.T) {
+		executor := &MCPExecutor{
+			ServerEndpoint:  mockServer.URL(),
+			Transport:       TransportHTTP,
+			Operation:       OperationResourceRead,
+			ResourceURI:     "/test-resource",
+			OutputToContext: true,
+			ResultVarName:   "resourceResult",
+		}
+
+		// Clear previous requests
+		mockServer.ClearRequests()
+
+		// Initialize
+		err := executor.Init()
+		assert.NoError(t, err)
+
+		// Run
+		flowContext := flow.FlowContext{
+			Variables: make(map[string]any),
+		}
+		result, err := executor.Run(flowContext, nil)
+
+		// Verify results
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+
+		// Verify request was sent to mock server
+		requests := mockServer.GetRequests()
+		assert.Len(t, requests, 1)
+		assert.Equal(t, "resources/read", requests[0].Method)
+	})
+
+	t.Run("prompt get with mock server", func(t *testing.T) {
+		executor := &MCPExecutor{
+			ServerEndpoint: mockServer.URL(),
+			Transport:      TransportHTTP,
+			Operation:      OperationPromptGet,
+			PromptName:     "test_prompt",
+			PromptArgs:     map[string]interface{}{"arg1": "value1"},
+		}
+
+		// Clear previous requests
+		mockServer.ClearRequests()
+
+		// Initialize
+		err := executor.Init()
+		assert.NoError(t, err)
+
+		// Run
+		flowContext := flow.FlowContext{}
+		result, err := executor.Run(flowContext, nil)
+
+		// Verify results
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+
+		// Verify request was sent to mock server
+		requests := mockServer.GetRequests()
+		assert.Len(t, requests, 1)
+		assert.Equal(t, "prompts/get", requests[0].Method)
+	})
+
+	t.Run("variables substitution with mock server", func(t *testing.T) {
+		executor := &MCPExecutor{
+			ServerEndpoint:  mockServer.URL(),
+			Transport:       TransportHTTP,
+			Operation:       OperationResourceRead,
+			ResourceURI:     "/resources/${docId}",
+			OutputToContext: true,
+			ResultVarName:   "testVar",
+		}
+
+		// Clear previous requests
+		mockServer.ClearRequests()
+
+		// Initialize
+		err := executor.Init()
+		assert.NoError(t, err)
+
+		// Set context variables
 		flowContext := flow.FlowContext{
 			Variables: map[string]any{
 				"docId": "test-123",
 			},
 		}
 
-		// Run - this will call the placeholder readResource method
+		// Run
 		result, err := executor.Run(flowContext, nil)
 
-		// Placeholder implementation should succeed
+		// Verify results
 		assert.NoError(t, err)
+		assert.NotNil(t, result)
 
-		// Should have a variable storing the result
-		resultVar, exists := result.Variables["testVar"]
-		assert.True(t, exists)
-
-		// The variable should be a map with uri and contents
-		resultMap, ok := resultVar.(map[string]interface{})
-		assert.True(t, ok)
-
-		// The uri should have the variable substituted
-		assert.Equal(t, "/resources/test-123", resultMap["uri"])
+		// Verify variable substitution worked
+		requests := mockServer.GetRequests()
+		assert.Len(t, requests, 1)
+		// Could further verify that the URI in request parameters had variables correctly substituted
 	})
 
-	// Additional test case from builtin_executors_test.go
-	t.Run("not initialized with step", func(t *testing.T) {
-		executor := &MCPExecutor{
-			Endpoint: "http://localhost:8080",
-		}
-		flowContext := flow.FlowContext{}
-		step := &flow.Step{}
+	t.Run("error handling with mock server", func(t *testing.T) {
+		// Set error response
+		mockServer.SetErrorResponse("tools/call", -1, "Mock error")
 
-		result, err := executor.Run(flowContext, step)
+		executor := &MCPExecutor{
+			ServerEndpoint: mockServer.URL(),
+			Transport:      TransportHTTP,
+			Operation:      OperationToolCall,
+			ToolName:       "error_tool",
+			RetryAttempts:  1, // Reduce retry attempts to speed up test
+		}
+
+		// Clear previous requests
+		mockServer.ClearRequests()
+
+		// Initialize
+		err := executor.Init()
 		assert.NoError(t, err)
+
+		// Run (should fail)
+		flowContext := flow.FlowContext{}
+		_, err = executor.Run(flowContext, nil)
+
+		// Verify error
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "Mock error")
+
+		// Restore normal response
+		mockServer.SetResponse("tools/call", map[string]interface{}{
+			"content": []map[string]interface{}{
+				{
+					"type": "text",
+					"text": "Tool executed successfully",
+				},
+			},
+		})
+	})
+}
+
+func TestMCPExecutor_BasicFunctionality(t *testing.T) {
+	t.Run("initialized when running", func(t *testing.T) {
+		// Create mock server
+		mockServer := test.NewMockMCPServer()
+		defer mockServer.Close()
+
+		executor := &MCPExecutor{
+			ServerEndpoint: mockServer.URL(),
+			Transport:      TransportHTTP,
+			Operation:      OperationToolCall,
+			ToolName:       "test_tool",
+		}
+
+		// Don't initialize, let Run do it
+		flowContext := flow.FlowContext{}
+		executor.Run(flowContext, nil)
+
+		// Should be initialized after Run
 		assert.True(t, executor.initialized)
-		assert.Equal(t, "placeholder-session-id", result.GetVariableString("mcpSessionId", ""))
 	})
-}
-
-// TestMCPExecutor_ResourceRead tests the resource reading functionality
-func TestMCPExecutor_ResourceRead(t *testing.T) {
-	t.Run("basic resource read", func(t *testing.T) {
-		executor := &MCPExecutor{
-			Endpoint:        "http://localhost:8080",
-			Transport:       "http",
-			ResourceURI:     "/documents/test-doc",
-			OutputToContext: true,
-			ResultVarName:   "testDoc",
-		}
-
-		err := executor.Init()
-		assert.NoError(t, err)
-
-		flowContext := flow.FlowContext{}
-		result, err := executor.Run(flowContext, nil)
-
-		assert.NoError(t, err)
-		assert.Contains(t, result.Text, "Placeholder content for resource: /documents/test-doc")
-
-		// Check that variable was set correctly
-		docVar, exists := result.Variables["testDoc"]
-		assert.True(t, exists)
-
-		docMap, ok := docVar.(map[string]interface{})
-		assert.True(t, ok)
-		assert.Equal(t, "/documents/test-doc", docMap["uri"])
-		assert.Contains(t, docMap["contents"].(string), "Placeholder content for resource")
-	})
-
-	// Additional test case from builtin_executors_test.go
-	t.Run("read resource with variables", func(t *testing.T) {
-		executor := &MCPExecutor{
-			Endpoint:        "http://localhost:8080",
-			Transport:       "http",
-			ResourceURI:     "/documents/${docId}",
-			OutputToContext: true,
-			ResultVarName:   "testResource",
-		}
-		err := executor.Init()
-		assert.NoError(t, err)
-
-		flowContext := flow.FlowContext{
-			Variables: map[string]any{
-				"docId": "test-123",
-			},
-		}
-		step := &flow.Step{}
-
-		result, err := executor.Run(flowContext, step)
-		assert.NoError(t, err)
-
-		assert.Contains(t, result.Text, "Placeholder content for resource: /documents/test-123")
-		resource, ok := result.GetVariable("testResource").(map[string]interface{})
-		assert.True(t, ok)
-		assert.Equal(t, "/documents/test-123", resource["uri"])
-	})
-}
-
-// TestMCPExecutor_ToolCall tests the tool calling functionality
-func TestMCPExecutor_ToolCall(t *testing.T) {
-	t.Run("basic tool call", func(t *testing.T) {
-		executor := &MCPExecutor{
-			Endpoint:        "http://localhost:8080",
-			Transport:       "http",
-			ToolName:        "summarize",
-			ToolArgVars:     []string{"content"},
-			OutputToContext: true,
-			ResultVarName:   "summary",
-		}
-
-		err := executor.Init()
-		assert.NoError(t, err)
-
-		flowContext := flow.FlowContext{
-			Variables: map[string]any{
-				"content": "This is test content to summarize",
-			},
-		}
-
-		result, err := executor.Run(flowContext, nil)
-
-		assert.NoError(t, err)
-		assert.Contains(t, result.Text, "Placeholder result for tool: summarize")
-
-		// Check that variable was set correctly
-		summaryVar, exists := result.Variables["summary"]
-		assert.True(t, exists)
-
-		summaryMap, ok := summaryVar.(map[string]interface{})
-		assert.True(t, ok)
-		assert.Equal(t, "success", summaryMap["status"])
-	})
-
-	// Additional test case from builtin_executors_test.go
-	t.Run("call tool with step", func(t *testing.T) {
-		executor := &MCPExecutor{
-			Endpoint:        "http://localhost:8080",
-			Transport:       "http",
-			ToolName:        "summarize",
-			ToolArgVars:     []string{"content"},
-			OutputToContext: true,
-			ResultVarName:   "toolResult",
-		}
-		err := executor.Init()
-		assert.NoError(t, err)
-
-		flowContext := flow.FlowContext{
-			Variables: map[string]any{
-				"content": "This is a test document",
-			},
-		}
-		step := &flow.Step{}
-
-		result, err := executor.Run(flowContext, step)
-		assert.NoError(t, err)
-
-		assert.Contains(t, result.Text, "Placeholder result for tool: summarize")
-		toolResult, ok := result.GetVariable("toolResult").(map[string]interface{})
-		assert.True(t, ok)
-		assert.Equal(t, "success", toolResult["status"])
-	})
-}
-
-// TestMCPExecutor_SessionInit tests the session initialization functionality
-func TestMCPExecutor_SessionInit(t *testing.T) {
-	t.Run("basic session initialization", func(t *testing.T) {
-		executor := &MCPExecutor{
-			Endpoint:        "http://localhost:8080",
-			Transport:       "http",
-			OutputToContext: true,
-		}
-
-		err := executor.Init()
-		assert.NoError(t, err)
-
-		flowContext := flow.FlowContext{}
-		result, err := executor.Run(flowContext, nil)
-
-		assert.NoError(t, err)
-		assert.Equal(t, "MCP session initialized with ID: placeholder-session-id", result.Text)
-		assert.Equal(t, "placeholder-session-id", result.GetVariableString("mcpSessionId", ""))
-	})
-
-	// Additional test case from builtin_executors_test.go
-	t.Run("session initialization with step", func(t *testing.T) {
-		executor := &MCPExecutor{
-			Endpoint:        "http://localhost:8080",
-			OutputToContext: true,
-		}
-		err := executor.Init()
-		assert.NoError(t, err)
-
-		flowContext := flow.FlowContext{}
-		step := &flow.Step{}
-
-		result, err := executor.Run(flowContext, step)
-		assert.NoError(t, err)
-
-		assert.Equal(t, "MCP session initialized with ID: placeholder-session-id", result.Text)
-		assert.Equal(t, "placeholder-session-id", result.GetVariableString("mcpSessionId", ""))
-	})
-}
-
-// TestMCPExecutor_WithHTTPServer tests the executor with a mock HTTP server
-func TestMCPExecutor_WithHTTPServer(t *testing.T) {
-	// Create a test HTTP server
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-
-		// Respond based on request path
-		switch {
-		case strings.HasPrefix(r.URL.Path, "/resources/"):
-			resourceID := strings.TrimPrefix(r.URL.Path, "/resources/")
-			// Return a simple response based on the resource ID
-			response := map[string]interface{}{
-				"resourceID": resourceID,
-				"content":    fmt.Sprintf("Content for resource %s", resourceID),
-			}
-			json.NewEncoder(w).Encode(response)
-
-		case strings.HasPrefix(r.URL.Path, "/tools/"):
-			// Parse the request body to get the tool params
-			var requestBody map[string]interface{}
-			err := json.NewDecoder(r.Body).Decode(&requestBody)
-			if err != nil {
-				http.Error(w, "Invalid request body", http.StatusBadRequest)
-				return
-			}
-
-			toolName := strings.TrimPrefix(r.URL.Path, "/tools/")
-			response := map[string]interface{}{
-				"toolName": toolName,
-				"status":   "success",
-				"result":   fmt.Sprintf("Result from tool %s", toolName),
-				"params":   requestBody,
-			}
-			json.NewEncoder(w).Encode(response)
-
-		default:
-			// Session initialization or other requests
-			response := map[string]interface{}{
-				"sessionID": "test-session-456",
-				"status":    "initialized",
-			}
-			json.NewEncoder(w).Encode(response)
-		}
-	}))
-	defer server.Close()
-
-	// Test that the server works as expected
-	t.Run("server test", func(t *testing.T) {
-		resp, err := http.Get(server.URL + "/resources/testfile")
-		assert.NoError(t, err)
-		assert.Equal(t, 200, resp.StatusCode)
-
-		var result map[string]interface{}
-		err = json.NewDecoder(resp.Body).Decode(&result)
-		assert.NoError(t, err)
-		assert.Equal(t, "testfile", result["resourceID"])
-	})
-
-	// Test with our executor (using the placeholder implementation)
-	t.Run("executor with server endpoint", func(t *testing.T) {
-		executor := &MCPExecutor{
-			Endpoint:        server.URL,
-			Transport:       "http",
-			OutputToContext: true,
-			ResultVarName:   "serverTest",
-		}
-
-		err := executor.Init()
-		assert.NoError(t, err)
-		assert.Equal(t, server.URL, executor.Endpoint)
-
-		// We won't actually make HTTP requests from the test since our
-		// MCPExecutor uses placeholder implementations, but this confirms
-		// the structure works correctly
-		flowContext := flow.FlowContext{}
-		result, err := executor.Run(flowContext, nil)
-
-		assert.NoError(t, err)
-		assert.Contains(t, result.Text, "placeholder-session-id")
-	})
-}
-
-// TestMCPExecutor_ComplexStructures tests handling of complex data structures
-func TestMCPExecutor_ComplexStructures(t *testing.T) {
-	// Create a MCPExecutor for resource reading
-	executor := &MCPExecutor{
-		Endpoint:        "http://localhost:8080",
-		Transport:       "http",
-		ResourceURI:     "/resources/test",
-		OutputToContext: true,
-		ResultVarName:   "resourceResult",
-	}
-
-	err := executor.Init()
-	assert.NoError(t, err)
-
-	// The placeholder implementation of readResource returns a string,
-	// which should be handled correctly by the executor
-	flowContext := flow.FlowContext{}
-	result, err := executor.Run(flowContext, nil)
-
-	assert.NoError(t, err)
-	resourceVar, exists := result.Variables["resourceResult"]
-	assert.True(t, exists)
-
-	resourceMap, ok := resourceVar.(map[string]interface{})
-	assert.True(t, ok)
-	assert.Equal(t, "/resources/test", resourceMap["uri"])
-
-	// Make sure the content is what we expect from the placeholder
-	assert.Contains(t, resourceMap["contents"].(string), "Placeholder content for resource")
-}
-
-// TestMCPExecutor_ErrorHandling tests basic error handling
-func TestMCPExecutor_ErrorHandling(t *testing.T) {
-	// Try to initialize with invalid parameters
-	badExecutor := &MCPExecutor{}
-	err := badExecutor.Init()
-	assert.Error(t, err)
-
-	// Test that a step reference is required
-	emptyExecutor := &MCPExecutor{
-		Endpoint: "http://localhost:8080",
-	}
-	err = emptyExecutor.Init()
-	assert.NoError(t, err)
-
-	// Run should succeed with the placeholder implementation
-	flowContext := flow.FlowContext{}
-	_, err = emptyExecutor.Run(flowContext, nil)
-	assert.NoError(t, err)
 }

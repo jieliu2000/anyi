@@ -593,6 +593,58 @@ func TestConditionalFlowExecutor_Init(t *testing.T) {
 		err := executor.Init()
 		assert.Error(t, err)
 	})
+
+	t.Run("should return success with valid default flow", func(t *testing.T) {
+		GlobalRegistry = &anyiRegistry{
+			Flows: make(map[string]*flow.Flow),
+		}
+		RegisterFlow("bar", &flow.Flow{})
+		RegisterFlow("default_flow", &flow.Flow{})
+
+		executor := &ConditionalFlowExecutor{
+			Switch: map[string]string{
+				"foo": "bar",
+			},
+			Default: "default_flow",
+		}
+		err := executor.Init()
+		assert.NoError(t, err)
+	})
+
+	t.Run("should return error with invalid default flow", func(t *testing.T) {
+		GlobalRegistry = &anyiRegistry{
+			Flows: make(map[string]*flow.Flow),
+		}
+		RegisterFlow("bar", &flow.Flow{})
+
+		executor := &ConditionalFlowExecutor{
+			Switch: map[string]string{
+				"foo": "bar",
+			},
+			Default: "non_existent_flow",
+		}
+		err := executor.Init()
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "no flow found with the given name: non_existent_flow")
+	})
+
+	t.Run("should return error with nil default flow", func(t *testing.T) {
+		GlobalRegistry = &anyiRegistry{
+			Flows: make(map[string]*flow.Flow),
+		}
+		RegisterFlow("bar", &flow.Flow{})
+		RegisterFlow("default_flow", nil)
+
+		executor := &ConditionalFlowExecutor{
+			Switch: map[string]string{
+				"foo": "bar",
+			},
+			Default: "default_flow",
+		}
+		err := executor.Init()
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "default flow default_flow not found")
+	})
 }
 
 func TestConditionalFlowExecutor_Run(t *testing.T) {
@@ -659,6 +711,145 @@ func TestConditionalFlowExecutor_Run(t *testing.T) {
 		_, err := executor.Run(flowContext, step)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "no flow found with the given name: invalid_flow")
+	})
+
+	t.Run("WithNonMatchingConditionAndDefaultFlow", func(t *testing.T) {
+		GlobalRegistry = &anyiRegistry{
+			Flows: make(map[string]*flow.Flow),
+		}
+		RegisterFlow("default_flow", &flow.Flow{
+			Steps: []flow.Step{
+				{
+					Executor: &MockStepExecutor{
+						ExpectedOutput: "default_output",
+					},
+				},
+			},
+		})
+
+		executor := &ConditionalFlowExecutor{
+			Switch: map[string]string{
+				"goodbye": "flow1",
+			},
+			Default: "default_flow",
+		}
+		flowContext := flow.FlowContext{
+			Text: "unmatched_condition",
+		}
+		step := &flow.Step{}
+		context, err := executor.Run(flowContext, step)
+		assert.NoError(t, err)
+		assert.Equal(t, "default_output", context.Text)
+	})
+
+	t.Run("WithNonMatchingConditionAndNoDefaultFlow", func(t *testing.T) {
+		executor := &ConditionalFlowExecutor{
+			Switch: map[string]string{
+				"goodbye": "flow1",
+			},
+			// No Default specified
+		}
+		flowContext := flow.FlowContext{
+			Text: "unmatched_condition",
+		}
+		step := &flow.Step{}
+		_, err := executor.Run(flowContext, step)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "no matching flow found for condition 'unmatched_condition' and no default flow specified")
+	})
+
+	t.Run("WithEmptyConditionAndDefaultFlow", func(t *testing.T) {
+		GlobalRegistry = &anyiRegistry{
+			Flows: make(map[string]*flow.Flow),
+		}
+		RegisterFlow("default_flow", &flow.Flow{
+			Steps: []flow.Step{
+				{
+					Executor: &MockStepExecutor{
+						ExpectedOutput: "default_for_empty",
+					},
+				},
+			},
+		})
+
+		executor := &ConditionalFlowExecutor{
+			Switch: map[string]string{
+				"foo": "flow1",
+			},
+			Default: "default_flow",
+		}
+		flowContext := flow.FlowContext{
+			Text: "", // Empty condition
+		}
+		step := &flow.Step{}
+		context, err := executor.Run(flowContext, step)
+		assert.NoError(t, err)
+		assert.Equal(t, "default_for_empty", context.Text)
+	})
+
+	t.Run("WithTrimAndDefaultFlow", func(t *testing.T) {
+		GlobalRegistry = &anyiRegistry{
+			Flows: make(map[string]*flow.Flow),
+		}
+		RegisterFlow("matched_flow", &flow.Flow{
+			Steps: []flow.Step{
+				{
+					Executor: &MockStepExecutor{
+						ExpectedOutput: "matched_output",
+					},
+				},
+			},
+		})
+		RegisterFlow("default_flow", &flow.Flow{
+			Steps: []flow.Step{
+				{
+					Executor: &MockStepExecutor{
+						ExpectedOutput: "default_trimmed",
+					},
+				},
+			},
+		})
+
+		executor := &ConditionalFlowExecutor{
+			Switch: map[string]string{
+				"foo": "matched_flow",
+			},
+			Default: "default_flow",
+			Trim:    " \t\n",
+		}
+
+		// Test with matching condition after trim
+		flowContext := flow.FlowContext{
+			Text: "  foo  ", // Should match "foo" after trim
+		}
+		step := &flow.Step{}
+		context, err := executor.Run(flowContext, step)
+		assert.NoError(t, err)
+		assert.Equal(t, "matched_output", context.Text)
+
+		// Test with non-matching condition after trim
+		flowContext = flow.FlowContext{
+			Text: "  bar  ", // Should not match, use default
+		}
+		context, err = executor.Run(flowContext, step)
+		assert.NoError(t, err)
+		assert.Equal(t, "default_trimmed", context.Text)
+	})
+
+	t.Run("WithNonExistingDefaultFlow", func(t *testing.T) {
+		executor := &ConditionalFlowExecutor{
+			Switch: map[string]string{
+				"foo": "flow1",
+			},
+			Default: "non_existent_default",
+		}
+		flowContext := flow.FlowContext{
+			Text: "unmatched",
+		}
+		step := &flow.Step{}
+		_, err := executor.Run(flowContext, step)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "no flow found with the given name: non_existent_default")
 	})
 }
 

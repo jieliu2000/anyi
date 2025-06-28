@@ -1,100 +1,230 @@
 package anyi
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"os/exec"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/jieliu2000/anyi/flow"
 )
 
-// MCPExecutor is an executor that communicates with MCP servers.
-// It allows the flow to interact with Model Context Protocol servers for enhanced context and tool usage.
-type MCPExecutor struct {
-	// Server endpoint URL for MCP server
-	Endpoint string `json:"endpoint" yaml:"endpoint" mapstructure:"endpoint"`
+// MCPTransport defines the transport mechanism for MCP communication
+type MCPTransport string
 
-	// API key for authentication (if required)
-	APIKey string `json:"apiKey" yaml:"apiKey" mapstructure:"apiKey"`
+const (
+	TransportHTTP  MCPTransport = "http"
+	TransportSSE   MCPTransport = "sse"
+	TransportSTDIO MCPTransport = "stdio"
+)
 
-	// Transport type (http, sse, or stdio)
-	Transport string `json:"transport" yaml:"transport" mapstructure:"transport"`
+// MCPOperation defines the type of MCP operation
+type MCPOperation string
 
-	// SessionID for tracking the MCP session
-	SessionID string `json:"sessionId" yaml:"sessionId" mapstructure:"sessionId"`
+const (
+	OperationToolCall      MCPOperation = "tool_call"
+	OperationResourceRead  MCPOperation = "resource_read"
+	OperationPromptGet     MCPOperation = "prompt_get"
+	OperationListTools     MCPOperation = "list_tools"
+	OperationListResources MCPOperation = "list_resources"
+)
 
-	// Tool name to call (if empty, will use the text as input)
-	ToolName string `json:"toolName" yaml:"toolName" mapstructure:"toolName"`
-
-	// Arguments for tool call, these will be extracted from the flow context variables
-	ToolArgVars []string `json:"toolArgVars" yaml:"toolArgVars" mapstructure:"toolArgVars"`
-
-	// Resource URI to read (if empty, will use tool call)
-	ResourceURI string `json:"resourceUri" yaml:"resourceUri" mapstructure:"resourceUri"`
-
-	// Output to context flag, if true will write the result to the flow context text
-	OutputToContext bool `json:"outputToContext" yaml:"outputToContext" mapstructure:"outputToContext"`
-
-	// Variable name to store the result in, if not set will use "mcpResult"
-	ResultVarName string `json:"resultVarName" yaml:"resultVarName" mapstructure:"resultVarName"`
-
-	// HTTP client for making requests
-	httpClient *http.Client
-
-	// Whether the executor has been initialized
-	initialized bool
+// MCPRequest represents a generic MCP request
+type MCPRequest struct {
+	JSONRPC string      `json:"jsonrpc"`
+	ID      string      `json:"id"`
+	Method  string      `json:"method"`
+	Params  interface{} `json:"params,omitempty"`
 }
 
-// Init initializes the MCPExecutor.
-// It checks if the required parameters are set and initializes the HTTP client if needed.
+// MCPResponse represents a generic MCP response
+type MCPResponse struct {
+	JSONRPC string      `json:"jsonrpc"`
+	ID      string      `json:"id"`
+	Result  interface{} `json:"result,omitempty"`
+	Error   *MCPError   `json:"error,omitempty"`
+}
+
+// MCPError represents an MCP error
+type MCPError struct {
+	Code    int         `json:"code"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data,omitempty"`
+}
+
+// MCPClient defines the interface for MCP client operations
+type MCPClient interface {
+	Initialize(ctx context.Context) error
+	CallTool(ctx context.Context, name string, arguments map[string]interface{}) (*MCPResponse, error)
+	ReadResource(ctx context.Context, uri string) (*MCPResponse, error)
+	GetPrompt(ctx context.Context, name string, arguments map[string]interface{}) (*MCPResponse, error)
+	ListTools(ctx context.Context) (*MCPResponse, error)
+	ListResources(ctx context.Context) (*MCPResponse, error)
+	Close() error
+}
+
+// MCPExecutor is an optimized executor that communicates with MCP servers.
+// It provides a clean abstraction for Anyi workflows to interact with various MCP servers.
+type MCPExecutor struct {
+	// Server configuration - only one should be specified
+	ServerEndpoint string   `json:"serverEndpoint,omitempty" yaml:"serverEndpoint,omitempty" mapstructure:"serverEndpoint"`
+	ServerCommand  string   `json:"serverCommand,omitempty" yaml:"serverCommand,omitempty" mapstructure:"serverCommand"`
+	ServerArgs     []string `json:"serverArgs,omitempty" yaml:"serverArgs,omitempty" mapstructure:"serverArgs"`
+
+	// Transport configuration
+	Transport MCPTransport `json:"transport" yaml:"transport" mapstructure:"transport"`
+
+	// Authentication (optional)
+	APIKey string `json:"apiKey,omitempty" yaml:"apiKey,omitempty" mapstructure:"apiKey"`
+
+	// Operation configuration
+	Operation MCPOperation `json:"operation" yaml:"operation" mapstructure:"operation"`
+
+	// Tool call parameters
+	ToolName    string                 `json:"toolName,omitempty" yaml:"toolName,omitempty" mapstructure:"toolName"`
+	ToolArgs    map[string]interface{} `json:"toolArgs,omitempty" yaml:"toolArgs,omitempty" mapstructure:"toolArgs"`
+	ToolArgVars []string               `json:"toolArgVars,omitempty" yaml:"toolArgVars,omitempty" mapstructure:"toolArgVars"`
+
+	// Resource parameters
+	ResourceURI string `json:"resourceUri,omitempty" yaml:"resourceUri,omitempty" mapstructure:"resourceUri"`
+
+	// Prompt parameters
+	PromptName string                 `json:"promptName,omitempty" yaml:"promptName,omitempty" mapstructure:"promptName"`
+	PromptArgs map[string]interface{} `json:"promptArgs,omitempty" yaml:"promptArgs,omitempty" mapstructure:"promptArgs"`
+
+	// Output configuration
+	OutputToContext bool   `json:"outputToContext" yaml:"outputToContext" mapstructure:"outputToContext"`
+	ResultVarName   string `json:"resultVarName" yaml:"resultVarName" mapstructure:"resultVarName"`
+
+	// Connection settings
+	Timeout       time.Duration `json:"timeout,omitempty" yaml:"timeout,omitempty" mapstructure:"timeout"`
+	RetryAttempts int           `json:"retryAttempts,omitempty" yaml:"retryAttempts,omitempty" mapstructure:"retryAttempts"`
+
+	// Internal state
+	client      MCPClient
+	initialized bool
+	mutex       sync.RWMutex
+}
+
+// Init initializes the MCPExecutor with proper validation and client setup
 func (executor *MCPExecutor) Init() error {
-	if executor.Endpoint == "" {
-		return errors.New("MCP endpoint cannot be empty")
+	executor.mutex.Lock()
+	defer executor.mutex.Unlock()
+
+	if executor.initialized {
+		return nil
 	}
 
-	// Default to HTTP transport if not specified
-	if executor.Transport == "" {
-		executor.Transport = "http"
+	// Validate configuration
+	if err := executor.validateConfig(); err != nil {
+		return fmt.Errorf("invalid configuration: %w", err)
 	}
 
-	// Validate transport type
-	if !isValidTransport(executor.Transport) {
-		return fmt.Errorf("invalid transport type: %s, must be one of: http, sse, stdio", executor.Transport)
+	// Set defaults
+	executor.setDefaults()
+
+	// Create appropriate client based on transport
+	client, err := executor.createClient()
+	if err != nil {
+		return fmt.Errorf("failed to create MCP client: %w", err)
 	}
 
-	// Initialize HTTP client if using HTTP or SSE transport
-	if executor.Transport == "http" || executor.Transport == "sse" {
-		executor.httpClient = &http.Client{}
+	executor.client = client
+	executor.initialized = true
+
+	return nil
+}
+
+// validateConfig validates the executor configuration
+func (executor *MCPExecutor) validateConfig() error {
+	// Validate transport
+	if executor.Transport != TransportHTTP &&
+		executor.Transport != TransportSSE &&
+		executor.Transport != TransportSTDIO {
+		return errors.New("transport must be one of: http, sse, stdio")
 	}
 
-	// Set default result variable name if not specified
+	// Validate server configuration
+	if executor.Transport == TransportSTDIO {
+		if executor.ServerCommand == "" {
+			return errors.New("serverCommand is required for stdio transport")
+		}
+	} else {
+		if executor.ServerEndpoint == "" {
+			return errors.New("serverEndpoint is required for http/sse transport")
+		}
+	}
+
+	// Validate operation
+	if executor.Operation == "" {
+		return errors.New("operation must be specified")
+	}
+
+	// Validate operation-specific parameters
+	switch executor.Operation {
+	case OperationToolCall:
+		if executor.ToolName == "" {
+			return errors.New("toolName is required for tool_call operation")
+		}
+	case OperationResourceRead:
+		if executor.ResourceURI == "" {
+			return errors.New("resourceUri is required for resource_read operation")
+		}
+	case OperationPromptGet:
+		if executor.PromptName == "" {
+			return errors.New("promptName is required for prompt_get operation")
+		}
+	}
+
+	return nil
+}
+
+// setDefaults sets default values for optional fields
+func (executor *MCPExecutor) setDefaults() {
 	if executor.ResultVarName == "" {
 		executor.ResultVarName = "mcpResult"
 	}
 
-	executor.initialized = true
-	return nil
+	if executor.Timeout == 0 {
+		executor.Timeout = 30 * time.Second
+	}
+
+	if executor.RetryAttempts == 0 {
+		executor.RetryAttempts = 3
+	}
+
+	if executor.ToolArgs == nil {
+		executor.ToolArgs = make(map[string]interface{})
+	}
+
+	if executor.PromptArgs == nil {
+		executor.PromptArgs = make(map[string]interface{})
+	}
 }
 
-// isValidTransport checks if the transport type is valid
-func isValidTransport(transport string) bool {
-	return transport == "http" || transport == "sse" || transport == "stdio"
+// createClient creates the appropriate MCP client based on transport type
+func (executor *MCPExecutor) createClient() (MCPClient, error) {
+	switch executor.Transport {
+	case TransportHTTP:
+		return NewHTTPMCPClient(executor.ServerEndpoint, executor.APIKey, executor.Timeout)
+	case TransportSSE:
+		return NewSSEMCPClient(executor.ServerEndpoint, executor.APIKey, executor.Timeout)
+	case TransportSTDIO:
+		return NewSTDIOMCPClient(executor.ServerCommand, executor.ServerArgs, executor.Timeout)
+	default:
+		return nil, fmt.Errorf("unsupported transport: %s", executor.Transport)
+	}
 }
 
-// Run executes the MCP request.
-// It communicates with the MCP server based on the configured parameters and handles the response.
-//
-// Parameters:
-//   - flowContext: The current flow context
-//   - step: The current workflow step
-//
-// Returns:
-//   - Updated flow context with the MCP response
-//   - Any error encountered during execution
+// Run executes the MCP operation
 func (executor *MCPExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
 	if !executor.initialized {
 		if err := executor.Init(); err != nil {
@@ -102,122 +232,145 @@ func (executor *MCPExecutor) Run(flowContext flow.FlowContext, step *flow.Step) 
 		}
 	}
 
-	// Create context for request
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), executor.Timeout)
+	defer cancel()
 
-	// Handle based on the requested operation
-	if executor.ResourceURI != "" {
-		// Handle resource read operation
-		return executor.handleResourceRead(ctx, flowContext)
-	} else if executor.ToolName != "" {
-		// Handle tool call operation
-		return executor.handleToolCall(ctx, flowContext)
-	} else {
-		// Use text as input for a default operation (session context)
-		return executor.handleDefault(ctx, flowContext)
-	}
-}
-
-// handleResourceRead processes a resource read operation
-func (executor *MCPExecutor) handleResourceRead(ctx context.Context, flowContext flow.FlowContext) (*flow.FlowContext, error) {
-	// Format the URI with any template parameters from variables
-	uri := executor.formatStringWithVariables(executor.ResourceURI, flowContext.Variables)
-
-	log.Printf("Reading MCP resource: %s", uri)
-
-	// Construct the resource read request
-	resource, err := executor.readResource(ctx, uri)
-	if err != nil {
-		return &flowContext, fmt.Errorf("failed to read MCP resource: %w", err)
+	// Initialize client if needed
+	if err := executor.client.Initialize(ctx); err != nil {
+		return &flowContext, fmt.Errorf("failed to initialize MCP client: %w", err)
 	}
 
-	// Process the response
-	result := map[string]interface{}{
-		"uri":      uri,
-		"contents": resource,
-	}
+	// Execute operation with retry logic
+	var response *MCPResponse
+	var err error
 
-	// Store the result in variables
-	flowContext.SetVariable(executor.ResultVarName, result)
+	for attempt := 0; attempt < executor.RetryAttempts; attempt++ {
+		response, err = executor.executeOperation(ctx, flowContext)
+		if err == nil {
+			break
+		}
 
-	// If configured, set the text output as well
-	if executor.OutputToContext {
-		// If resource is a string, set it directly
-		if content, ok := resource.(string); ok {
-			flowContext.Text = content
-		} else {
-			// Otherwise, marshal to JSON
-			jsonContent, err := json.MarshalIndent(resource, "", "  ")
-			if err != nil {
-				return &flowContext, fmt.Errorf("error marshaling resource content to JSON: %w", err)
-			}
-			flowContext.Text = string(jsonContent)
+		if attempt < executor.RetryAttempts-1 {
+			log.Printf("MCP operation failed (attempt %d/%d): %v, retrying...",
+				attempt+1, executor.RetryAttempts, err)
+			time.Sleep(time.Duration(attempt+1) * time.Second)
 		}
 	}
 
-	return &flowContext, nil
+	if err != nil {
+		return &flowContext, fmt.Errorf("MCP operation failed after %d attempts: %w",
+			executor.RetryAttempts, err)
+	}
+
+	// Process response
+	return executor.processResponse(response, flowContext)
 }
 
-// handleToolCall processes a tool call operation
-func (executor *MCPExecutor) handleToolCall(ctx context.Context, flowContext flow.FlowContext) (*flow.FlowContext, error) {
-	log.Printf("Calling MCP tool: %s", executor.ToolName)
+// executeOperation executes the specific MCP operation
+func (executor *MCPExecutor) executeOperation(ctx context.Context, flowContext flow.FlowContext) (*MCPResponse, error) {
+	switch executor.Operation {
+	case OperationToolCall:
+		args := executor.buildToolArguments(flowContext)
+		return executor.client.CallTool(ctx, executor.ToolName, args)
 
-	// Extract arguments from variables
+	case OperationResourceRead:
+		uri := executor.formatStringWithVariables(executor.ResourceURI, flowContext.Variables)
+		return executor.client.ReadResource(ctx, uri)
+
+	case OperationPromptGet:
+		args := executor.buildPromptArguments(flowContext)
+		return executor.client.GetPrompt(ctx, executor.PromptName, args)
+
+	case OperationListTools:
+		return executor.client.ListTools(ctx)
+
+	case OperationListResources:
+		return executor.client.ListResources(ctx)
+
+	default:
+		return nil, fmt.Errorf("unsupported operation: %s", executor.Operation)
+	}
+}
+
+// buildToolArguments builds tool arguments from configuration and flow context
+func (executor *MCPExecutor) buildToolArguments(flowContext flow.FlowContext) map[string]interface{} {
 	args := make(map[string]interface{})
+
+	// Copy static arguments
+	for key, value := range executor.ToolArgs {
+		args[key] = value
+	}
+
+	// Add arguments from flow context variables
 	for _, argVar := range executor.ToolArgVars {
 		if value := flowContext.GetVariable(argVar); value != nil {
 			args[argVar] = value
 		}
 	}
 
-	// Call the tool
-	result, err := executor.callTool(ctx, executor.ToolName, args)
-	if err != nil {
-		return &flowContext, fmt.Errorf("failed to call MCP tool: %w", err)
+	return args
+}
+
+// buildPromptArguments builds prompt arguments from configuration and flow context
+func (executor *MCPExecutor) buildPromptArguments(flowContext flow.FlowContext) map[string]interface{} {
+	args := make(map[string]interface{})
+
+	// Copy static arguments
+	for key, value := range executor.PromptArgs {
+		args[key] = value
 	}
 
-	// Store the result in variables
-	flowContext.SetVariable(executor.ResultVarName, result)
+	return args
+}
 
-	// If configured, set the text output as well
+// processResponse processes the MCP response and updates flow context
+func (executor *MCPExecutor) processResponse(response *MCPResponse, flowContext flow.FlowContext) (*flow.FlowContext, error) {
+	if response.Error != nil {
+		return &flowContext, fmt.Errorf("MCP error %d: %s", response.Error.Code, response.Error.Message)
+	}
+
+	// Store result in variables
+	flowContext.SetVariable(executor.ResultVarName, response.Result)
+
+	// Set output to context if configured
 	if executor.OutputToContext {
-		// If result contains a "text" field, use that
-		if textContent, ok := result["text"].(string); ok {
-			flowContext.Text = textContent
-		} else {
-			// Otherwise, marshal to JSON
-			jsonContent, err := json.MarshalIndent(result, "", "  ")
-			if err != nil {
-				return &flowContext, fmt.Errorf("error marshaling tool result to JSON: %w", err)
-			}
-			flowContext.Text = string(jsonContent)
+		if err := executor.setContextOutput(response.Result, &flowContext); err != nil {
+			return &flowContext, fmt.Errorf("failed to set context output: %w", err)
 		}
 	}
 
 	return &flowContext, nil
 }
 
-// handleDefault processes a default session operation
-func (executor *MCPExecutor) handleDefault(ctx context.Context, flowContext flow.FlowContext) (*flow.FlowContext, error) {
-	// For now, we'll just initialize a session and store the session ID
-	sessionID, err := executor.initializeSession(ctx)
-	if err != nil {
-		return &flowContext, fmt.Errorf("failed to initialize MCP session: %w", err)
+// setContextOutput sets the flow context text based on the response
+func (executor *MCPExecutor) setContextOutput(result interface{}, flowContext *flow.FlowContext) error {
+	switch v := result.(type) {
+	case string:
+		flowContext.Text = v
+	case map[string]interface{}:
+		if text, ok := v["text"].(string); ok {
+			flowContext.Text = text
+		} else if content, ok := v["content"].(string); ok {
+			flowContext.Text = content
+		} else {
+			jsonBytes, err := json.MarshalIndent(v, "", "  ")
+			if err != nil {
+				return err
+			}
+			flowContext.Text = string(jsonBytes)
+		}
+	default:
+		jsonBytes, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			return err
+		}
+		flowContext.Text = string(jsonBytes)
 	}
 
-	// Store the session ID in variables
-	flowContext.SetVariable("mcpSessionId", sessionID)
-
-	// If configured, set the text output as well
-	if executor.OutputToContext {
-		flowContext.Text = fmt.Sprintf("MCP session initialized with ID: %s", sessionID)
-	}
-
-	return &flowContext, nil
+	return nil
 }
 
-// formatStringWithVariables replaces variable placeholders in the format ${varName}
-// with their corresponding values from the variables map
+// formatStringWithVariables replaces variable placeholders
 func (executor *MCPExecutor) formatStringWithVariables(format string, variables map[string]interface{}) string {
 	result := format
 
@@ -232,7 +385,6 @@ func (executor *MCPExecutor) formatStringWithVariables(format string, variables 
 			case fmt.Stringer:
 				replacement = v.String()
 			default:
-				// Try to convert to JSON
 				if jsonBytes, err := json.Marshal(value); err == nil {
 					replacement = string(jsonBytes)
 				} else {
@@ -247,32 +399,254 @@ func (executor *MCPExecutor) formatStringWithVariables(format string, variables 
 	return result
 }
 
-// The following are placeholder implementations that would need to be replaced
-// with actual MCP client implementations in a production environment
+// Close closes the MCP client connection
+func (executor *MCPExecutor) Close() error {
+	executor.mutex.Lock()
+	defer executor.mutex.Unlock()
 
-func (executor *MCPExecutor) readResource(ctx context.Context, uri string) (interface{}, error) {
-	// This is a placeholder implementation
-	// In a real implementation, this would use the MCP client to read a resource
-	return fmt.Sprintf("Placeholder content for resource: %s", uri), nil
+	if executor.client != nil {
+		return executor.client.Close()
+	}
+
+	return nil
 }
 
-func (executor *MCPExecutor) callTool(ctx context.Context, toolName string, args map[string]interface{}) (map[string]interface{}, error) {
-	// This is a placeholder implementation
-	// In a real implementation, this would use the MCP client to call a tool
-	return map[string]interface{}{
-		"status": "success",
-		"text":   fmt.Sprintf("Placeholder result for tool: %s with args: %v", toolName, args),
+// HTTPMCPClient implements MCPClient for HTTP transport
+type HTTPMCPClient struct {
+	endpoint string
+	apiKey   string
+	client   *http.Client
+	timeout  time.Duration
+}
+
+// NewHTTPMCPClient creates a new HTTP MCP client
+func NewHTTPMCPClient(endpoint, apiKey string, timeout time.Duration) (*HTTPMCPClient, error) {
+	return &HTTPMCPClient{
+		endpoint: endpoint,
+		apiKey:   apiKey,
+		client:   &http.Client{Timeout: timeout},
+		timeout:  timeout,
 	}, nil
 }
 
-func (executor *MCPExecutor) initializeSession(ctx context.Context) (string, error) {
-	// This is a placeholder implementation
-	// In a real implementation, this would use the MCP client to initialize a session
-	return "placeholder-session-id", nil
+// Initialize initializes the HTTP client
+func (c *HTTPMCPClient) Initialize(ctx context.Context) error {
+	// For HTTP, we can test connectivity with a simple request
+	return nil
 }
 
-// Register the MCP executor
+// CallTool calls an MCP tool via HTTP
+func (c *HTTPMCPClient) CallTool(ctx context.Context, name string, arguments map[string]interface{}) (*MCPResponse, error) {
+	request := MCPRequest{
+		JSONRPC: "2.0",
+		ID:      fmt.Sprintf("tool-%d", time.Now().UnixNano()),
+		Method:  "tools/call",
+		Params: map[string]interface{}{
+			"name":      name,
+			"arguments": arguments,
+		},
+	}
+
+	return c.sendRequest(ctx, request)
+}
+
+// ReadResource reads an MCP resource via HTTP
+func (c *HTTPMCPClient) ReadResource(ctx context.Context, uri string) (*MCPResponse, error) {
+	request := MCPRequest{
+		JSONRPC: "2.0",
+		ID:      fmt.Sprintf("resource-%d", time.Now().UnixNano()),
+		Method:  "resources/read",
+		Params: map[string]interface{}{
+			"uri": uri,
+		},
+	}
+
+	return c.sendRequest(ctx, request)
+}
+
+// GetPrompt gets an MCP prompt via HTTP
+func (c *HTTPMCPClient) GetPrompt(ctx context.Context, name string, arguments map[string]interface{}) (*MCPResponse, error) {
+	request := MCPRequest{
+		JSONRPC: "2.0",
+		ID:      fmt.Sprintf("prompt-%d", time.Now().UnixNano()),
+		Method:  "prompts/get",
+		Params: map[string]interface{}{
+			"name":      name,
+			"arguments": arguments,
+		},
+	}
+
+	return c.sendRequest(ctx, request)
+}
+
+// ListTools lists available MCP tools
+func (c *HTTPMCPClient) ListTools(ctx context.Context) (*MCPResponse, error) {
+	request := MCPRequest{
+		JSONRPC: "2.0",
+		ID:      fmt.Sprintf("list-tools-%d", time.Now().UnixNano()),
+		Method:  "tools/list",
+	}
+
+	return c.sendRequest(ctx, request)
+}
+
+// ListResources lists available MCP resources
+func (c *HTTPMCPClient) ListResources(ctx context.Context) (*MCPResponse, error) {
+	request := MCPRequest{
+		JSONRPC: "2.0",
+		ID:      fmt.Sprintf("list-resources-%d", time.Now().UnixNano()),
+		Method:  "resources/list",
+	}
+
+	return c.sendRequest(ctx, request)
+}
+
+// sendRequest sends an HTTP request to the MCP server
+func (c *HTTPMCPClient) sendRequest(ctx context.Context, request MCPRequest) (*MCPResponse, error) {
+	jsonData, err := json.Marshal(request)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", c.endpoint, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if c.apiKey != "" {
+		req.Header.Set("Authorization", "Bearer "+c.apiKey)
+	}
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("HTTP error %d: %s", resp.StatusCode, resp.Status)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response: %w", err)
+	}
+
+	var response MCPResponse
+	if err := json.Unmarshal(body, &response); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	return &response, nil
+}
+
+// Close closes the HTTP client
+func (c *HTTPMCPClient) Close() error {
+	// HTTP client doesn't need explicit closing
+	return nil
+}
+
+// SSEMCPClient implements MCPClient for Server-Sent Events transport
+type SSEMCPClient struct {
+	endpoint string
+	apiKey   string
+	timeout  time.Duration
+	// TODO: Implement SSE-specific fields
+}
+
+// NewSSEMCPClient creates a new SSE MCP client
+func NewSSEMCPClient(endpoint, apiKey string, timeout time.Duration) (*SSEMCPClient, error) {
+	return &SSEMCPClient{
+		endpoint: endpoint,
+		apiKey:   apiKey,
+		timeout:  timeout,
+	}, nil
+}
+
+// Implement MCPClient interface for SSEMCPClient
+func (c *SSEMCPClient) Initialize(ctx context.Context) error {
+	// TODO: Implement SSE initialization
+	return errors.New("SSE transport not yet implemented")
+}
+
+func (c *SSEMCPClient) CallTool(ctx context.Context, name string, arguments map[string]interface{}) (*MCPResponse, error) {
+	return nil, errors.New("SSE transport not yet implemented")
+}
+
+func (c *SSEMCPClient) ReadResource(ctx context.Context, uri string) (*MCPResponse, error) {
+	return nil, errors.New("SSE transport not yet implemented")
+}
+
+func (c *SSEMCPClient) GetPrompt(ctx context.Context, name string, arguments map[string]interface{}) (*MCPResponse, error) {
+	return nil, errors.New("SSE transport not yet implemented")
+}
+
+func (c *SSEMCPClient) ListTools(ctx context.Context) (*MCPResponse, error) {
+	return nil, errors.New("SSE transport not yet implemented")
+}
+
+func (c *SSEMCPClient) ListResources(ctx context.Context) (*MCPResponse, error) {
+	return nil, errors.New("SSE transport not yet implemented")
+}
+
+func (c *SSEMCPClient) Close() error {
+	return nil
+}
+
+// STDIOMCPClient implements MCPClient for STDIO transport
+type STDIOMCPClient struct {
+	command string
+	args    []string
+	timeout time.Duration
+	cmd     *exec.Cmd
+	stdin   io.WriteCloser
+	stdout  io.ReadCloser
+}
+
+// NewSTDIOMCPClient creates a new STDIO MCP client
+func NewSTDIOMCPClient(command string, args []string, timeout time.Duration) (*STDIOMCPClient, error) {
+	return &STDIOMCPClient{
+		command: command,
+		args:    args,
+		timeout: timeout,
+	}, nil
+}
+
+// Implement MCPClient interface for STDIOMCPClient
+func (c *STDIOMCPClient) Initialize(ctx context.Context) error {
+	// TODO: Implement STDIO initialization
+	return errors.New("STDIO transport not yet implemented")
+}
+
+func (c *STDIOMCPClient) CallTool(ctx context.Context, name string, arguments map[string]interface{}) (*MCPResponse, error) {
+	return nil, errors.New("STDIO transport not yet implemented")
+}
+
+func (c *STDIOMCPClient) ReadResource(ctx context.Context, uri string) (*MCPResponse, error) {
+	return nil, errors.New("STDIO transport not yet implemented")
+}
+
+func (c *STDIOMCPClient) GetPrompt(ctx context.Context, name string, arguments map[string]interface{}) (*MCPResponse, error) {
+	return nil, errors.New("STDIO transport not yet implemented")
+}
+
+func (c *STDIOMCPClient) ListTools(ctx context.Context) (*MCPResponse, error) {
+	return nil, errors.New("STDIO transport not yet implemented")
+}
+
+func (c *STDIOMCPClient) ListResources(ctx context.Context) (*MCPResponse, error) {
+	return nil, errors.New("STDIO transport not yet implemented")
+}
+
+func (c *STDIOMCPClient) Close() error {
+	if c.cmd != nil && c.cmd.Process != nil {
+		return c.cmd.Process.Kill()
+	}
+	return nil
+}
+
+// Register the optimized MCP executor
 func init() {
-	// Register the executor with the name "mcp"
 	RegisterExecutor("mcp", &MCPExecutor{})
 }

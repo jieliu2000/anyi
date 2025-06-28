@@ -230,11 +230,11 @@ func main() {
 		{Role: "user", Content: "用简单的术语解释量子计算"},
 	}
 	response, _, err := client.Chat(messages, nil)
-	if err != nil {
-		log.Fatalf("聊天失败: %v", err)
-	}
+    if err != nil {
+        log.Fatalf("聊天失败: %v", err)
+    }
 
-	log.Printf("回答: %s", response.Content)
+    log.Printf("回答: %s", response.Content)
 }
 ```
 
@@ -327,12 +327,12 @@ OpenAI 是最广泛使用的 AI 服务提供商之一。通过 https://platform.
 package main
 
 import (
-	"log"
-	"os"
+    "log"
+    "os"
 
-	"github.com/jieliu2000/anyi"
+    "github.com/jieliu2000/anyi"
 	"github.com/jieliu2000/anyi/llm/openai"
-	"github.com/jieliu2000/anyi/llm/chat"
+    "github.com/jieliu2000/anyi/llm/chat"
 )
 
 func main() {
@@ -346,15 +346,15 @@ func main() {
 	client, err := anyi.NewClient("openai", config)
 	if err != nil {
 		log.Fatalf("创建 OpenAI 客户端失败: %v", err)
-	}
+    }
 
-	messages := []chat.Message{
+    messages := []chat.Message{
 		{Role: "user", Content: "法国的首都是什么？"},
-	}
-	response, _, err := client.Chat(messages, nil)
+    }
+    response, _, err := client.Chat(messages, nil)
 	if err != nil {
-		log.Fatalf("请求失败: %v", err)
-	}
+        log.Fatalf("请求失败: %v", err)
+    }
 
 	log.Printf("OpenAI 回答: %s", response.Content)
 }
@@ -420,12 +420,12 @@ Azure OpenAI 提供微软托管的 OpenAI 模型，具有企业级功能和可�
 package main
 
 import (
-	"log"
-	"os"
+    "log"
+    "os"
 
-	"github.com/jieliu2000/anyi"
+    "github.com/jieliu2000/anyi"
 	"github.com/jieliu2000/anyi/llm/azureopenai"
-	"github.com/jieliu2000/anyi/llm/chat"
+    "github.com/jieliu2000/anyi/llm/chat"
 )
 
 func main() {
@@ -439,16 +439,16 @@ func main() {
 	client, err := anyi.NewClient("azure-openai", config)
 	if err != nil {
 		log.Fatalf("创建 Azure OpenAI 客户端失败: %v", err)
-	}
+    }
 
 	// 使用客户端
-	messages := []chat.Message{
+    messages := []chat.Message{
 		{Role: "user", Content: "机器学习和深度学习的主要区别是什么？"},
-	}
-	response, _, err := client.Chat(messages, nil)
+    }
+    response, _, err := client.Chat(messages, nil)
 	if err != nil {
-		log.Fatalf("请求失败: %v", err)
-	}
+        log.Fatalf("请求失败: %v", err)
+    }
 
 	log.Printf("Azure OpenAI 回答: %s", response.Content)
 }
@@ -471,35 +471,35 @@ Ollama 提供本地部署开源模型的能力，非常适合需要离线处理�
 package main
 
 import (
-	"log"
+    "log"
 
-	"github.com/jieliu2000/anyi"
-	"github.com/jieliu2000/anyi/llm/ollama"
-	"github.com/jieliu2000/anyi/llm/chat"
+    "github.com/jieliu2000/anyi"
+    "github.com/jieliu2000/anyi/llm/ollama"
+    "github.com/jieliu2000/anyi/llm/chat"
 )
 
 func main() {
-	// 默认配置（本地服务器）
-	config := ollama.DefaultConfig("llama3")
+    // 默认配置（本地服务器）
+    config := ollama.DefaultConfig("llama3")
 
-	// 自定义服务器配置
-	config := ollama.NewConfig("mixtral", "http://your-ollama-server:11434")
+    // 自定义服务器配置
+    config := ollama.NewConfig("mixtral", "http://your-ollama-server:11434")
 
 	// 创建客户端和使用示例
-	client, err := anyi.NewClient("local-llm", config)
-	if err != nil {
+    client, err := anyi.NewClient("local-llm", config)
+    if err != nil {
 		log.Fatalf("创建 Ollama 客户端失败: %v", err)
-	}
+    }
 
 	// 使用客户端进行本地推理
-	messages := []chat.Message{
-		{Role: "system", Content: "你是一位专注于数论的数学专家。"},
+    messages := []chat.Message{
+        {Role: "system", Content: "你是一位专注于数论的数学专家。"},
 		{Role: "user", Content: "用简单的术语解释黎曼猜想"},
-	}
-	response, _, err := client.Chat(messages, nil)
-	if err != nil {
-		log.Fatalf("本地推理失败: %v", err)
-	}
+    }
+    response, _, err := client.Chat(messages, nil)
+    if err != nil {
+        log.Fatalf("本地推理失败: %v", err)
+    }
 
 	log.Printf("Ollama 模型回答: %s", response.Content)
 }
