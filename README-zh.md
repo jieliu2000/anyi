@@ -9,9 +9,7 @@
 
 Anyi(安易)是一个强大的 AI 智能体框架，通过提供统一的大语言模型接口、健壮的验证机制和灵活的工作流系统，帮助你构建能够与实际工作场景无缝集成的 AI 解决方案。
 
-> 📚 **寻找详细教程？** 查阅我们全面的[Anyi 编程指南和示例](/docs/zh/tutorial.md)
-
-## ✨ 核心特性
+## 核心特性
 
 - **统一的大语言模型访问** - 通过一致的 API 连接多种 LLM 提供商（智谱 AI、阿里云灵积、OpenAI 等）
 - **强大的工作流系统** - 将步骤链接起来，配合验证和自动重试，构建可靠的 AI 流程
@@ -19,7 +17,7 @@ Anyi(安易)是一个强大的 AI 智能体框架，通过提供统一的大语�
 - **多模态支持** - 向兼容的模型同时发送文本和图像
 - **Go 模板集成** - 使用 Go 的模板引擎生成动态提示词
 
-## 🤔 何时使用 Anyi
+## 何时使用 Anyi
 
 Anyi 特别适合以下场景：
 
@@ -29,7 +27,7 @@ Anyi 特别适合以下场景：
 - **快速原型开发** - 通过配置文件配置复杂 AI 工作流，无需修改代码
 - **企业级解决方案** - 保持代码和配置分离，便于在不同环境中部署
 
-## 📋 支持的 LLM 提供商
+## 支持的 LLM 提供商
 
 - **DeepSeek** - DeepSeek Chat 和 DeepSeek Coder 等模型
 - **阿里云灵积** - 通义千问系列模型
@@ -40,7 +38,7 @@ Anyi 特别适合以下场景：
 - **智谱 AI** - GLM 系列模型
 - **SiliconCloud** - SiliconFlow 模型
 
-## 🚀 快速开始
+## 快速开始
 
 ### 安装
 
@@ -48,7 +46,7 @@ Anyi 特别适合以下场景：
 go get -u github.com/jieliu2000/anyi
 ```
 
-> ⚠️ 需要 Go 1.20 或更高版本
+> 需要 Go 1.20 或更高版本
 
 ### 基本用法
 
@@ -87,7 +85,7 @@ func main() {
 }
 ```
 
-## 🔄 创建工作流
+## 创建工作流
 
 ### 使用代码
 
@@ -207,7 +205,7 @@ func main() {
 }
 ```
 
-## 🛠️ 内置组件
+## 内置组件
 
 ### 执行器
 
@@ -215,28 +213,51 @@ func main() {
 - **SetContextExecutor** - 修改工作流上下文
 - **ConditionalFlowExecutor** - 基于条件进行分支
 - **RunCommandExecutor** - 执行系统命令
-- **MCPExecutor** - 通过模型控制协议(Model Control Protocol)接口访问外部模型、资源和工具
+- **MCPExecutor** - 与模型控制协议接口，访问外部模型、资源和工具
 
 ### 验证器
 
 - **StringValidator** - 通过正则表达式或相等性检查文本
 - **JsonValidator** - 确保输出是有效的 JSON
 
-## 📖 文档
+## 文档
 
-有关全面指南和详细示例，请查看我们的[编程指南](/docs/zh/tutorial.md)。
+### 入门指南
 
-涵盖的主题包括：
+- [安装和设置](docs/zh/getting-started/installation.md) - 系统要求和安装
+- [快速开始指南](docs/zh/getting-started/quickstart.md) - 您的第一个 Anyi 应用
+- [基本概念](docs/zh/getting-started/concepts.md) - 理解客户端、流程和执行器
 
-- [LLM 客户端配置](/docs/zh/tutorial.md#客户端配置)
-- [工作流创建](/docs/zh/tutorial.md#工作流系统)
-- [使用配置文件](/docs/zh/tutorial.md#配置文件)
-- [最佳实践](/docs/zh/tutorial.md#最佳实践)
+### 教程
 
-## 🤝 贡献
+- [使用 LLM 客户端](docs/zh/tutorials/llm-clients.md) - 所有支持提供商的完整指南
+- [构建工作流](docs/zh/tutorials/workflows.md) - 创建复杂的 AI 工作流
+- [配置管理](docs/zh/tutorials/configuration.md) - 使用配置文件和环境变量
+- [多模态应用](docs/zh/tutorials/multimodal.md) - 处理文本和图像
 
-欢迎贡献！Anyi 正在积极开发中，您的反馈有助于使它对每个人都更好。
+### 操作指南
 
-## 📄 许可证
+- [提供商设置](docs/zh/how-to/provider-setup.md) - 每个 LLM 提供商的详细设置
+- [错误处理](docs/zh/how-to/error-handling.md) - 构建健壮应用的最佳实践
+- [性能优化](docs/zh/how-to/performance.md) - 速度和成本优化
+- [Web 集成](docs/zh/how-to/web-integration.md) - 在 Web 框架中使用 Anyi
 
-Anyi 遵循 [Apache License 2.0](LICENSE) 开源许可。
+### 参考资料
+
+- [API 参考](docs/zh/reference/api.md) - 完整的 API 文档
+- [配置模式](docs/zh/reference/configuration.md) - 所有配置选项
+- [内置组件](docs/zh/reference/components.md) - 执行器和验证器参考
+
+### 高级主题
+
+- [自定义执行器](docs/zh/advanced/custom-executors.md) - 构建您自己的执行器
+- [安全最佳实践](docs/zh/advanced/security.md) - 保护您的 AI 应用
+- [生产部署](docs/zh/advanced/deployment.md) - 生产环境考虑
+
+## 贡献
+
+欢迎贡献！Anyi 正在积极开发中，您的反馈有助于让它变得更好。
+
+## 许可证
+
+Anyi 使用 [Apache License 2.0](LICENSE) 许可证。

@@ -9,9 +9,7 @@
 
 Anyi is a powerful autonomous AI agent framework that helps you build AI solutions that seamlessly integrate with real-world workflows through unified LLM interfaces, robust validation mechanisms, and flexible workflow systems.
 
-> 📚 **Looking for detailed tutorials?** Check out our comprehensive [Anyi Programming Guide and Examples](/docs/en/tutorial.md)
-
-## ✨ Key Features
+## Key Features
 
 - **Universal LLM Access** - Connect to multiple LLM providers (OpenAI, Anthropic, etc.) through a consistent API
 - **Powerful Workflow System** - Chain steps together with validation and automatic retries for robust AI pipelines
@@ -19,7 +17,7 @@ Anyi is a powerful autonomous AI agent framework that helps you build AI solutio
 - **Multimodal Support** - Send text and images to compatible models simultaneously
 - **Go Template Integration** - Use Go's template engine to generate dynamic prompts
 
-## 🤔 When to Use Anyi
+## When to Use Anyi
 
 Anyi is ideal for:
 
@@ -29,7 +27,7 @@ Anyi is ideal for:
 - **Rapid Prototyping** - Configure complex AI workflows through config files without changing code
 - **Enterprise Solutions** - Maintain separation of code and configuration for production deployment across environments
 
-## 📋 Supported LLM Providers
+## Supported LLM Providers
 
 - **OpenAI** - GPT series models
 - **Azure OpenAI** - Microsoft-hosted OpenAI models
@@ -40,7 +38,7 @@ Anyi is ideal for:
 - **DeepSeek** - DeepSeek models
 - **SiliconCloud** - SiliconFlow models
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Installation
 
@@ -48,7 +46,7 @@ Anyi is ideal for:
 go get -u github.com/jieliu2000/anyi
 ```
 
-> ⚠️ Requires Go 1.20 or higher
+> Requires Go 1.20 or higher
 
 ### Basic Usage
 
@@ -88,7 +86,7 @@ func main() {
 }
 ```
 
-## 🔄 Creating Workflows
+## Creating Workflows
 
 ### Using Code
 
@@ -209,7 +207,7 @@ func main() {
 }
 ```
 
-## 🛠️ Built-in Components
+## Built-in Components
 
 ### Executors
 
@@ -224,21 +222,44 @@ func main() {
 - **StringValidator** - Checks text via regex or equality
 - **JsonValidator** - Ensures output is valid JSON
 
-## 📖 Documentation
+## Documentation
 
-For comprehensive guides and detailed examples, check out our [Programming Guide](/docs/en/tutorial.md).
+### Getting Started
 
-Topics covered include:
+- [Installation and Setup](docs/en/getting-started/installation.md) - System requirements and installation
+- [Quick Start Guide](docs/en/getting-started/quickstart.md) - Your first Anyi application
+- [Basic Concepts](docs/en/getting-started/concepts.md) - Understanding clients, flows, and executors
 
-- [LLM Client Configuration](/docs/en/tutorial.md#client-configuration)
-- [Workflow Creation](/docs/en/tutorial.md#workflow-system)
-- [Using Configuration Files](/docs/en/tutorial.md#configuration-files)
-- [Best Practices](/docs/en/tutorial.md#best-practices)
+### Tutorials
 
-## 🤝 Contributing
+- [Working with LLM Clients](docs/en/tutorials/llm-clients.md) - Comprehensive guide to all supported providers
+- [Building Workflows](docs/en/tutorials/workflows.md) - Creating complex AI workflows
+- [Configuration Management](docs/en/tutorials/configuration.md) - Using config files and environment variables
+- [Multimodal Applications](docs/en/tutorials/multimodal.md) - Working with text and images
+
+### How-To Guides
+
+- [Provider Setup](docs/en/how-to/provider-setup.md) - Detailed setup for each LLM provider
+- [Error Handling](docs/en/how-to/error-handling.md) - Best practices for robust applications
+- [Performance Optimization](docs/en/how-to/performance.md) - Speed and cost optimization
+- [Web Integration](docs/en/how-to/web-integration.md) - Using Anyi with web frameworks
+
+### Reference
+
+- [API Reference](docs/en/reference/api.md) - Complete API documentation
+- [Configuration Schema](docs/en/reference/configuration.md) - All configuration options
+- [Built-in Components](docs/en/reference/components.md) - Executors and validators reference
+
+### Advanced Topics
+
+- [Custom Executors](docs/en/advanced/custom-executors.md) - Building your own executors
+- [Security Best Practices](docs/en/advanced/security.md) - Securing your AI applications
+- [Production Deployment](docs/en/advanced/deployment.md) - Production considerations
+
+## Contributing
 
 Contributions welcome! Anyi is under active development, and your feedback helps make it better for everyone.
 
-## 📄 License
+## License
 
 Anyi is licensed under the [Apache License 2.0](LICENSE).
