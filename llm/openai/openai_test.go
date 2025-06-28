@@ -96,7 +96,7 @@ func TestChat(t *testing.T) {
 		err = json.Unmarshal(body, &requestMap)
 
 		assert.NoError(t, err)
-		assert.Equal(t, "gpt-3.5-turbo", requestMap["model"])
+		assert.Equal(t, "gpt-4o-mini", requestMap["model"])
 
 		messages := requestMap["messages"].([]interface{})
 		assert.Equal(t, 2, len(messages))
