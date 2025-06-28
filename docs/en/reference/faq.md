@@ -24,9 +24,9 @@ This document answers common questions about using Anyi. If you don't find your 
 
 **A:** It depends on your needs:
 
-- **General use**: OpenAI GPT-3.5-turbo for cost-effectiveness, GPT-4 for quality
+- **General use**: OpenAI GPT-4o-mini for cost-effectiveness, GPT-4o for quality
 - **Chinese language**: Zhipu AI or Dashscope
-- **Code generation**: DeepSeek Coder or Dashscope Qwen-Max
+- **Code generation**: DeepSeek Chat or Dashscope Qwen-Max
 - **Privacy/offline**: Ollama with local models
 - **Enterprise**: Azure OpenAI or SiliconCloud
 
@@ -66,7 +66,7 @@ privateResponse, _, _ := ollamaClient.Chat(sensitiveMessages, nil)
 
 ```go
 // Fast model for simple tasks
-fastConfig := openai.NewConfigWithModel(apiKey, "gpt-3.5-turbo")
+fastConfig := openai.NewConfigWithModel(apiKey, "gpt-4o-mini")
 fastClient, _ := anyi.NewClient("fast", fastConfig)
 
 // Powerful model for complex tasks
@@ -201,7 +201,7 @@ func processRequest(complexity string, content string) (*chat.Message, error) {
 
     switch complexity {
     case "simple":
-        client, _ = anyi.GetClient("fast")     // GPT-3.5-turbo
+        client, _ = anyi.GetClient("fast")     // GPT-4o-mini
     case "complex":
         client, _ = anyi.GetClient("power")    // GPT-4
     case "private":

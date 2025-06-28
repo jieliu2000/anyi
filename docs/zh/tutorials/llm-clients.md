@@ -711,8 +711,8 @@ func (co *CostOptimizer) Chat(messages []chat.Message, requireHighQuality bool) 
 
 // 使用示例
 optimizer := &CostOptimizer{
-    cheapClient:     gpt35Client,    // GPT-3.5
-    expensiveClient: gpt4Client,     // GPT-4
+    cheapClient:     gpt4oMiniClient,    // GPT-4o-mini
+    expensiveClient: gpt4oClient,        // GPT-4o
 }
 
 // 简单任务使用便宜模型

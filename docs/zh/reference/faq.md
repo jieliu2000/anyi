@@ -24,9 +24,9 @@
 
 **答：** 这取决于您的需求：
 
-- **通用用途**：OpenAI GPT-3.5-turbo 性价比高，GPT-4 质量更高
+- **通用用途**：OpenAI GPT-4o-mini 性价比高，GPT-4o 质量更高
 - **中文语言**：智谱 AI 或通义千问
-- **代码生成**：DeepSeek Coder 或通义千问 Qwen-Max
+- **代码生成**：DeepSeek Chat 或通义千问 Qwen-Max
 - **隐私/离线**：Ollama 配合本地模型
 - **企业级**：Azure OpenAI 或 SiliconCloud
 
@@ -66,7 +66,7 @@ privateResponse, _, _ := ollamaClient.Chat(sensitiveMessages, nil)
 
 ```go
 // 简单任务的快速模型
-fastConfig := openai.NewConfigWithModel(apiKey, "gpt-3.5-turbo")
+fastConfig := openai.NewConfigWithModel(apiKey, "gpt-4o-mini")
 fastClient, _ := anyi.NewClient("fast", fastConfig)
 
 // 复杂任务的强大模型
@@ -201,7 +201,7 @@ func processRequest(complexity string, content string) (*chat.Message, error) {
 
     switch complexity {
     case "simple":
-        client, _ = anyi.GetClient("fast")     // GPT-3.5-turbo
+        client, _ = anyi.GetClient("fast")     // GPT-4o-mini
     case "complex":
         client, _ = anyi.GetClient("power")    // GPT-4
     case "private":

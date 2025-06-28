@@ -439,7 +439,7 @@ func (mf *ModelFallback) Chat(messages []chat.Message) (*chat.Message, error) {
 
 // 使用示例
 func main() {
-    models := []string{"gpt-4", "gpt-3.5-turbo", "gpt-3.5-turbo-16k"}
+    models := []string{"gpt-4o", "gpt-4o-mini", "gpt-4-turbo"}
     fallback := NewModelFallback(os.Getenv("OPENAI_API_KEY"), models)
 
     messages := []chat.Message{

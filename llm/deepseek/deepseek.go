@@ -13,6 +13,18 @@ import (
 
 const (
 	DefaultBaseUrl = "https://api.deepseek.com/v1"
+
+	// Official DeepSeek API models (verified from official documentation)
+	// https://api-docs.deepseek.com/api/list-models
+
+	// DeepSeek Chat model - points to DeepSeek-V3-0324
+	DeepSeekChat = "deepseek-chat"
+
+	// DeepSeek Reasoning model - points to DeepSeek-R1-0528
+	DeepSeekReasoner = "deepseek-reasoner"
+
+	// Default model - using the general chat model
+	DefaultModel = "deepseek-chat"
 )
 
 type DeepSeekModelConfig struct {

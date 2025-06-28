@@ -115,7 +115,7 @@ clients:
     type: "openai"
     config:
       apiKey: "$OPENAI_API_KEY"
-      model: "gpt-3.5-turbo"
+      model: "gpt-4.1-mini"
       temperature: 0.7
 
 flows:
@@ -295,7 +295,7 @@ func main() {
                 Type: "openai",
                 Config: map[string]interface{}{
                     "apiKey": os.Getenv("OPENAI_API_KEY"),
-                    "model":  "gpt-3.5-turbo",
+                    "model":  "gpt-4.1-mini",
                 },
             },
         },
@@ -393,7 +393,7 @@ func main() {
 **解决方案：**
 
 1. 检查模型名称是否正确
-2. 使用支持的模型名称，如 `gpt-3.5-turbo`、`gpt-4`
+2. 使用支持的模型名称，如 `gpt-4.1-mini`、`gpt-4.1`、`gpt-4o`
 3. 查看提供商文档了解可用模型
 
 ## 下一步

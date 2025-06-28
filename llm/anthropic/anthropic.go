@@ -12,8 +12,30 @@ import (
 )
 
 const (
-	DefaultBaseUrl = "https://api.anthropic.com/v1"
-	DefaultModel   = "claude-3-7-sonnet-20250219"
+	DefaultBaseUrl = "https://api.anthropic.com"
+
+	// Official Anthropic API models (verified from official documentation)
+	// https://docs.anthropic.com/en/docs/about-claude/models/overview
+
+	// Claude 4 series - Latest generation (2025)
+	ClaudeOpus4   = "claude-opus-4-20250514"
+	ClaudeSonnet4 = "claude-sonnet-4-20250514"
+
+	// Claude 3.7 series - Extended thinking model
+	Claude37Sonnet = "claude-3-7-sonnet-20250219"
+
+	// Claude 3.5 series - Current generation
+	Claude35Sonnet   = "claude-3-5-sonnet-20241022" // v2
+	Claude35SonnetV1 = "claude-3-5-sonnet-20240620" // v1
+	Claude35Haiku    = "claude-3-5-haiku-20241022"
+
+	// Claude 3 series - Previous generation
+	Claude3Opus   = "claude-3-opus-20240229"
+	Claude3Sonnet = "claude-3-sonnet-20240229"
+	Claude3Haiku  = "claude-3-haiku-20240307"
+
+	// Default model - using proven reliable model
+	DefaultModel = "claude-3-5-sonnet-20241022"
 )
 
 // AnthropicModelConfig defines configuration parameters for Anthropic models

@@ -62,7 +62,7 @@ clients:
 **配置选项：**
 
 - `apiKey`（必需）：OpenAI API 密钥
-- `model`（必需）：模型名称（gpt-4、gpt-3.5-turbo 等）
+- `model`（必需）：模型名称（gpt-4o、gpt-4o-mini 等）
 - `baseURL`（可选）：自定义 API 端点
 - `orgID`（可选）：组织 ID
 - `temperature`（可选）：默认温度（0.0-2.0）

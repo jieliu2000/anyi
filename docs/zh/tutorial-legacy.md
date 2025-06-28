@@ -380,8 +380,8 @@ func main() {
     // 使用 DeepSeek Chat 模型配置
     config := deepseek.DefaultConfig(os.Getenv("DEEPSEEK_API_KEY"), "deepseek-chat")
 
-    // 使用 DeepSeek Coder 模型配置
-    config := deepseek.DefaultConfig(os.Getenv("DEEPSEEK_API_KEY"), "deepseek-coder")
+    // 使用 DeepSeek Chat 模型配置
+    config := deepseek.DefaultConfig(os.Getenv("DEEPSEEK_API_KEY"), "deepseek-chat")
 
     // 创建客户端和使用示例
     client, err := llm.NewClient(config)

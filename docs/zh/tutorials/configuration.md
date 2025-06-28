@@ -178,7 +178,7 @@ func main() {
                 Type: "openai",
                 Config: map[string]interface{}{
                     "apiKey":     openaiKey,
-                    "model":      getEnvOrDefault("OPENAI_MODEL", "gpt-3.5-turbo"),
+                    "model":      getEnvOrDefault("OPENAI_MODEL", "gpt-4o-mini"),
                     "temperature": temperature,
                 },
             },
@@ -218,7 +218,7 @@ clients:
   - name: "openai"
     type: "openai"
     config:
-      model: "gpt-3.5-turbo"
+      model: "gpt-4o-mini"
       temperature: 0.7
 
 flows:

@@ -381,9 +381,6 @@ func main() {
     // Configuration with DeepSeek Chat model
     config := deepseek.DefaultConfig(os.Getenv("DEEPSEEK_API_KEY"), "deepseek-chat")
 
-    // Configuration with DeepSeek Coder model
-    config := deepseek.DefaultConfig(os.Getenv("DEEPSEEK_API_KEY"), "deepseek-coder")
-
     // Create client and use example
     client, err := llm.NewClient(config)
     if err != nil {

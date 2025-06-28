@@ -762,7 +762,7 @@ func (ct *CostTracker) calculateCost(tokens int, model string) float64 {
     // 简化的成本计算（实际价格可能不同）
     pricePerToken := map[string]float64{
         "gpt-4":          0.00003,
-        "gpt-3.5-turbo":  0.000002,
+        "gpt-4o-mini":    0.000002,
         "claude-3-opus":  0.000015,
         "claude-3-sonnet": 0.000003,
     }
@@ -800,7 +800,7 @@ func NewCostAwareClient(clients map[string]anyi.Client, tracker *CostTracker) *C
     return &CostAwareClient{
         clients:     clients,
         costTracker: tracker,
-        fallbackOrder: []string{"gpt-3.5-turbo", "claude-3-haiku", "ollama"},
+        fallbackOrder: []string{"gpt-4o-mini", "claude-3-haiku", "ollama"},
     }
 }
 

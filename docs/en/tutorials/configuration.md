@@ -139,7 +139,7 @@ clients:
   - name: "coding"
     type: "deepseek"
     config:
-      model: "deepseek-coder"
+      model: "deepseek-chat"
       apiKey: "$DEEPSEEK_API_KEY"
       temperature: 0.1
 ```
@@ -618,7 +618,7 @@ clients:
 ```bash
 # development.env
 ENVIRONMENT=development
-OPENAI_MODEL=gpt-3.5-turbo
+OPENAI_MODEL=gpt-4o-mini
 LOG_LEVEL=debug
 MAX_RETRIES=2
 

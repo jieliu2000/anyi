@@ -51,7 +51,7 @@ type ErrorResponse struct {
 func setupAnyi() error {
 	// Configure OpenAI client
 	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
-	config.Model = "gpt-3.5-turbo"
+	    config.Model = "gpt-4o-mini"
 
 	_, err := anyi.NewClient("default", config)
 	return err

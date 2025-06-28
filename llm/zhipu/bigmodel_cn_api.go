@@ -16,6 +16,31 @@ import (
 
 const (
 	DefaultBaseUrl = "https://open.bigmodel.cn/api/paas/v4/"
+
+	// GLM-4 series - Latest and most popular
+	GLM4Plus  = "glm-4-plus"
+	GLM4      = "glm-4"
+	GLM4Air   = "glm-4-air"
+	GLM4AirX  = "glm-4-airx"
+	GLM4Flash = "glm-4-flash"
+	GLM4Long  = "glm-4-long"
+
+	// GLM-4V series - Vision models
+	GLM4V     = "glm-4v"
+	GLM4VPlus = "glm-4v-plus"
+
+	// GLM-3 series - Legacy
+	GLM3Turbo = "glm-3-turbo"
+
+	// Code generation models
+	CodeGeeX4 = "codegeex-4"
+
+	// Embedding models
+	Embedding2 = "embedding-2"
+	Embedding3 = "embedding-3"
+
+	// Default model - using the most popular GLM-4-Flash
+	DefaultModel = "glm-4-flash"
 )
 
 type ZhiPuModelConfig struct {

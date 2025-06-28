@@ -618,7 +618,7 @@ func NewChatService() (*ChatService, error) {
 	}
 
 	// Fallback: OpenAI GPT-3.5
-	fallbackConfig := openai.NewConfigWithModel(os.Getenv("OPENAI_API_KEY"), "gpt-3.5-turbo")
+	fallbackConfig := openai.NewConfigWithModel(os.Getenv("OPENAI_API_KEY"), "gpt-4o-mini")
 	fallbackClient, err := anyi.NewClient("fallback", fallbackConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create fallback client: %w", err)

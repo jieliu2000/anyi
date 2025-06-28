@@ -29,7 +29,7 @@ Anyi 特别适合以下场景：
 
 ## 支持的 LLM 提供商
 
-- **DeepSeek** - DeepSeek Chat 和 DeepSeek Coder 等模型
+- **DeepSeek** - DeepSeek Chat 和 DeepSeek Reasoner 等模型
 - **阿里云灵积** - 通义千问系列模型
 - **Ollama** - 本地部署开源模型（如 Llama、Qwen 等）
 - **OpenAI** - GPT 系列模型

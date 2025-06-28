@@ -57,7 +57,7 @@ func main() {
                 Type: "openai",
                 Config: map[string]interface{}{
                     "apiKey": os.Getenv("OPENAI_API_KEY"),
-                    "model":  "gpt-3.5-turbo",
+                    "model":  "gpt-4o-mini",
                 },
             },
         },
@@ -124,7 +124,7 @@ clients:
     type: "openai"
     config:
       apiKey: "$OPENAI_API_KEY"
-      model: "gpt-3.5-turbo"
+      model: "gpt-4o-mini"
       temperature: 0.7
 
 flows:
@@ -283,7 +283,7 @@ func main() {
                 Type: "openai",
                 Config: map[string]interface{}{
                     "apiKey": os.Getenv("OPENAI_API_KEY"),
-                    "model":  "gpt-3.5-turbo",
+                    "model":  "gpt-4o-mini",
                 },
             },
         },

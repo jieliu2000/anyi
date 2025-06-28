@@ -16,6 +16,46 @@ import (
 
 const (
 	DefaultBaseUrl = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+
+	// Qwen2.5 series - Latest and most popular
+	Qwen25Max   = "qwen-max"
+	Qwen25Plus  = "qwen-plus"
+	Qwen25Turbo = "qwen-turbo"
+	Qwen2572B   = "qwen2.5-72b-instruct"
+	Qwen2532B   = "qwen2.5-32b-instruct"
+	Qwen2514B   = "qwen2.5-14b-instruct"
+	Qwen257B    = "qwen2.5-7b-instruct"
+	Qwen253B    = "qwen2.5-3b-instruct"
+	Qwen251B    = "qwen2.5-1.5b-instruct"
+	Qwen250B    = "qwen2.5-0.5b-instruct"
+
+	// Qwen2.5-Coder series
+	Qwen25Coder32B = "qwen2.5-coder-32b-instruct"
+	Qwen25Coder14B = "qwen2.5-coder-14b-instruct"
+	Qwen25Coder7B  = "qwen2.5-coder-7b-instruct"
+	Qwen25Coder1B  = "qwen2.5-coder-1.5b-instruct"
+
+	// Qwen2.5-Math series
+	Qwen25Math72B = "qwen2.5-math-72b-instruct"
+	Qwen25Math7B  = "qwen2.5-math-7b-instruct"
+	Qwen25Math1B  = "qwen2.5-math-1.5b-instruct"
+
+	// Qwen-VL series - Vision models
+	QwenVLMax  = "qwen-vl-max"
+	QwenVLPlus = "qwen-vl-plus"
+	QwenVL     = "qwen-vl-v1"
+
+	// Qwen-Audio series
+	QwenAudio = "qwen-audio-turbo"
+
+	// Legacy Qwen2 series
+	Qwen272B       = "qwen2-72b-instruct"
+	Qwen257BLegacy = "qwen2-7b-instruct"
+	Qwen21B        = "qwen2-1.5b-instruct"
+	Qwen20B        = "qwen2-0.5b-instruct"
+
+	// Default model - using the most popular Qwen-Plus
+	DefaultModel = "qwen-plus"
 )
 
 type DashScopeModelConfig struct {

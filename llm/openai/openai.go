@@ -10,43 +10,44 @@ import (
 )
 
 const (
-	//Copied from https://github.com/sashabaranov/go-openai/blob/master/completion.go.
-	GPT432K0613           = "gpt-4-32k-0613"
-	GPT432K0314           = "gpt-4-32k-0314"
-	GPT432K               = "gpt-4-32k"
-	GPT40613              = "gpt-4-0613"
-	GPT40314              = "gpt-4-0314"
-	GPT4o                 = "gpt-4o"
-	GPT4o20240513         = "gpt-4o-2024-05-13"
-	GPT4o20240806         = "gpt-4o-2024-08-06"
-	GPT4oMini             = "gpt-4o-mini"
-	GPT4oMini20240718     = "gpt-4o-mini-2024-07-18"
-	GPT4Turbo             = "gpt-4-turbo"
-	GPT4Turbo20240409     = "gpt-4-turbo-2024-04-09"
-	GPT4Turbo0125         = "gpt-4-0125-preview"
-	GPT4Turbo1106         = "gpt-4-1106-preview"
-	GPT4TurboPreview      = "gpt-4-turbo-preview"
-	GPT4VisionPreview     = "gpt-4-vision-preview"
-	GPT4                  = "gpt-4"
-	GPT3Dot5Turbo0125     = "gpt-3.5-turbo-0125"
-	GPT3Dot5Turbo1106     = "gpt-3.5-turbo-1106"
-	GPT3Dot5Turbo0613     = "gpt-3.5-turbo-0613"
-	GPT3Dot5Turbo0301     = "gpt-3.5-turbo-0301"
-	GPT3Dot5Turbo16K      = "gpt-3.5-turbo-16k"
-	GPT3Dot5Turbo16K0613  = "gpt-3.5-turbo-16k-0613"
-	GPT3Dot5Turbo         = "gpt-3.5-turbo"
-	GPT3Dot5TurboInstruct = "gpt-3.5-turbo-instruct"
-	GPT3Davinci           = "davinci"
-	GPT3Davinci002        = "davinci-002"
-	GPT3Curie             = "curie"
-	GPT3Curie002          = "curie-002"
-	GPT3Ada002            = "ada-002"
-	GPT3Babbage002        = "babbage-002"
-)
+	DefaultBaseUrl = "https://api.openai.com/v1"
 
-const (
-	DefaultBaseURL = "https://api.openai.com/v1"
-	DefaultModel   = "gpt-3.5-turbo"
+	// Official OpenAI models (verified from official documentation)
+	// Note: GPT-4.1, o3, o4 series models mentioned in Wikipedia may not be available
+	// in the official OpenAI API yet. Only use verified model names.
+
+	// GPT-4o series - Current flagship models
+	GPT4o         = "gpt-4o"
+	GPT4o20241120 = "gpt-4o-2024-11-20"
+	GPT4o20240806 = "gpt-4o-2024-08-06"
+	GPT4o20240513 = "gpt-4o-2024-05-13"
+
+	// GPT-4o mini - Cost-effective model
+	GPT4oMini         = "gpt-4o-mini"
+	GPT4oMini20240718 = "gpt-4o-mini-2024-07-18"
+
+	// GPT-4 series - Previous generation
+	GPT4              = "gpt-4"
+	GPT4Turbo         = "gpt-4-turbo"
+	GPT4Turbo20240409 = "gpt-4-turbo-2024-04-09"
+	GPT40314          = "gpt-4-0314"
+	GPT40613          = "gpt-4-0613"
+	GPT41106Preview   = "gpt-4-1106-preview"
+	GPT40125Preview   = "gpt-4-0125-preview"
+
+	// GPT-3.5 series - Legacy models
+	GPT35Turbo         = "gpt-3.5-turbo"
+	GPT35Turbo20240125 = "gpt-3.5-turbo-0125"
+	GPT35Turbo1106     = "gpt-3.5-turbo-1106"
+	GPT35Turbo0613     = "gpt-3.5-turbo-0613"
+	GPT35Turbo16k      = "gpt-3.5-turbo-16k"
+
+	// o1 series - Reasoning models
+	O1Preview = "o1-preview"
+	O1Mini    = "o1-mini"
+
+	// Default model - using the most reliable current model
+	DefaultModel = "gpt-4o-mini"
 )
 
 type OpenAIModelConfig struct {
@@ -80,7 +81,7 @@ func NewConfig(apiKey string, model string, baseURL string) *OpenAIModelConfig {
 		model = DefaultModel
 	}
 	if baseURL == "" {
-		baseURL = DefaultBaseURL
+		baseURL = DefaultBaseUrl
 	}
 	return &OpenAIModelConfig{
 		GeneralLLMConfig: config.DefaultGeneralConfig(),

@@ -157,7 +157,7 @@ clients:
   - name: "gpt4"
     type: "openai"
     config:
-      model: "gpt-4"
+      model: "gpt-4.1"
       apiKey: "$OPENAI_API_KEY"
 
 flows:
@@ -234,11 +234,11 @@ You can use different providers for different tasks:
 
 ```go
 // Fast, cheap model for simple tasks
-quickConfig := openai.NewConfigWithModel(apiKey, "gpt-3.5-turbo")
+quickConfig := openai.NewConfigWithModel(apiKey, "gpt-4.1-mini")
 quickClient, _ := anyi.NewClient("quick", quickConfig)
 
 // Powerful model for complex tasks
-powerConfig := openai.NewConfigWithModel(apiKey, "gpt-4")
+powerConfig := openai.NewConfigWithModel(apiKey, "gpt-4.1")
 powerClient, _ := anyi.NewClient("power", powerConfig)
 ```
 

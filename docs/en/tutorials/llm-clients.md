@@ -79,7 +79,7 @@ import (
 )
 
 func main() {
-	// Default configuration (gpt-3.5-turbo)
+	// Default configuration (gpt-4o-mini)
 	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
 
 	// Specific model configuration
@@ -138,7 +138,7 @@ func main() {
 	config := deepseek.DefaultConfig(os.Getenv("DEEPSEEK_API_KEY"), "deepseek-chat")
 
 	// Coder model for programming tasks
-	config := deepseek.DefaultConfig(os.Getenv("DEEPSEEK_API_KEY"), "deepseek-coder")
+	config := deepseek.DefaultConfig(os.Getenv("DEEPSEEK_API_KEY"), "deepseek-chat")
 
 	client, err := llm.NewClient(config)
 	if err != nil {
@@ -583,7 +583,7 @@ func main() {
 	// Fast, cheap model for simple tasks
 	quickConfig := openai.NewConfigWithModel(
 		os.Getenv("OPENAI_API_KEY"),
-		"gpt-3.5-turbo",
+		"gpt-4o-mini",
 	)
 	quickClient, _ := anyi.NewClient("quick", quickConfig)
 
@@ -620,18 +620,18 @@ func main() {
 
 ### By Use Case
 
-- **General Chat**: OpenAI GPT-3.5-turbo, Zhipu GLM-4-Flash
-- **Complex Reasoning**: OpenAI GPT-4, Anthropic Claude-3-Opus
-- **Code Generation**: DeepSeek Coder, Dashscope Qwen-Max
-- **Chinese Language**: Zhipu AI, Dashscope
-- **Privacy/Offline**: Ollama with local models
-- **Enterprise**: Azure OpenAI, SiliconCloud
+- **General Chat**: OpenAI GPT-4o-mini, Zhipu GLM-4-Flash
+- **Complex Reasoning**: OpenAI GPT-4o, DeepSeek-Reasoner, Anthropic Claude-3.5-Sonnet
+- **Code Generation**: Qwen2.5-Coder, GPT-4o, Claude-3.5-Sonnet
+- **Chinese Language**: Zhipu GLM-4-Plus, Qwen2.5-Max, DeepSeek-Chat
+- **Privacy/Offline**: Ollama with Llama-3.2, Qwen2.5 local models
+- **Enterprise**: Azure OpenAI GPT-4o, SiliconCloud
 
 ### By Performance Requirements
 
-- **Speed**: Groq, local Ollama models
-- **Quality**: GPT-4, Claude-3-Opus
-- **Cost**: GPT-3.5-turbo, local models
+- **Speed**: GPT-4o-mini, GLM-4-Flash, Qwen2.5-Turbo
+- **Quality**: GPT-4o, Claude-3.5-Sonnet, DeepSeek-Reasoner
+- **Cost**: GPT-4o-mini, GLM-4-Flash, local models
 - **Reliability**: Azure OpenAI, enterprise providers
 
 ### By Deployment Constraints

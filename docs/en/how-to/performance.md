@@ -364,8 +364,8 @@ func NewModelSelector() *ModelSelector {
 	return &ModelSelector{
 		clients: make(map[string]*anyi.Client),
 		costs: map[string]float64{
-			"gpt-4":         0.03,  // $0.03 per 1K tokens
-			"gpt-3.5-turbo": 0.002, // $0.002 per 1K tokens
+			"gpt-4o":        0.025, // $0.025 per 1K tokens
+			"gpt-4o-mini":   0.002, // $0.002 per 1K tokens
 			"claude-3":      0.015, // Example pricing
 			"local":         0.0,   // Local model (free)
 		},
@@ -381,14 +381,14 @@ func (ms *ModelSelector) selectOptimalModel(prompt string, qualityRequirement st
 
 	// For simple queries, use cheaper models
 	if promptLength < 100 && qualityRequirement == "low" {
-		return "gpt-3.5-turbo"
+		return "gpt-4o-mini"
 	}
 
 	// For complex analysis, use more powerful models
 	if strings.Contains(strings.ToLower(prompt), "analyze") ||
 		strings.Contains(strings.ToLower(prompt), "complex") ||
 		qualityRequirement == "high" {
-		return "gpt-4"
+		return "gpt-4o"
 	}
 
 	// For code generation, prefer specialized models
@@ -398,7 +398,7 @@ func (ms *ModelSelector) selectOptimalModel(prompt string, qualityRequirement st
 	}
 
 	// Default to balanced option
-	return "gpt-3.5-turbo"
+	return "gpt-4o-mini"
 }
 
 func (ms *ModelSelector) chatWithOptimalModel(messages []chat.Message, qualityRequirement string) (*chat.Message, error) {
@@ -415,8 +415,8 @@ func (ms *ModelSelector) chatWithOptimalModel(messages []chat.Message, qualityRe
 	client, exists := ms.clients[modelName]
 	if !exists {
 		// Fallback to default
-		client = ms.clients["gpt-3.5-turbo"]
-		modelName = "gpt-3.5-turbo"
+		client = ms.clients["gpt-4o-mini"]
+		modelName = "gpt-4o-mini"
 	}
 
 	log.Printf("Selected model: %s (cost: $%.4f per 1K tokens)", modelName, ms.costs[modelName])

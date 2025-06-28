@@ -34,7 +34,7 @@ Multimodal AI models can process and understand multiple types of input simultan
 
 ### Anthropic Claude 3
 
-- **Models**: `claude-3-opus`, `claude-3-sonnet`, `claude-3-haiku`
+- **Models**: `claude-3.5-sonnet-20241022`, `claude-3-opus-20240229`, `claude-3-haiku-20240307`
 - **Image Formats**: PNG, JPEG, WebP, GIF
 - **Max Image Size**: 5MB per image
 - **Features**: Document analysis, chart interpretation, visual reasoning

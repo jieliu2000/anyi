@@ -62,7 +62,7 @@ clients:
 **Configuration Options:**
 
 - `apiKey` (required): OpenAI API key
-- `model` (required): Model name (gpt-4, gpt-3.5-turbo, etc.)
+- `model` (required): Model name (gpt-4o, gpt-4o-mini, etc.)
 - `baseURL` (optional): Custom API endpoint
 - `orgID` (optional): Organization ID
 - `temperature` (optional): Default temperature (0.0-2.0)
