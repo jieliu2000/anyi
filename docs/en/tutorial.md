@@ -5,8 +5,9 @@
 ## Table of Contents
 
 - [Quick Start](#quick-start)
+  - [Installation](#installation)
+  - [Basic Usage Example](#basic-usage-example)
 - [Introduction](#introduction)
-- [Installation](#installation)
 - [Large Language Model Access](#large-language-model-access)
   - [Understanding Anyi's Client Architecture](#understanding-anyis-client-architecture)
   - [Client Creation Methods](#client-creation-methods)
@@ -16,7 +17,11 @@
     - [DeepSeek](#deepseek)
     - [Azure OpenAI](#azure-openai)
     - [Ollama](#ollama)
-    - [Other Providers](#other-providers)
+    - [Zhipu AI](#zhipu-ai)
+    - [Dashscope (Alibaba Cloud)](#dashscope-alibaba-cloud)
+    - [Anthropic](#anthropic)
+    - [SiliconCloud](#siliconcloud)
+  - [Using OpenAI-Compatible APIs](#using-openai-compatible-apis)
   - [How to Choose the Right LLM Provider](#how-to-choose-the-right-llm-provider)
 - [Chat API Usage](#chat-api-usage)
   - [Understanding the Chat Lifecycle](#understanding-the-chat-lifecycle)
@@ -52,10 +57,13 @@
 
 If you want to get started with Anyi quickly, here are the basic steps:
 
+### Installation
+
 ```bash
-# Install Anyi
 go get -u github.com/jieliu2000/anyi
 ```
+
+**Requirements:** Go 1.20 or higher
 
 ### Basic Usage Example
 
@@ -116,16 +124,6 @@ Anyi is particularly useful when:
 - You want to build reliable AI workflows with validation and error handling
 - You need to switch between different LLM providers without changing your code
 - You're building production-grade AI applications in Go
-
-## Installation
-
-To start using Anyi, install it via Go modules:
-
-```bash
-go get -u github.com/jieliu2000/anyi
-```
-
-Anyi requires Go version 1.20 or higher.
 
 ## Large Language Model Access
 
@@ -506,14 +504,319 @@ func main() {
 }
 ```
 
-#### Other Providers
+#### Zhipu AI
 
-Anyi also supports various other LLM providers:
+Zhipu AI provides access to GLM series models through https://open.bigmodel.cn/. It's particularly strong for Chinese language tasks and offers competitive performance for general AI applications.
 
-- **Zhipu AI**: Access GLM series models via https://open.bigmodel.cn/. Use `zhipu.DefaultConfig()` for configuration.
-- **Dashscope (Alibaba)**: Access Qwen series models via https://help.aliyun.com/en/dashscope/. Use `dashscope.DefaultConfig()` for configuration.
-- **Anthropic**: Access Claude models via https://www.anthropic.com/claude. Use `anthropic.NewConfig()` for configuration.
-- **SiliconCloud**: Enterprise-focused AI solutions. Use `siliconcloud.DefaultConfig()` for configuration.
+##### Features and Advantages
+
+- Excellent Chinese language understanding and generation capabilities
+- GLM-4 series models with strong reasoning abilities
+- Cost-effective pricing for Chinese market
+- Support for both chat and code generation tasks
+
+##### Configuration Example
+
+```go
+package main
+
+import (
+	"log"
+	"os"
+
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm/zhipu"
+	"github.com/jieliu2000/anyi/llm/chat"
+)
+
+func main() {
+	// Default configuration with GLM-4-Flash model
+	config := zhipu.DefaultConfig(os.Getenv("ZHIPU_API_KEY"), "glm-4-flash")
+
+	// Configuration with GLM-4 model for more complex tasks
+	config := zhipu.DefaultConfig(os.Getenv("ZHIPU_API_KEY"), "glm-4")
+
+	// Custom configuration with specific base URL
+	config := zhipu.NewConfig(os.Getenv("ZHIPU_API_KEY"), "glm-4", "https://open.bigmodel.cn/api/paas/v4/")
+
+	// Create client and use example
+	client, err := anyi.NewClient("zhipu", config)
+	if err != nil {
+		log.Fatalf("Failed to create Zhipu client: %v", err)
+	}
+
+	// Use the client for Chinese language tasks
+	messages := []chat.Message{
+		{Role: "system", Content: "你是一个专业的AI助手，擅长中文理解和生成。"},
+		{Role: "user", Content: "请解释一下人工智能的发展历程"},
+	}
+	response, _, err := client.Chat(messages, nil)
+	if err != nil {
+		log.Fatalf("Request failed: %v", err)
+	}
+
+	log.Printf("Zhipu AI response: %s", response.Content)
+}
+```
+
+#### Dashscope (Alibaba Cloud)
+
+Dashscope provides access to Alibaba's Qwen series models via https://help.aliyun.com/en/dashscope/. It offers excellent performance for both Chinese and English tasks with strong multimodal capabilities.
+
+##### Features and Advantages
+
+- Qwen series models with excellent multilingual capabilities
+- Strong performance in code generation and mathematical reasoning
+- Integrated with Alibaba Cloud ecosystem
+- Support for multimodal inputs (text and images)
+- Competitive pricing and enterprise-grade reliability
+
+##### Configuration Example
+
+```go
+package main
+
+import (
+	"log"
+	"os"
+
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm/dashscope"
+	"github.com/jieliu2000/anyi/llm/chat"
+)
+
+func main() {
+	// Default configuration with Qwen-Turbo model
+	config := dashscope.DefaultConfig(os.Getenv("DASHSCOPE_API_KEY"), "qwen-turbo")
+
+	// Configuration with Qwen-Max for complex reasoning tasks
+	config := dashscope.DefaultConfig(os.Getenv("DASHSCOPE_API_KEY"), "qwen-max")
+
+	// Custom configuration with specific base URL
+	config := dashscope.NewConfig(os.Getenv("DASHSCOPE_API_KEY"), "qwen-plus", "https://dashscope.aliyuncs.com/compatible-mode/v1")
+
+	// Create client and use example
+	client, err := anyi.NewClient("dashscope", config)
+	if err != nil {
+		log.Fatalf("Failed to create Dashscope client: %v", err)
+	}
+
+	// Use the client for code generation
+	messages := []chat.Message{
+		{Role: "system", Content: "You are a professional software engineer specializing in Go programming."},
+		{Role: "user", Content: "Write a Go function to implement binary search algorithm"},
+	}
+	response, _, err := client.Chat(messages, nil)
+	if err != nil {
+		log.Fatalf("Request failed: %v", err)
+	}
+
+	log.Printf("Dashscope response: %s", response.Content)
+}
+```
+
+#### Anthropic
+
+Anthropic provides access to Claude models via https://www.anthropic.com/claude. Claude models are known for their safety, helpfulness, and excellent reasoning capabilities.
+
+##### Features and Advantages
+
+- Advanced reasoning and analysis capabilities
+- Strong focus on AI safety and alignment
+- Excellent performance in long-form content generation
+- Support for large context windows
+- High-quality code generation and debugging
+
+##### Configuration Example
+
+```go
+package main
+
+import (
+	"log"
+	"os"
+
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm/anthropic"
+	"github.com/jieliu2000/anyi/llm/chat"
+)
+
+func main() {
+	// Default configuration with latest Claude model
+	config := anthropic.DefaultConfig(os.Getenv("ANTHROPIC_API_KEY"))
+
+	// Configuration with specific Claude model
+	config := anthropic.DefaultConfigWithModel(os.Getenv("ANTHROPIC_API_KEY"), "claude-3-sonnet-20240229")
+
+	// Custom configuration with all parameters
+	config := anthropic.NewConfig(
+		os.Getenv("ANTHROPIC_API_KEY"),
+		"claude-3-opus-20240229",
+		"https://api.anthropic.com/v1",
+		"2023-06-01",
+	)
+
+	// Create client and use example
+	client, err := anyi.NewClient("anthropic", config)
+	if err != nil {
+		log.Fatalf("Failed to create Anthropic client: %v", err)
+	}
+
+	// Use the client for complex analysis
+	messages := []chat.Message{
+		{Role: "system", Content: "You are a thoughtful analyst who provides detailed, well-reasoned responses."},
+		{Role: "user", Content: "Analyze the potential implications of quantum computing on current cryptographic systems"},
+	}
+	response, _, err := client.Chat(messages, nil)
+	if err != nil {
+		log.Fatalf("Request failed: %v", err)
+	}
+
+	log.Printf("Anthropic response: %s", response.Content)
+}
+```
+
+#### SiliconCloud
+
+SiliconCloud provides enterprise-focused AI solutions with access to various open-source and proprietary models. It's designed for businesses requiring reliable, scalable AI services.
+
+##### Features and Advantages
+
+- Enterprise-grade reliability and security
+- Access to multiple model families in one platform
+- Competitive pricing for business applications
+- Support for custom model deployment
+- Strong technical support and SLA guarantees
+
+##### Configuration Example
+
+```go
+package main
+
+import (
+	"log"
+	"os"
+
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm/siliconcloud"
+	"github.com/jieliu2000/anyi/llm/chat"
+)
+
+func main() {
+	// Default configuration
+	config := siliconcloud.DefaultConfig(os.Getenv("SILICONCLOUD_API_KEY"), "deepseek-chat")
+
+	// Custom configuration with specific base URL
+	config := siliconcloud.NewConfig(
+		os.Getenv("SILICONCLOUD_API_KEY"),
+		"qwen-7b-chat",
+		"https://api.siliconflow.cn/v1",
+	)
+
+	// Create client and use example
+	client, err := anyi.NewClient("siliconcloud", config)
+	if err != nil {
+		log.Fatalf("Failed to create SiliconCloud client: %v", err)
+	}
+
+	// Use the client for business applications
+	messages := []chat.Message{
+		{Role: "system", Content: "You are a business analyst providing strategic insights."},
+		{Role: "user", Content: "What are the key trends in enterprise AI adoption for 2024?"},
+	}
+	response, _, err := client.Chat(messages, nil)
+	if err != nil {
+		log.Fatalf("Request failed: %v", err)
+	}
+
+	log.Printf("SiliconCloud response: %s", response.Content)
+}
+```
+
+### Using OpenAI-Compatible APIs
+
+Many LLM providers offer OpenAI-compatible APIs, which makes it easy to integrate them with Anyi. This approach allows you to use any service that implements the OpenAI API specification without requiring a dedicated provider module.
+
+#### When to Use OpenAI-Compatible APIs
+
+- **New Providers**: When you want to use a provider that doesn't have a dedicated Anyi module
+- **Custom Deployments**: For self-hosted models or private deployments
+- **Testing**: When evaluating new services before committing to integration
+- **Flexibility**: When you need to quickly switch between different compatible providers
+
+#### Configuration Example
+
+```go
+package main
+
+import (
+	"log"
+	"os"
+
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm/openai"
+	"github.com/jieliu2000/anyi/llm/chat"
+)
+
+func main() {
+	// Example 1: Using a custom OpenAI-compatible service
+	config := openai.NewConfig(
+		os.Getenv("CUSTOM_API_KEY"),
+		"custom-model-name",
+		"https://api.custom-provider.com/v1", // Custom base URL
+	)
+
+	// Example 2: Using Together AI (OpenAI-compatible)
+	config := openai.NewConfig(
+		os.Getenv("TOGETHER_API_KEY"),
+		"meta-llama/Llama-2-70b-chat-hf",
+		"https://api.together.xyz/v1",
+	)
+
+	// Example 3: Using Groq (OpenAI-compatible)
+	config := openai.NewConfig(
+		os.Getenv("GROQ_API_KEY"),
+		"mixtral-8x7b-32768",
+		"https://api.groq.com/openai/v1",
+	)
+
+	// Create client
+	client, err := anyi.NewClient("custom-provider", config)
+	if err != nil {
+		log.Fatalf("Failed to create client: %v", err)
+	}
+
+	// Use the client
+	messages := []chat.Message{
+		{Role: "user", Content: "Hello, can you introduce yourself?"},
+	}
+	response, _, err := client.Chat(messages, nil)
+	if err != nil {
+		log.Fatalf("Request failed: %v", err)
+	}
+
+	log.Printf("Response: %s", response.Content)
+}
+```
+
+#### Common OpenAI-Compatible Providers
+
+Here are some popular services that offer OpenAI-compatible APIs:
+
+- **Together AI**: Provides access to various open-source models
+- **Groq**: High-speed inference for popular models
+- **Perplexity AI**: Search-augmented language models
+- **Fireworks AI**: Fast inference for open-source models
+- **Anyscale**: Ray-based model serving platform
+- **Local deployments**: vLLM, Text Generation Inference, etc.
+
+#### Best Practices for OpenAI-Compatible APIs
+
+1. **Check API Documentation**: Verify the exact endpoint format and authentication method
+2. **Model Names**: Use the exact model names as specified by the provider
+3. **Rate Limits**: Be aware of different rate limiting policies
+4. **Feature Support**: Not all providers support all OpenAI features (functions, vision, etc.)
+5. **Error Handling**: Different providers may return different error formats
 
 ### How to Choose the Right LLM Provider
 

@@ -5,8 +5,9 @@
 ## 目录
 
 - [快速入门](#快速入门)
+  - [安装](#安装)
+  - [基本用法示例](#基本用法示例)
 - [简介](#简介)
-- [安装](#安装)
 - [大语言模型访问](#大语言模型访问)
   - [理解 Anyi 的客户端架构](#理解-anyi-的客户端架构)
   - [客户端创建方式](#客户端创建方式)
@@ -16,7 +17,11 @@
     - [DeepSeek](#deepseek)
     - [Azure OpenAI](#azure-openai)
     - [Ollama](#ollama)
-    - [其他提供商](#其他提供商)
+    - [智谱 AI](#智谱-ai)
+    - [Dashscope（阿里云）](#dashscope阿里云)
+    - [Anthropic](#anthropic)
+    - [SiliconCloud](#siliconcloud)
+  - [使用 OpenAI 兼容 API](#使用-openai-兼容-api)
   - [如何选择合适的 LLM 提供商](#如何选择合适的-llm-提供商)
 - [聊天 API 使用](#聊天api使用)
   - [理解聊天生命周期](#理解聊天生命周期)
@@ -50,12 +55,15 @@
 
 ## 快速入门
 
-如果您想快速上手 Anyi 框架，以下是最基本的步骤：
+如果您想快速上手 Anyi 框架，以下是基本步骤：
+
+### 安装
 
 ```bash
-# 安装 Anyi
 go get -u github.com/jieliu2000/anyi
 ```
+
+**系统要求：** Go 1.20 或更高版本
 
 ### 基本用法示例
 
@@ -116,16 +124,6 @@ Anyi 特别适用于以下场景：
 - 希望构建具有验证和错误处理功能的可靠 AI 工作流
 - 需要在不更改代码的情况下切换不同的 LLM 提供商
 - 在 Go 中构建生产级 AI 应用程序
-
-## 安装
-
-要开始使用 Anyi，请通过 Go modules 安装：
-
-```bash
-go get -u github.com/jieliu2000/anyi
-```
-
-Anyi 需要 Go 1.20 或更高版本。
 
 ## 大语言模型访问
 
@@ -505,14 +503,319 @@ func main() {
 }
 ```
 
-#### 其他提供商
+#### 智谱 AI
 
-Anyi 还支持各种其他 LLM 提供商：
+智谱 AI 通过 https://open.bigmodel.cn/ 提供对 GLM 系列模型的访问。它在中文语言任务方面表现尤为出色，并为通用 AI 应用提供具有竞争力的性能。
 
-- **智谱 AI**：通过 https://open.bigmodel.cn/ 访问 GLM 系列模型。使用 `zhipu.DefaultConfig()` 配置。
-- **Dashscope（阿里巴巴）**：通过 https://help.aliyun.com/zh/dashscope/ 访问通义千问系列模型。使用 `dashscope.DefaultConfig()` 配置。
-- **Anthropic**：通过 https://www.anthropic.com/claude 访问 Claude 模型。使用 `anthropic.NewConfig()` 配置。
-- **SiliconCloud**：面向企业的 AI 解决方案。使用 `siliconcloud.DefaultConfig()` 配置。
+##### 功能和优势
+
+- 出色的中文语言理解和生成能力
+- GLM-4 系列模型具有强大的推理能力
+- 针对中国市场的经济实惠定价
+- 支持聊天和代码生成任务
+
+##### 配置示例
+
+```go
+package main
+
+import (
+	"log"
+	"os"
+
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm/zhipu"
+	"github.com/jieliu2000/anyi/llm/chat"
+)
+
+func main() {
+	// 使用 GLM-4-Flash 模型的默认配置
+	config := zhipu.DefaultConfig(os.Getenv("ZHIPU_API_KEY"), "glm-4-flash")
+
+	// 使用 GLM-4 模型进行更复杂任务的配置
+	config := zhipu.DefaultConfig(os.Getenv("ZHIPU_API_KEY"), "glm-4")
+
+	// 使用特定基础 URL 的自定义配置
+	config := zhipu.NewConfig(os.Getenv("ZHIPU_API_KEY"), "glm-4", "https://open.bigmodel.cn/api/paas/v4/")
+
+	// 创建客户端和使用示例
+	client, err := anyi.NewClient("zhipu", config)
+	if err != nil {
+		log.Fatalf("创建智谱客户端失败: %v", err)
+	}
+
+	// 使用客户端进行中文语言任务
+	messages := []chat.Message{
+		{Role: "system", Content: "你是一个专业的AI助手，擅长中文理解和生成。"},
+		{Role: "user", Content: "请解释一下人工智能的发展历程"},
+	}
+	response, _, err := client.Chat(messages, nil)
+	if err != nil {
+		log.Fatalf("请求失败: %v", err)
+	}
+
+	log.Printf("智谱 AI 回答: %s", response.Content)
+}
+```
+
+#### Dashscope（阿里云）
+
+Dashscope 通过 https://help.aliyun.com/zh/dashscope/ 提供对阿里巴巴通义千问系列模型的访问。它在中英文任务方面都表现出色，具有强大的多模态能力。
+
+##### 功能和优势
+
+- 通义千问系列模型具有出色的多语言能力
+- 在代码生成和数学推理方面表现强劲
+- 与阿里云生态系统集成
+- 支持多模态输入（文本和图像）
+- 具有竞争力的定价和企业级可靠性
+
+##### 配置示例
+
+```go
+package main
+
+import (
+	"log"
+	"os"
+
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm/dashscope"
+	"github.com/jieliu2000/anyi/llm/chat"
+)
+
+func main() {
+	// 使用通义千问 Turbo 模型的默认配置
+	config := dashscope.DefaultConfig(os.Getenv("DASHSCOPE_API_KEY"), "qwen-turbo")
+
+	// 使用通义千问 Max 进行复杂推理任务的配置
+	config := dashscope.DefaultConfig(os.Getenv("DASHSCOPE_API_KEY"), "qwen-max")
+
+	// 使用特定基础 URL 的自定义配置
+	config := dashscope.NewConfig(os.Getenv("DASHSCOPE_API_KEY"), "qwen-plus", "https://dashscope.aliyuncs.com/compatible-mode/v1")
+
+	// 创建客户端和使用示例
+	client, err := anyi.NewClient("dashscope", config)
+	if err != nil {
+		log.Fatalf("创建 Dashscope 客户端失败: %v", err)
+	}
+
+	// 使用客户端进行代码生成
+	messages := []chat.Message{
+		{Role: "system", Content: "你是一个专业的软件工程师，专门从事 Go 编程。"},
+		{Role: "user", Content: "编写一个 Go 函数来实现二分搜索算法"},
+	}
+	response, _, err := client.Chat(messages, nil)
+	if err != nil {
+		log.Fatalf("请求失败: %v", err)
+	}
+
+	log.Printf("Dashscope 回答: %s", response.Content)
+}
+```
+
+#### Anthropic
+
+Anthropic 通过 https://www.anthropic.com/claude 提供对 Claude 模型的访问。Claude 模型以其安全性、有用性和出色的推理能力而闻名。
+
+##### 功能和优势
+
+- 先进的推理和分析能力
+- 强烈关注 AI 安全和对齐
+- 在长篇内容生成方面表现出色
+- 支持大型上下文窗口
+- 高质量的代码生成和调试
+
+##### 配置示例
+
+```go
+package main
+
+import (
+	"log"
+	"os"
+
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm/anthropic"
+	"github.com/jieliu2000/anyi/llm/chat"
+)
+
+func main() {
+	// 使用最新 Claude 模型的默认配置
+	config := anthropic.DefaultConfig(os.Getenv("ANTHROPIC_API_KEY"))
+
+	// 使用特定 Claude 模型的配置
+	config := anthropic.DefaultConfigWithModel(os.Getenv("ANTHROPIC_API_KEY"), "claude-3-sonnet-20240229")
+
+	// 使用所有参数的自定义配置
+	config := anthropic.NewConfig(
+		os.Getenv("ANTHROPIC_API_KEY"),
+		"claude-3-opus-20240229",
+		"https://api.anthropic.com/v1",
+		"2023-06-01",
+	)
+
+	// 创建客户端和使用示例
+	client, err := anyi.NewClient("anthropic", config)
+	if err != nil {
+		log.Fatalf("创建 Anthropic 客户端失败: %v", err)
+	}
+
+	// 使用客户端进行复杂分析
+	messages := []chat.Message{
+		{Role: "system", Content: "你是一个深思熟虑的分析师，提供详细、有理有据的回答。"},
+		{Role: "user", Content: "分析量子计算对当前密码系统的潜在影响"},
+	}
+	response, _, err := client.Chat(messages, nil)
+	if err != nil {
+		log.Fatalf("请求失败: %v", err)
+	}
+
+	log.Printf("Anthropic 回答: %s", response.Content)
+}
+```
+
+#### SiliconCloud
+
+SiliconCloud 提供面向企业的 AI 解决方案，可访问各种开源和专有模型。它专为需要可靠、可扩展 AI 服务的企业而设计。
+
+##### 功能和优势
+
+- 企业级可靠性和安全性
+- 在一个平台上访问多个模型系列
+- 商业应用的竞争性定价
+- 支持自定义模型部署
+- 强大的技术支持和 SLA 保证
+
+##### 配置示例
+
+```go
+package main
+
+import (
+	"log"
+	"os"
+
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm/siliconcloud"
+	"github.com/jieliu2000/anyi/llm/chat"
+)
+
+func main() {
+	// 默认配置
+	config := siliconcloud.DefaultConfig(os.Getenv("SILICONCLOUD_API_KEY"), "deepseek-chat")
+
+	// 使用特定基础 URL 的自定义配置
+	config := siliconcloud.NewConfig(
+		os.Getenv("SILICONCLOUD_API_KEY"),
+		"qwen-7b-chat",
+		"https://api.siliconflow.cn/v1",
+	)
+
+	// 创建客户端和使用示例
+	client, err := anyi.NewClient("siliconcloud", config)
+	if err != nil {
+		log.Fatalf("创建 SiliconCloud 客户端失败: %v", err)
+	}
+
+	// 使用客户端进行商业应用
+	messages := []chat.Message{
+		{Role: "system", Content: "你是一个商业分析师，提供战略见解。"},
+		{Role: "user", Content: "2024年企业AI采用的关键趋势是什么？"},
+	}
+	response, _, err := client.Chat(messages, nil)
+	if err != nil {
+		log.Fatalf("请求失败: %v", err)
+	}
+
+	log.Printf("SiliconCloud 回答: %s", response.Content)
+}
+```
+
+### 使用 OpenAI 兼容 API
+
+许多 LLM 提供商都提供 OpenAI 兼容的 API，这使得将它们与 Anyi 集成变得容易。这种方法允许您使用任何实现 OpenAI API 规范的服务，而无需专门的提供商模块。
+
+#### 何时使用 OpenAI 兼容 API
+
+- **新提供商**：当您想使用没有专门 Anyi 模块的提供商时
+- **自定义部署**：用于自托管模型或私有部署
+- **测试**：在承诺集成之前评估新服务时
+- **灵活性**：当您需要在不同兼容提供商之间快速切换时
+
+#### 配置示例
+
+```go
+package main
+
+import (
+	"log"
+	"os"
+
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm/openai"
+	"github.com/jieliu2000/anyi/llm/chat"
+)
+
+func main() {
+	// 示例 1：使用自定义 OpenAI 兼容服务
+	config := openai.NewConfig(
+		os.Getenv("CUSTOM_API_KEY"),
+		"custom-model-name",
+		"https://api.custom-provider.com/v1", // 自定义基础 URL
+	)
+
+	// 示例 2：使用 Together AI（OpenAI 兼容）
+	config := openai.NewConfig(
+		os.Getenv("TOGETHER_API_KEY"),
+		"meta-llama/Llama-2-70b-chat-hf",
+		"https://api.together.xyz/v1",
+	)
+
+	// 示例 3：使用 Groq（OpenAI 兼容）
+	config := openai.NewConfig(
+		os.Getenv("GROQ_API_KEY"),
+		"mixtral-8x7b-32768",
+		"https://api.groq.com/openai/v1",
+	)
+
+	// 创建客户端
+	client, err := anyi.NewClient("custom-provider", config)
+	if err != nil {
+		log.Fatalf("创建客户端失败: %v", err)
+	}
+
+	// 使用客户端
+	messages := []chat.Message{
+		{Role: "user", Content: "你好，能介绍一下你自己吗？"},
+	}
+	response, _, err := client.Chat(messages, nil)
+	if err != nil {
+		log.Fatalf("请求失败: %v", err)
+	}
+
+	log.Printf("回答: %s", response.Content)
+}
+```
+
+#### 常见的 OpenAI 兼容提供商
+
+以下是一些提供 OpenAI 兼容 API 的热门服务：
+
+- **Together AI**：提供对各种开源模型的访问
+- **Groq**：为热门模型提供高速推理
+- **Perplexity AI**：搜索增强的语言模型
+- **Fireworks AI**：开源模型的快速推理
+- **Anyscale**：基于 Ray 的模型服务平台
+- **本地部署**：vLLM、Text Generation Inference 等
+
+#### OpenAI 兼容 API 的最佳实践
+
+1. **检查 API 文档**：验证确切的端点格式和身份验证方法
+2. **模型名称**：使用提供商指定的确切模型名称
+3. **速率限制**：了解不同的速率限制策略
+4. **功能支持**：并非所有提供商都支持所有 OpenAI 功能（函数、视觉等）
+5. **错误处理**：不同提供商可能返回不同的错误格式
 
 ### 如何选择合适的 LLM 提供商
 
