@@ -40,17 +40,7 @@ func TestMCPExecutor_Init(t *testing.T) {
 			},
 			expectError: false,
 		},
-		{
-			name: "valid stdio configuration (legacy)",
-			executor: MCPExecutor{
-				ServerCommand: "node",
-				ServerArgs:    []string{"server.js"},
-				Transport:     TransportSTDIO,
-				Action:        "call_tool",
-				ToolName:      "test_tool",
-			},
-			expectError: false,
-		},
+
 		{
 			name: "missing server configuration",
 			executor: MCPExecutor{
@@ -635,13 +625,16 @@ func TestMCPExecutor_ErrorHandling(t *testing.T) {
 	assert.NotNil(t, result)
 }
 
-func TestMCPExecutor_BackwardCompatibility(t *testing.T) {
-	// Test that legacy configuration still works
+func TestMCPExecutor_CustomServerConfiguration(t *testing.T) {
+	// Test that custom server configuration works
 	executor := &MCPExecutor{
-		ServerCommand: "node",
-		ServerArgs:    []string{"server.js"},
-		Transport:     TransportSTDIO,
-		Action:        "list_tools",
+		Server: &MCPServerConfig{
+			Name:    "custom-server",
+			Type:    TransportSTDIO,
+			Command: "node",
+			Args:    []string{"server.js"},
+		},
+		Action: "list_tools",
 	}
 
 	err := executor.Init()

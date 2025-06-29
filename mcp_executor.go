@@ -110,13 +110,6 @@ type MCPExecutor struct {
 	Resource string                 `json:"resource,omitempty" yaml:"resource,omitempty" mapstructure:"resource"`
 	Prompt   string                 `json:"prompt,omitempty" yaml:"prompt,omitempty" mapstructure:"prompt"`
 
-	// Backward compatibility fields (deprecated but supported)
-	ServerEndpoint string       `json:"serverEndpoint,omitempty" yaml:"serverEndpoint,omitempty" mapstructure:"serverEndpoint"`
-	ServerCommand  string       `json:"serverCommand,omitempty" yaml:"serverCommand,omitempty" mapstructure:"serverCommand"`
-	ServerArgs     []string     `json:"serverArgs,omitempty" yaml:"serverArgs,omitempty" mapstructure:"serverArgs"`
-	Transport      MCPTransport `json:"transport,omitempty" yaml:"transport,omitempty" mapstructure:"transport"`
-	APIKey         string       `json:"apiKey,omitempty" yaml:"apiKey,omitempty" mapstructure:"apiKey"`
-
 	// Output configuration
 	OutputToContext bool   `json:"outputToContext" yaml:"outputToContext" mapstructure:"outputToContext"`
 	ResultVarName   string `json:"resultVarName" yaml:"resultVarName" mapstructure:"resultVarName"`
@@ -288,27 +281,7 @@ func (executor *MCPExecutor) resolveServerConfig() (*MCPServerConfig, error) {
 		// Use custom server config
 		config = executor.Server
 	} else {
-		// Try backward compatibility mode
-		config = &MCPServerConfig{
-			Name: "legacy",
-			Type: executor.Transport,
-		}
-
-		if executor.Transport == TransportSTDIO {
-			config.Command = executor.ServerCommand
-			config.Args = executor.ServerArgs
-		} else {
-			config.URL = executor.ServerEndpoint
-			if executor.APIKey != "" {
-				config.Headers = map[string]string{
-					"Authorization": "Bearer " + executor.APIKey,
-				}
-			}
-		}
-
-		if config.Type == "" {
-			return nil, errors.New("no server configuration provided (use 'preset' for quick setup or 'server' for custom configuration)")
-		}
+		return nil, errors.New("no server configuration provided (use 'preset' for quick setup or 'server' for custom configuration)")
 	}
 
 	// Resolve environment variables in configuration
