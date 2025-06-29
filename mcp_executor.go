@@ -28,16 +28,39 @@ const (
 	TransportSTDIO MCPTransport = "stdio"
 )
 
-// MCPOperation defines the type of MCP operation
-type MCPOperation string
+// MCPServerPreset defines preset configurations for popular MCP servers
+type MCPServerPreset string
 
 const (
-	OperationToolCall      MCPOperation = "tool_call"
-	OperationResourceRead  MCPOperation = "resource_read"
-	OperationPromptGet     MCPOperation = "prompt_get"
-	OperationListTools     MCPOperation = "list_tools"
-	OperationListResources MCPOperation = "list_resources"
+	PresetGitHub     MCPServerPreset = "github"
+	PresetFileSystem MCPServerPreset = "filesystem"
+	PresetFetch      MCPServerPreset = "fetch"
+	PresetMemory     MCPServerPreset = "memory"
+	PresetSlack      MCPServerPreset = "slack"
+	PresetNotaion    MCPServerPreset = "notion"
 )
+
+// MCPServerConfig contains MCP server configuration in a simplified format
+type MCPServerConfig struct {
+	// Basic server identification
+	Name string       `json:"name" yaml:"name" mapstructure:"name"`
+	Type MCPTransport `json:"type" yaml:"type" mapstructure:"type"`
+
+	// Server connection details
+	Command string   `json:"command,omitempty" yaml:"command,omitempty" mapstructure:"command"`
+	Args    []string `json:"args,omitempty" yaml:"args,omitempty" mapstructure:"args"`
+	URL     string   `json:"url,omitempty" yaml:"url,omitempty" mapstructure:"url"`
+
+	// Environment and authentication
+	Env     map[string]string `json:"env,omitempty" yaml:"env,omitempty" mapstructure:"env"`
+	Headers map[string]string `json:"headers,omitempty" yaml:"headers,omitempty" mapstructure:"headers"`
+
+	// Optional settings
+	Enabled     bool          `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`
+	Timeout     time.Duration `json:"timeout,omitempty" yaml:"timeout,omitempty" mapstructure:"timeout"`
+	Tools       []string      `json:"tools,omitempty" yaml:"tools,omitempty" mapstructure:"tools"` // Filter specific tools
+	AutoApprove bool          `json:"autoApprove,omitempty" yaml:"autoApprove,omitempty" mapstructure:"autoApprove"`
+}
 
 // MCPRequest represents a generic MCP request
 type MCPRequest struct {
@@ -74,33 +97,25 @@ type MCPClient interface {
 }
 
 // MCPExecutor is an optimized executor that communicates with MCP servers.
-// It provides a clean abstraction for Anyi workflows to interact with various MCP servers.
+// It uses a simplified configuration format similar to VSCode/Cursor implementations.
 type MCPExecutor struct {
-	// Server configuration - only one should be specified
-	ServerEndpoint string   `json:"serverEndpoint,omitempty" yaml:"serverEndpoint,omitempty" mapstructure:"serverEndpoint"`
-	ServerCommand  string   `json:"serverCommand,omitempty" yaml:"serverCommand,omitempty" mapstructure:"serverCommand"`
-	ServerArgs     []string `json:"serverArgs,omitempty" yaml:"serverArgs,omitempty" mapstructure:"serverArgs"`
+	// Server configuration (can use preset or custom config)
+	Preset MCPServerPreset  `json:"preset,omitempty" yaml:"preset,omitempty" mapstructure:"preset"`
+	Server *MCPServerConfig `json:"server,omitempty" yaml:"server,omitempty" mapstructure:"server"`
 
-	// Transport configuration
-	Transport MCPTransport `json:"transport" yaml:"transport" mapstructure:"transport"`
+	// Dynamic operation parameters (set at runtime)
+	Action   string                 `json:"action" yaml:"action" mapstructure:"action"` // "call_tool", "read_resource", "get_prompt", "list_tools", "list_resources"
+	ToolName string                 `json:"toolName,omitempty" yaml:"toolName,omitempty" mapstructure:"toolName"`
+	ToolArgs map[string]interface{} `json:"toolArgs,omitempty" yaml:"toolArgs,omitempty" mapstructure:"toolArgs"`
+	Resource string                 `json:"resource,omitempty" yaml:"resource,omitempty" mapstructure:"resource"`
+	Prompt   string                 `json:"prompt,omitempty" yaml:"prompt,omitempty" mapstructure:"prompt"`
 
-	// Authentication (optional)
-	APIKey string `json:"apiKey,omitempty" yaml:"apiKey,omitempty" mapstructure:"apiKey"`
-
-	// Operation configuration
-	Operation MCPOperation `json:"operation" yaml:"operation" mapstructure:"operation"`
-
-	// Tool call parameters
-	ToolName    string                 `json:"toolName,omitempty" yaml:"toolName,omitempty" mapstructure:"toolName"`
-	ToolArgs    map[string]interface{} `json:"toolArgs,omitempty" yaml:"toolArgs,omitempty" mapstructure:"toolArgs"`
-	ToolArgVars []string               `json:"toolArgVars,omitempty" yaml:"toolArgVars,omitempty" mapstructure:"toolArgVars"`
-
-	// Resource parameters
-	ResourceURI string `json:"resourceUri,omitempty" yaml:"resourceUri,omitempty" mapstructure:"resourceUri"`
-
-	// Prompt parameters
-	PromptName string                 `json:"promptName,omitempty" yaml:"promptName,omitempty" mapstructure:"promptName"`
-	PromptArgs map[string]interface{} `json:"promptArgs,omitempty" yaml:"promptArgs,omitempty" mapstructure:"promptArgs"`
+	// Backward compatibility fields (deprecated but supported)
+	ServerEndpoint string       `json:"serverEndpoint,omitempty" yaml:"serverEndpoint,omitempty" mapstructure:"serverEndpoint"`
+	ServerCommand  string       `json:"serverCommand,omitempty" yaml:"serverCommand,omitempty" mapstructure:"serverCommand"`
+	ServerArgs     []string     `json:"serverArgs,omitempty" yaml:"serverArgs,omitempty" mapstructure:"serverArgs"`
+	Transport      MCPTransport `json:"transport,omitempty" yaml:"transport,omitempty" mapstructure:"transport"`
+	APIKey         string       `json:"apiKey,omitempty" yaml:"apiKey,omitempty" mapstructure:"apiKey"`
 
 	// Output configuration
 	OutputToContext bool   `json:"outputToContext" yaml:"outputToContext" mapstructure:"outputToContext"`
@@ -116,6 +131,113 @@ type MCPExecutor struct {
 	mutex       sync.RWMutex
 }
 
+// getPresetConfig returns the configuration for a preset server
+func getPresetConfig(preset MCPServerPreset) (*MCPServerConfig, error) {
+	presets := map[MCPServerPreset]*MCPServerConfig{
+		PresetGitHub: {
+			Name:    "github",
+			Type:    TransportSTDIO,
+			Command: "npx",
+			Args:    []string{"-y", "@modelcontextprotocol/server-github"},
+			Env: map[string]string{
+				"GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}",
+			},
+			Enabled: true,
+			Timeout: 30 * time.Second,
+		},
+		PresetFileSystem: {
+			Name:    "filesystem",
+			Type:    TransportSTDIO,
+			Command: "npx",
+			Args:    []string{"-y", "@modelcontextprotocol/server-filesystem"},
+			Enabled: true,
+			Timeout: 30 * time.Second,
+		},
+		PresetFetch: {
+			Name:    "fetch",
+			Type:    TransportSTDIO,
+			Command: "npx",
+			Args:    []string{"-y", "@modelcontextprotocol/server-fetch"},
+			Enabled: true,
+			Timeout: 30 * time.Second,
+		},
+		PresetMemory: {
+			Name:    "memory",
+			Type:    TransportSTDIO,
+			Command: "npx",
+			Args:    []string{"-y", "@modelcontextprotocol/server-memory"},
+			Enabled: true,
+			Timeout: 30 * time.Second,
+		},
+		PresetSlack: {
+			Name:    "slack",
+			Type:    TransportSTDIO,
+			Command: "npx",
+			Args:    []string{"-y", "@modelcontextprotocol/server-slack"},
+			Env: map[string]string{
+				"SLACK_BOT_TOKEN": "${SLACK_BOT_TOKEN}",
+				"SLACK_TEAM_ID":   "${SLACK_TEAM_ID}",
+			},
+			Enabled: true,
+			Timeout: 30 * time.Second,
+		},
+		PresetNotaion: {
+			Name:    "notion",
+			Type:    TransportSTDIO,
+			Command: "npx",
+			Args:    []string{"-y", "@modelcontextprotocol/server-notion"},
+			Env: map[string]string{
+				"NOTION_API_TOKEN": "${NOTION_API_TOKEN}",
+			},
+			Enabled: true,
+			Timeout: 30 * time.Second,
+		},
+	}
+
+	config, exists := presets[preset]
+	if !exists {
+		return nil, fmt.Errorf("unknown preset: %s", preset)
+	}
+
+	// Deep copy to avoid modifying the original
+	configCopy := *config
+	return &configCopy, nil
+}
+
+// resolveEnvironmentVariables resolves environment variable placeholders in the format ${VAR_NAME}
+func resolveEnvironmentVariables(input string) string {
+	// Simple ${VAR_NAME} replacement
+	result := input
+	processed := 0
+
+	for {
+		start := strings.Index(result[processed:], "${")
+		if start == -1 {
+			break
+		}
+		start += processed
+
+		end := strings.Index(result[start:], "}")
+		if end == -1 {
+			break
+		}
+		end += start
+
+		varName := result[start+2 : end]
+		envValue, exists := os.LookupEnv(varName)
+
+		if exists {
+			// Replace the variable with its value
+			result = result[:start] + envValue + result[end+1:]
+			processed = start + len(envValue)
+		} else {
+			// Skip this variable and continue looking after it
+			processed = end + 1
+		}
+	}
+	return result
+}
+
 // Init initializes the MCPExecutor with proper validation and client setup
 func (executor *MCPExecutor) Init() error {
 	executor.mutex.Lock()
@@ -125,8 +247,14 @@ func (executor *MCPExecutor) Init() error {
 		return nil
 	}
 
+	// Resolve server configuration
+	config, err := executor.resolveServerConfig()
+	if err != nil {
+		return fmt.Errorf("failed to resolve server configuration: %w", err)
+	}
+
 	// Validate configuration
-	if err := executor.validateConfig(); err != nil {
+	if err := executor.validateConfig(config); err != nil {
 		return fmt.Errorf("invalid configuration: %w", err)
 	}
 
@@ -134,7 +262,7 @@ func (executor *MCPExecutor) Init() error {
 	executor.setDefaults()
 
 	// Create appropriate client based on transport
-	client, err := executor.createClient()
+	client, err := executor.createClient(config)
 	if err != nil {
 		return fmt.Errorf("failed to create MCP client: %w", err)
 	}
@@ -145,48 +273,144 @@ func (executor *MCPExecutor) Init() error {
 	return nil
 }
 
-// validateConfig validates the executor configuration
-func (executor *MCPExecutor) validateConfig() error {
-	// Validate transport
-	if executor.Transport != TransportHTTP &&
-		executor.Transport != TransportSSE &&
-		executor.Transport != TransportSTDIO {
-		return errors.New("transport must be one of: http, sse, stdio")
-	}
+// resolveServerConfig resolves the final server configuration from preset or custom config
+func (executor *MCPExecutor) resolveServerConfig() (*MCPServerConfig, error) {
+	var config *MCPServerConfig
+	var err error
 
-	// Validate server configuration
-	if executor.Transport == TransportSTDIO {
-		if executor.ServerCommand == "" {
-			return errors.New("serverCommand is required for stdio transport")
+	// Use preset if specified
+	if executor.Preset != "" {
+		config, err = getPresetConfig(executor.Preset)
+		if err != nil {
+			return nil, err
 		}
+	} else if executor.Server != nil {
+		// Use custom server config
+		config = executor.Server
 	} else {
-		if executor.ServerEndpoint == "" {
-			return errors.New("serverEndpoint is required for http/sse transport")
+		// Try backward compatibility mode
+		config = &MCPServerConfig{
+			Name: "legacy",
+			Type: executor.Transport,
+		}
+
+		if executor.Transport == TransportSTDIO {
+			config.Command = executor.ServerCommand
+			config.Args = executor.ServerArgs
+		} else {
+			config.URL = executor.ServerEndpoint
+			if executor.APIKey != "" {
+				config.Headers = map[string]string{
+					"Authorization": "Bearer " + executor.APIKey,
+				}
+			}
+		}
+
+		if config.Type == "" {
+			return nil, errors.New("no server configuration provided (use 'preset' for quick setup or 'server' for custom configuration)")
 		}
 	}
 
-	// Validate operation
-	if executor.Operation == "" {
-		return errors.New("operation must be specified")
+	// Resolve environment variables in configuration
+	if config.Env != nil {
+		for key, value := range config.Env {
+			config.Env[key] = resolveEnvironmentVariables(value)
+		}
 	}
 
-	// Validate operation-specific parameters
-	switch executor.Operation {
-	case OperationToolCall:
-		if executor.ToolName == "" {
-			return errors.New("toolName is required for tool_call operation")
+	if config.Headers != nil {
+		for key, value := range config.Headers {
+			config.Headers[key] = resolveEnvironmentVariables(value)
 		}
-	case OperationResourceRead:
-		if executor.ResourceURI == "" {
-			return errors.New("resourceUri is required for resource_read operation")
+	}
+
+	if config.URL != "" {
+		config.URL = resolveEnvironmentVariables(config.URL)
+	}
+
+	return config, nil
+}
+
+// validateConfig validates the resolved server configuration
+func (executor *MCPExecutor) validateConfig(config *MCPServerConfig) error {
+	if config == nil {
+		return errors.New("server configuration is required")
+	}
+
+	// Validate transport type
+	if config.Type != TransportHTTP && config.Type != TransportSSE && config.Type != TransportSTDIO {
+		return fmt.Errorf("invalid transport type: %s (must be 'http', 'sse', or 'stdio')", config.Type)
+	}
+
+	// Validate transport-specific configuration
+	switch config.Type {
+	case TransportSTDIO:
+		if config.Command == "" {
+			return errors.New("command is required for stdio transport")
 		}
-	case OperationPromptGet:
-		if executor.PromptName == "" {
-			return errors.New("promptName is required for prompt_get operation")
+	case TransportHTTP, TransportSSE:
+		if config.URL == "" {
+			return errors.New("url is required for http/sse transport")
+		}
+	}
+
+	// Validate action if specified
+	if executor.Action != "" {
+		validActions := map[string]bool{
+			"call_tool":      true,
+			"read_resource":  true,
+			"get_prompt":     true,
+			"list_tools":     true,
+			"list_resources": true,
+		}
+		if !validActions[executor.Action] {
+			return fmt.Errorf("invalid action: %s (must be one of: call_tool, read_resource, get_prompt, list_tools, list_resources)", executor.Action)
+		}
+
+		// Validate action-specific parameters
+		switch executor.Action {
+		case "call_tool":
+			if executor.ToolName == "" {
+				return errors.New("toolName is required for call_tool action")
+			}
+		case "read_resource":
+			if executor.Resource == "" {
+				return errors.New("resource is required for read_resource action")
+			}
+		case "get_prompt":
+			if executor.Prompt == "" {
+				return errors.New("prompt is required for get_prompt action")
+			}
 		}
 	}
 
 	return nil
+}
+
+// createClient creates the appropriate MCP client based on transport type
+func (executor *MCPExecutor) createClient(config *MCPServerConfig) (MCPClient, error) {
+	switch config.Type {
+	case TransportHTTP:
+		apiKey := ""
+		if config.Headers != nil {
+			if auth, ok := config.Headers["Authorization"]; ok {
+				apiKey = strings.TrimPrefix(auth, "Bearer ")
+			}
+		}
+		return NewHTTPMCPClient(config.URL, apiKey, config.Timeout)
+	case TransportSSE:
+		apiKey := ""
+		if config.Headers != nil {
+			if auth, ok := config.Headers["Authorization"]; ok {
+				apiKey = strings.TrimPrefix(auth, "Bearer ")
+			}
+		}
+		return NewSSEMCPClient(config.URL, apiKey, config.Timeout)
+	case TransportSTDIO:
+		return NewSTDIOMCPClient(config.Command, config.Args, config.Timeout)
+	default:
+		return nil, fmt.Errorf("unsupported transport type: %s", config.Type)
+	}
 }
 
 // setDefaults sets default values for optional fields
@@ -205,24 +429,6 @@ func (executor *MCPExecutor) setDefaults() {
 
 	if executor.ToolArgs == nil {
 		executor.ToolArgs = make(map[string]interface{})
-	}
-
-	if executor.PromptArgs == nil {
-		executor.PromptArgs = make(map[string]interface{})
-	}
-}
-
-// createClient creates the appropriate MCP client based on transport type
-func (executor *MCPExecutor) createClient() (MCPClient, error) {
-	switch executor.Transport {
-	case TransportHTTP:
-		return NewHTTPMCPClient(executor.ServerEndpoint, executor.APIKey, executor.Timeout)
-	case TransportSSE:
-		return NewSSEMCPClient(executor.ServerEndpoint, executor.APIKey, executor.Timeout)
-	case TransportSTDIO:
-		return NewSTDIOMCPClient(executor.ServerCommand, executor.ServerArgs, executor.Timeout)
-	default:
-		return nil, fmt.Errorf("unsupported transport: %s", executor.Transport)
 	}
 }
 
@@ -270,27 +476,27 @@ func (executor *MCPExecutor) Run(flowContext flow.FlowContext, step *flow.Step) 
 
 // executeOperation executes the specific MCP operation
 func (executor *MCPExecutor) executeOperation(ctx context.Context, flowContext flow.FlowContext) (*MCPResponse, error) {
-	switch executor.Operation {
-	case OperationToolCall:
+	switch executor.Action {
+	case "call_tool":
 		args := executor.buildToolArguments(flowContext)
 		return executor.client.CallTool(ctx, executor.ToolName, args)
 
-	case OperationResourceRead:
-		uri := executor.formatStringWithVariables(executor.ResourceURI, flowContext.Variables)
+	case "read_resource":
+		uri := executor.formatStringWithVariables(executor.Resource, flowContext.Variables)
 		return executor.client.ReadResource(ctx, uri)
 
-	case OperationPromptGet:
+	case "get_prompt":
 		args := executor.buildPromptArguments(flowContext)
-		return executor.client.GetPrompt(ctx, executor.PromptName, args)
+		return executor.client.GetPrompt(ctx, executor.Prompt, args)
 
-	case OperationListTools:
+	case "list_tools":
 		return executor.client.ListTools(ctx)
 
-	case OperationListResources:
+	case "list_resources":
 		return executor.client.ListResources(ctx)
 
 	default:
-		return nil, fmt.Errorf("unsupported operation: %s", executor.Operation)
+		return nil, fmt.Errorf("unsupported operation: %s", executor.Action)
 	}
 }
 
@@ -303,10 +509,10 @@ func (executor *MCPExecutor) buildToolArguments(flowContext flow.FlowContext) ma
 		args[key] = value
 	}
 
-	// Add arguments from flow context variables
-	for _, argVar := range executor.ToolArgVars {
-		if value := flowContext.GetVariable(argVar); value != nil {
-			args[argVar] = value
+	// Process string values that might contain variable placeholders
+	for key, value := range args {
+		if strValue, ok := value.(string); ok {
+			args[key] = executor.formatStringWithVariables(strValue, flowContext.Variables)
 		}
 	}
 
@@ -317,9 +523,16 @@ func (executor *MCPExecutor) buildToolArguments(flowContext flow.FlowContext) ma
 func (executor *MCPExecutor) buildPromptArguments(flowContext flow.FlowContext) map[string]interface{} {
 	args := make(map[string]interface{})
 
-	// Copy static arguments
-	for key, value := range executor.PromptArgs {
+	// For prompt arguments, we use ToolArgs as the general arguments container
+	for key, value := range executor.ToolArgs {
 		args[key] = value
+	}
+
+	// Process string values that might contain variable placeholders
+	for key, value := range args {
+		if strValue, ok := value.(string); ok {
+			args[key] = executor.formatStringWithVariables(strValue, flowContext.Variables)
+		}
 	}
 
 	return args

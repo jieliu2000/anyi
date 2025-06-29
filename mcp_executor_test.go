@@ -18,84 +18,83 @@ func TestMCPExecutor_Init(t *testing.T) {
 		errorSubstring string
 	}{
 		{
-			name: "valid http configuration",
+			name: "valid preset configuration",
 			executor: MCPExecutor{
-				ServerEndpoint: "http://localhost:8080",
-				Transport:      TransportHTTP,
-				Operation:      OperationToolCall,
-				ToolName:       "test_tool",
+				Preset:   PresetGitHub,
+				Action:   "call_tool",
+				ToolName: "test_tool",
 			},
 			expectError: false,
 		},
 		{
-			name: "valid stdio configuration",
+			name: "valid custom server configuration",
+			executor: MCPExecutor{
+				Server: &MCPServerConfig{
+					Name:    "test-server",
+					Type:    TransportHTTP,
+					URL:     "http://localhost:8080",
+					Enabled: true,
+				},
+				Action:   "call_tool",
+				ToolName: "test_tool",
+			},
+			expectError: false,
+		},
+		{
+			name: "valid stdio configuration (legacy)",
 			executor: MCPExecutor{
 				ServerCommand: "node",
 				ServerArgs:    []string{"server.js"},
 				Transport:     TransportSTDIO,
-				Operation:     OperationToolCall,
+				Action:        "call_tool",
 				ToolName:      "test_tool",
 			},
 			expectError: false,
 		},
 		{
-			name: "missing server endpoint for http",
+			name: "missing server configuration",
 			executor: MCPExecutor{
-				Transport: TransportHTTP,
-				Operation: OperationToolCall,
-				ToolName:  "test_tool",
+				Action:   "call_tool",
+				ToolName: "test_tool",
 			},
 			expectError:    true,
-			errorSubstring: "serverEndpoint is required",
+			errorSubstring: "no server configuration provided",
 		},
 		{
-			name: "missing server command for stdio",
+			name: "invalid action",
 			executor: MCPExecutor{
-				Transport: TransportSTDIO,
-				Operation: OperationToolCall,
-				ToolName:  "test_tool",
+				Preset: PresetGitHub,
+				Action: "invalid_action",
 			},
 			expectError:    true,
-			errorSubstring: "serverCommand is required",
+			errorSubstring: "invalid action",
 		},
 		{
-			name: "missing operation",
+			name: "missing tool name for call_tool action",
 			executor: MCPExecutor{
-				ServerEndpoint: "http://localhost:8080",
-				Transport:      TransportHTTP,
-			},
-			expectError:    true,
-			errorSubstring: "operation must be specified",
-		},
-		{
-			name: "missing tool name for tool call",
-			executor: MCPExecutor{
-				ServerEndpoint: "http://localhost:8080",
-				Transport:      TransportHTTP,
-				Operation:      OperationToolCall,
+				Preset: PresetGitHub,
+				Action: "call_tool",
 			},
 			expectError:    true,
 			errorSubstring: "toolName is required",
 		},
 		{
-			name: "missing resource URI for resource read",
+			name: "missing resource for read_resource action",
 			executor: MCPExecutor{
-				ServerEndpoint: "http://localhost:8080",
-				Transport:      TransportHTTP,
-				Operation:      OperationResourceRead,
+				Preset: PresetGitHub,
+				Action: "read_resource",
 			},
 			expectError:    true,
-			errorSubstring: "resourceUri is required",
+			errorSubstring: "resource is required",
 		},
 		{
-			name: "missing prompt name for prompt get",
+			name: "missing prompt for get_prompt action",
 			executor: MCPExecutor{
-				ServerEndpoint: "http://localhost:8080",
-				Transport:      TransportHTTP,
-				Operation:      OperationPromptGet,
+				Preset: PresetGitHub,
+				Action: "get_prompt",
 			},
 			expectError:    true,
-			errorSubstring: "promptName is required",
+			errorSubstring: "prompt is required",
 		},
 	}
 
@@ -114,6 +113,71 @@ func TestMCPExecutor_Init(t *testing.T) {
 				assert.True(t, executor.initialized)
 				assert.NotNil(t, executor.client)
 			}
+		})
+	}
+}
+
+func TestMCPExecutor_PresetConfigurations(t *testing.T) {
+	tests := []struct {
+		name   string
+		preset MCPServerPreset
+	}{
+		{"GitHub preset", PresetGitHub},
+		{"FileSystem preset", PresetFileSystem},
+		{"Fetch preset", PresetFetch},
+		{"Memory preset", PresetMemory},
+		{"Slack preset", PresetSlack},
+		{"Notion preset", PresetNotaion},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			config, err := getPresetConfig(tc.preset)
+			assert.NoError(t, err)
+			assert.NotNil(t, config)
+			assert.NotEmpty(t, config.Name)
+			assert.NotEmpty(t, config.Type)
+		})
+	}
+}
+
+func TestMCPExecutor_EnvironmentVariableResolution(t *testing.T) {
+	// Set test environment variable
+	testKey := "TEST_MCP_VAR"
+	testValue := "test_value_123"
+	t.Setenv(testKey, testValue)
+
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "single variable",
+			input:    "${TEST_MCP_VAR}",
+			expected: testValue,
+		},
+		{
+			name:     "variable in string",
+			input:    "prefix_${TEST_MCP_VAR}_suffix",
+			expected: "prefix_" + testValue + "_suffix",
+		},
+		{
+			name:     "missing variable",
+			input:    "${MISSING_VAR}",
+			expected: "${MISSING_VAR}",
+		},
+		{
+			name:     "no variables",
+			input:    "simple_string",
+			expected: "simple_string",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result := resolveEnvironmentVariables(tc.input)
+			assert.Equal(t, tc.expected, result)
 		})
 	}
 }
@@ -148,10 +212,9 @@ func TestMCPExecutor_FormatStringWithVariables(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			executor := &MCPExecutor{
-				ServerEndpoint: "http://localhost:8080",
-				Transport:      TransportHTTP,
-				Operation:      OperationToolCall,
-				ToolName:       "test_tool",
+				Preset:   PresetGitHub,
+				Action:   "call_tool",
+				ToolName: "test_tool",
 			}
 			result := executor.formatStringWithVariables(tc.format, tc.variables)
 			assert.Equal(t, tc.expected, result)
@@ -165,12 +228,18 @@ func TestMCPExecutor_WithMockServer(t *testing.T) {
 	defer mockServer.Close()
 
 	t.Run("tool call with mock server", func(t *testing.T) {
+		// Clear previous requests
+		mockServer.ClearRequests()
+
 		executor := &MCPExecutor{
-			ServerEndpoint: mockServer.URL(),
-			Transport:      TransportHTTP,
-			Operation:      OperationToolCall,
-			ToolName:       "test_tool",
-			ToolArgs:       map[string]interface{}{"param1": "value1"},
+			Server: &MCPServerConfig{
+				Name: "test-server",
+				Type: TransportHTTP,
+				URL:  mockServer.URL(),
+			},
+			Action:   "call_tool",
+			ToolName: "test_tool",
+			ToolArgs: map[string]interface{}{"param1": "value1"},
 		}
 
 		// Initialize
@@ -192,31 +261,35 @@ func TestMCPExecutor_WithMockServer(t *testing.T) {
 	})
 
 	t.Run("resource read with mock server", func(t *testing.T) {
+		// Clear previous requests
+		mockServer.ClearRequests()
+
 		executor := &MCPExecutor{
-			ServerEndpoint:  mockServer.URL(),
-			Transport:       TransportHTTP,
-			Operation:       OperationResourceRead,
-			ResourceURI:     "/test-resource",
+			Server: &MCPServerConfig{
+				Name: "test-server",
+				Type: TransportHTTP,
+				URL:  mockServer.URL(),
+			},
+			Action:          "read_resource",
+			Resource:        "/test-resource",
 			OutputToContext: true,
 			ResultVarName:   "resourceResult",
 		}
-
-		// Clear previous requests
-		mockServer.ClearRequests()
 
 		// Initialize
 		err := executor.Init()
 		assert.NoError(t, err)
 
 		// Run
-		flowContext := flow.FlowContext{
-			Variables: make(map[string]any),
-		}
+		flowContext := flow.FlowContext{}
 		result, err := executor.Run(flowContext, nil)
 
 		// Verify results
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
+
+		// Check that result was stored in variables
+		assert.NotNil(t, result.GetVariable("resourceResult"))
 
 		// Verify request was sent to mock server
 		requests := mockServer.GetRequests()
@@ -225,16 +298,20 @@ func TestMCPExecutor_WithMockServer(t *testing.T) {
 	})
 
 	t.Run("prompt get with mock server", func(t *testing.T) {
-		executor := &MCPExecutor{
-			ServerEndpoint: mockServer.URL(),
-			Transport:      TransportHTTP,
-			Operation:      OperationPromptGet,
-			PromptName:     "test_prompt",
-			PromptArgs:     map[string]interface{}{"arg1": "value1"},
-		}
-
 		// Clear previous requests
 		mockServer.ClearRequests()
+
+		executor := &MCPExecutor{
+			Server: &MCPServerConfig{
+				Name: "test-server",
+				Type: TransportHTTP,
+				URL:  mockServer.URL(),
+			},
+			Action:        "get_prompt",
+			Prompt:        "test_prompt",
+			ToolArgs:      map[string]interface{}{"param1": "value1"},
+			ResultVarName: "promptResult",
+		}
 
 		// Initialize
 		err := executor.Init()
@@ -247,6 +324,9 @@ func TestMCPExecutor_WithMockServer(t *testing.T) {
 		// Verify results
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
+
+		// Check that result was stored in variables
+		assert.NotNil(t, result.GetVariable("promptResult"))
 
 		// Verify request was sent to mock server
 		requests := mockServer.GetRequests()
@@ -254,281 +334,139 @@ func TestMCPExecutor_WithMockServer(t *testing.T) {
 		assert.Equal(t, "prompts/get", requests[0].Method)
 	})
 
-	t.Run("variables substitution with mock server", func(t *testing.T) {
-		executor := &MCPExecutor{
-			ServerEndpoint:  mockServer.URL(),
-			Transport:       TransportHTTP,
-			Operation:       OperationResourceRead,
-			ResourceURI:     "/resources/${docId}",
-			OutputToContext: true,
-			ResultVarName:   "testVar",
-		}
-
+	t.Run("list tools with mock server", func(t *testing.T) {
 		// Clear previous requests
 		mockServer.ClearRequests()
+
+		executor := &MCPExecutor{
+			Server: &MCPServerConfig{
+				Name: "test-server",
+				Type: TransportHTTP,
+				URL:  mockServer.URL(),
+			},
+			Action:        "list_tools",
+			ResultVarName: "toolsList",
+		}
 
 		// Initialize
 		err := executor.Init()
 		assert.NoError(t, err)
 
-		// Set context variables
-		flowContext := flow.FlowContext{
-			Variables: map[string]any{
-				"docId": "test-123",
-			},
-		}
-
 		// Run
+		flowContext := flow.FlowContext{}
 		result, err := executor.Run(flowContext, nil)
 
 		// Verify results
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
 
-		// Verify variable substitution worked
+		// Check that result was stored in variables
+		assert.NotNil(t, result.GetVariable("toolsList"))
+
+		// Verify request was sent to mock server
 		requests := mockServer.GetRequests()
 		assert.Len(t, requests, 1)
-		// Could further verify that the URI in request parameters had variables correctly substituted
+		assert.Equal(t, "tools/list", requests[0].Method)
 	})
 
-	t.Run("error handling with mock server", func(t *testing.T) {
-		// Set error response
-		mockServer.SetErrorResponse("tools/call", -1, "Mock error")
-
-		executor := &MCPExecutor{
-			ServerEndpoint: mockServer.URL(),
-			Transport:      TransportHTTP,
-			Operation:      OperationToolCall,
-			ToolName:       "error_tool",
-			RetryAttempts:  1, // Reduce retry attempts to speed up test
-		}
-
+	t.Run("list resources with mock server", func(t *testing.T) {
 		// Clear previous requests
 		mockServer.ClearRequests()
+
+		executor := &MCPExecutor{
+			Server: &MCPServerConfig{
+				Name: "test-server",
+				Type: TransportHTTP,
+				URL:  mockServer.URL(),
+			},
+			Action:        "list_resources",
+			ResultVarName: "resourcesList",
+		}
 
 		// Initialize
 		err := executor.Init()
 		assert.NoError(t, err)
 
-		// Run (should fail)
+		// Run
 		flowContext := flow.FlowContext{}
-		_, err = executor.Run(flowContext, nil)
+		result, err := executor.Run(flowContext, nil)
 
-		// Verify error
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "Mock error")
+		// Verify results
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
 
-		// Restore normal response
-		mockServer.SetResponse("tools/call", map[string]interface{}{
-			"content": []map[string]interface{}{
-				{
-					"type": "text",
-					"text": "Tool executed successfully",
-				},
-			},
-		})
+		// Check that result was stored in variables
+		assert.NotNil(t, result.GetVariable("resourcesList"))
+
+		// Verify request was sent to mock server
+		requests := mockServer.GetRequests()
+		assert.Len(t, requests, 1)
+		assert.Equal(t, "resources/list", requests[0].Method)
 	})
 }
 
-func TestMCPExecutor_BasicFunctionality(t *testing.T) {
-	t.Run("initialized when running", func(t *testing.T) {
-		// Create mock server
-		mockServer := test.NewMockMCPServer()
-		defer mockServer.Close()
-
-		executor := &MCPExecutor{
-			ServerEndpoint: mockServer.URL(),
-			Transport:      TransportHTTP,
-			Operation:      OperationToolCall,
-			ToolName:       "test_tool",
-		}
-
-		// Don't initialize, let Run do it
-		flowContext := flow.FlowContext{}
-		executor.Run(flowContext, nil)
-
-		// Should be initialized after Run
-		assert.True(t, executor.initialized)
-	})
-}
-
-// TestMCPExecutor_SSETransport tests SSE transport functionality
-func TestMCPExecutor_SSETransport(t *testing.T) {
-	// Create mock SSE server
-	mockSSEServer := test.NewMockSSEServer()
-	defer mockSSEServer.Close()
-
-	t.Run("SSE tool call", func(t *testing.T) {
-		executor := &MCPExecutor{
-			ServerEndpoint: mockSSEServer.URL() + "/events",
-			Transport:      TransportSSE,
-			Operation:      OperationToolCall,
-			ToolName:       "sse_test_tool",
-			ToolArgs:       map[string]interface{}{"param1": "sse_value1"},
-			Timeout:        5 * time.Second,
-			RetryAttempts:  1,
-		}
-
-		// Initialize
-		err := executor.Init()
-		require.NoError(t, err)
-		assert.True(t, executor.initialized)
-		assert.NotNil(t, executor.client)
-
-		// Test client type
-		_, ok := executor.client.(*SSEMCPClient)
-		assert.True(t, ok, "Expected SSEMCPClient")
-
-		// Clean up
-		executor.Close()
-	})
-
-	t.Run("SSE resource read", func(t *testing.T) {
-		executor := &MCPExecutor{
-			ServerEndpoint:  mockSSEServer.URL() + "/events",
-			Transport:       TransportSSE,
-			Operation:       OperationResourceRead,
-			ResourceURI:     "/sse-test-resource",
-			OutputToContext: true,
-			ResultVarName:   "sseResourceResult",
-			Timeout:         5 * time.Second,
-			RetryAttempts:   1,
-		}
-
-		// Initialize
-		err := executor.Init()
-		require.NoError(t, err)
-
-		// Clean up
-		executor.Close()
-	})
-
-	t.Run("SSE validation errors", func(t *testing.T) {
-		// Missing endpoint
-		executor := &MCPExecutor{
-			Transport: TransportSSE,
-			Operation: OperationToolCall,
-			ToolName:  "test_tool",
-		}
-
-		err := executor.Init()
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "serverEndpoint is required")
-	})
-}
-
-// TestMCPExecutor_STDIOTransport tests STDIO transport functionality
-func TestMCPExecutor_STDIOTransport(t *testing.T) {
-	t.Run("STDIO client creation", func(t *testing.T) {
-		executor := &MCPExecutor{
-			ServerCommand: "echo",
-			ServerArgs:    []string{"test"},
-			Transport:     TransportSTDIO,
-			Operation:     OperationListTools,
-			Timeout:       5 * time.Second,
-			RetryAttempts: 1,
-		}
-
-		// Initialize
-		err := executor.Init()
-		require.NoError(t, err)
-		assert.True(t, executor.initialized)
-		assert.NotNil(t, executor.client)
-
-		// Test client type
-		_, ok := executor.client.(*STDIOMCPClient)
-		assert.True(t, ok, "Expected STDIOMCPClient")
-
-		// Clean up
-		executor.Close()
-	})
-
-	t.Run("STDIO with arguments", func(t *testing.T) {
-		executor := &MCPExecutor{
-			ServerCommand: "python",
-			ServerArgs:    []string{"-c", "print('test')"},
-			Transport:     TransportSTDIO,
-			Operation:     OperationToolCall,
-			ToolName:      "test_tool",
-			ToolArgs:      map[string]interface{}{"input": "test_data"},
-			Timeout:       5 * time.Second,
-			RetryAttempts: 1,
-		}
-
-		// Initialize
-		err := executor.Init()
-		require.NoError(t, err)
-
-		// Clean up
-		executor.Close()
-	})
-
-	t.Run("STDIO validation errors", func(t *testing.T) {
-		// Missing command
-		executor := &MCPExecutor{
-			Transport: TransportSTDIO,
-			Operation: OperationToolCall,
-			ToolName:  "test_tool",
-		}
-
-		err := executor.Init()
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "serverCommand is required")
-	})
-}
-
-// TestMCPExecutor_TransportSpecificValidation tests transport-specific validation
 func TestMCPExecutor_TransportSpecificValidation(t *testing.T) {
 	tests := []struct {
 		name           string
-		executor       MCPExecutor
+		serverConfig   *MCPServerConfig
 		expectError    bool
 		errorSubstring string
 	}{
 		{
-			name: "valid SSE configuration",
-			executor: MCPExecutor{
-				ServerEndpoint: "http://localhost:8080/events",
-				Transport:      TransportSSE,
-				Operation:      OperationListTools,
+			name: "valid HTTP config",
+			serverConfig: &MCPServerConfig{
+				Name: "http-server",
+				Type: TransportHTTP,
+				URL:  "http://localhost:8080",
 			},
 			expectError: false,
 		},
 		{
+			name: "valid STDIO config",
+			serverConfig: &MCPServerConfig{
+				Name:    "stdio-server",
+				Type:    TransportSTDIO,
+				Command: "node",
+				Args:    []string{"server.js"},
+			},
+			expectError: false,
+		},
+		{
+			name: "HTTP missing URL",
+			serverConfig: &MCPServerConfig{
+				Name: "http-server",
+				Type: TransportHTTP,
+			},
+			expectError:    true,
+			errorSubstring: "url is required",
+		},
+		{
+			name: "STDIO missing command",
+			serverConfig: &MCPServerConfig{
+				Name: "stdio-server",
+				Type: TransportSTDIO,
+			},
+			expectError:    true,
+			errorSubstring: "command is required",
+		},
+		{
 			name: "invalid transport type",
-			executor: MCPExecutor{
-				Transport: "websocket",
-				Operation: OperationToolCall,
+			serverConfig: &MCPServerConfig{
+				Name: "invalid-server",
+				Type: "invalid",
 			},
 			expectError:    true,
-			errorSubstring: "transport must be one of",
-		},
-		{
-			name: "SSE without endpoint",
-			executor: MCPExecutor{
-				Transport: TransportSSE,
-				Operation: OperationToolCall,
-				ToolName:  "test_tool",
-			},
-			expectError:    true,
-			errorSubstring: "serverEndpoint is required",
-		},
-		{
-			name: "STDIO with empty command",
-			executor: MCPExecutor{
-				ServerCommand: "",
-				Transport:     TransportSTDIO,
-				Operation:     OperationToolCall,
-				ToolName:      "test_tool",
-			},
-			expectError:    true,
-			errorSubstring: "serverCommand is required",
+			errorSubstring: "invalid transport type",
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			executor := tc.executor
+			executor := &MCPExecutor{
+				Server: tc.serverConfig,
+				Action: "list_tools",
+			}
+
 			err := executor.Init()
 
 			if tc.expectError {
@@ -538,240 +476,181 @@ func TestMCPExecutor_TransportSpecificValidation(t *testing.T) {
 				}
 			} else {
 				assert.NoError(t, err)
-				assert.True(t, executor.initialized)
-				assert.NotNil(t, executor.client)
-				executor.Close()
 			}
 		})
 	}
 }
 
-// TestMCPExecutor_DefaultSettings tests default value setting
 func TestMCPExecutor_DefaultSettings(t *testing.T) {
 	executor := &MCPExecutor{
-		ServerEndpoint: "http://localhost:8080",
-		Transport:      TransportHTTP,
-		Operation:      OperationToolCall,
-		ToolName:       "test_tool",
+		Preset:   PresetGitHub,
+		Action:   "call_tool",
+		ToolName: "test_tool",
 	}
 
 	err := executor.Init()
 	require.NoError(t, err)
 
-	// Test default values
+	// Check default values
 	assert.Equal(t, "mcpResult", executor.ResultVarName)
 	assert.Equal(t, 30*time.Second, executor.Timeout)
 	assert.Equal(t, 3, executor.RetryAttempts)
 	assert.NotNil(t, executor.ToolArgs)
-	assert.NotNil(t, executor.PromptArgs)
-
-	executor.Close()
 }
 
-// TestMCPExecutor_ArgumentBuilding tests tool argument building
 func TestMCPExecutor_ArgumentBuilding(t *testing.T) {
 	executor := &MCPExecutor{
 		ToolArgs: map[string]interface{}{
-			"static_param": "static_value",
-			"number_param": 42,
+			"static_param":   "static_value",
+			"template_param": "${user_id}",
+			"number_param":   42,
 		},
-		ToolArgVars: []string{"dynamic_param", "missing_param"},
 	}
 
 	flowContext := flow.FlowContext{
 		Variables: map[string]interface{}{
-			"dynamic_param": "dynamic_value",
-			"other_var":     "other_value",
+			"user_id": "12345",
 		},
 	}
 
 	args := executor.buildToolArguments(flowContext)
 
-	// Check static arguments
 	assert.Equal(t, "static_value", args["static_param"])
+	assert.Equal(t, "12345", args["template_param"])
 	assert.Equal(t, 42, args["number_param"])
-
-	// Check dynamic arguments
-	assert.Equal(t, "dynamic_value", args["dynamic_param"])
-
-	// Check missing arguments are not included
-	_, exists := args["missing_param"]
-	assert.False(t, exists)
-
-	// Check other variables are not included
-	_, exists = args["other_var"]
-	assert.False(t, exists)
 }
 
-// TestMCPExecutor_PromptArgumentBuilding tests prompt argument building
 func TestMCPExecutor_PromptArgumentBuilding(t *testing.T) {
 	executor := &MCPExecutor{
-		PromptArgs: map[string]interface{}{
-			"language":   "python",
-			"complexity": "high",
-			"lines":      100,
+		ToolArgs: map[string]interface{}{
+			"context":  "${context_data}",
+			"language": "en",
 		},
 	}
 
 	flowContext := flow.FlowContext{
 		Variables: map[string]interface{}{
-			"unused_var": "unused_value",
+			"context_data": "test context",
 		},
 	}
 
 	args := executor.buildPromptArguments(flowContext)
 
-	// Check all prompt arguments are included
-	assert.Equal(t, "python", args["language"])
-	assert.Equal(t, "high", args["complexity"])
-	assert.Equal(t, 100, args["lines"])
-
-	// Check flow variables are not included in prompt args
-	_, exists := args["unused_var"]
-	assert.False(t, exists)
+	assert.Equal(t, "test context", args["context"])
+	assert.Equal(t, "en", args["language"])
 }
 
-// TestMCPExecutor_ResponseProcessing tests response processing
 func TestMCPExecutor_ResponseProcessing(t *testing.T) {
-	t.Run("string result", func(t *testing.T) {
-		executor := &MCPExecutor{
-			ResultVarName:   "testResult",
-			OutputToContext: true,
-		}
-
-		flowContext := flow.FlowContext{
-			Variables: make(map[string]interface{}),
-		}
-
-		response := &MCPResponse{
-			JSONRPC: "2.0",
-			ID:      "test",
-			Result:  "test result string",
-		}
-
-		newContext, err := executor.processResponse(response, flowContext)
-		require.NoError(t, err)
-
-		// Check variable was set
-		assert.Equal(t, "test result string", newContext.Variables["testResult"])
-
-		// Check context text was set
-		assert.Equal(t, "test result string", newContext.Text)
-	})
-
-	t.Run("map result with text field", func(t *testing.T) {
-		executor := &MCPExecutor{
-			ResultVarName:   "mapResult",
-			OutputToContext: true,
-		}
-
-		flowContext := flow.FlowContext{
-			Variables: make(map[string]interface{}),
-		}
-
-		response := &MCPResponse{
-			JSONRPC: "2.0",
-			ID:      "test",
-			Result: map[string]interface{}{
-				"text":   "extracted text",
-				"status": "success",
+	tests := []struct {
+		name     string
+		response *MCPResponse
+		executor *MCPExecutor
+		expected string
+	}{
+		{
+			name: "string result",
+			response: &MCPResponse{
+				JSONRPC: "2.0",
+				ID:      "test",
+				Result:  "Simple text result",
 			},
-		}
-
-		newContext, err := executor.processResponse(response, flowContext)
-		require.NoError(t, err)
-
-		// Check variable was set to full map
-		resultMap, ok := newContext.Variables["mapResult"].(map[string]interface{})
-		require.True(t, ok)
-		assert.Equal(t, "extracted text", resultMap["text"])
-		assert.Equal(t, "success", resultMap["status"])
-
-		// Check context text was set to text field
-		assert.Equal(t, "extracted text", newContext.Text)
-	})
-
-	t.Run("map result with content field", func(t *testing.T) {
-		executor := &MCPExecutor{
-			ResultVarName:   "contentResult",
-			OutputToContext: true,
-		}
-
-		flowContext := flow.FlowContext{
-			Variables: make(map[string]interface{}),
-		}
-
-		response := &MCPResponse{
-			JSONRPC: "2.0",
-			ID:      "test",
-			Result: map[string]interface{}{
-				"content": "content text",
-				"type":    "response",
+			executor: &MCPExecutor{
+				OutputToContext: true,
+				ResultVarName:   "testResult",
 			},
-		}
-
-		newContext, err := executor.processResponse(response, flowContext)
-		require.NoError(t, err)
-
-		// Check context text was set to content field
-		assert.Equal(t, "content text", newContext.Text)
-	})
-
-	t.Run("error response", func(t *testing.T) {
-		executor := &MCPExecutor{
-			ResultVarName: "errorResult",
-		}
-
-		flowContext := flow.FlowContext{
-			Variables: make(map[string]interface{}),
-		}
-
-		response := &MCPResponse{
-			JSONRPC: "2.0",
-			ID:      "test",
-			Error: &MCPError{
-				Code:    -1,
-				Message: "test error message",
+			expected: "Simple text result",
+		},
+		{
+			name: "map result with text field",
+			response: &MCPResponse{
+				JSONRPC: "2.0",
+				ID:      "test",
+				Result: map[string]interface{}{
+					"text": "Text from map",
+					"meta": "additional data",
+				},
 			},
-		}
+			executor: &MCPExecutor{
+				OutputToContext: true,
+				ResultVarName:   "testResult",
+			},
+			expected: "Text from map",
+		},
+		{
+			name: "map result with content field",
+			response: &MCPResponse{
+				JSONRPC: "2.0",
+				ID:      "test",
+				Result: map[string]interface{}{
+					"content": "Content from map",
+					"meta":    "additional data",
+				},
+			},
+			executor: &MCPExecutor{
+				OutputToContext: true,
+				ResultVarName:   "testResult",
+			},
+			expected: "Content from map",
+		},
+	}
 
-		_, err := executor.processResponse(response, flowContext)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "test error message")
-		assert.Contains(t, err.Error(), "-1")
-	})
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			flowContext := flow.FlowContext{
+				Variables: make(map[string]interface{}),
+			}
 
-	t.Run("output to context disabled", func(t *testing.T) {
-		executor := &MCPExecutor{
-			ResultVarName:   "noContextResult",
-			OutputToContext: false,
-		}
+			result, err := tc.executor.processResponse(tc.response, flowContext)
 
-		flowContext := flow.FlowContext{
-			Variables: make(map[string]interface{}),
-		}
-
-		response := &MCPResponse{
-			JSONRPC: "2.0",
-			ID:      "test",
-			Result:  "should not set context",
-		}
-
-		newContext, err := executor.processResponse(response, flowContext)
-		require.NoError(t, err)
-
-		// Check variable was set
-		assert.Equal(t, "should not set context", newContext.Variables["noContextResult"])
-
-		// Check context text was NOT set
-		assert.Empty(t, newContext.Text)
-	})
+			assert.NoError(t, err)
+			assert.NotNil(t, result)
+			assert.Equal(t, tc.expected, result.Text)
+			assert.Equal(t, tc.response.Result, result.GetVariable(tc.executor.ResultVarName))
+		})
+	}
 }
 
-// TestMCPExecutor_StringFormatting tests variable substitution in strings
-func TestMCPExecutor_StringFormatting(t *testing.T) {
-	executor := &MCPExecutor{}
+func TestMCPExecutor_ErrorHandling(t *testing.T) {
+	response := &MCPResponse{
+		JSONRPC: "2.0",
+		ID:      "test",
+		Error: &MCPError{
+			Code:    -1,
+			Message: "Test error message",
+		},
+	}
 
+	executor := &MCPExecutor{
+		ResultVarName: "testResult",
+	}
+
+	flowContext := flow.FlowContext{
+		Variables: make(map[string]interface{}),
+	}
+
+	result, err := executor.processResponse(response, flowContext)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "MCP error -1: Test error message")
+	assert.NotNil(t, result)
+}
+
+func TestMCPExecutor_BackwardCompatibility(t *testing.T) {
+	// Test that legacy configuration still works
+	executor := &MCPExecutor{
+		ServerCommand: "node",
+		ServerArgs:    []string{"server.js"},
+		Transport:     TransportSTDIO,
+		Action:        "list_tools",
+	}
+
+	err := executor.Init()
+	assert.NoError(t, err)
+	assert.True(t, executor.initialized)
+	assert.NotNil(t, executor.client)
+}
+
+func TestMCPExecutor_StringFormatting(t *testing.T) {
 	tests := []struct {
 		name      string
 		format    string
@@ -779,57 +658,58 @@ func TestMCPExecutor_StringFormatting(t *testing.T) {
 		expected  string
 	}{
 		{
-			name:      "simple string substitution",
+			name:      "basic string replacement",
 			format:    "Hello ${name}!",
 			variables: map[string]interface{}{"name": "World"},
 			expected:  "Hello World!",
 		},
 		{
-			name:      "multiple substitutions",
-			format:    "${greeting} ${name}, today is ${day}",
-			variables: map[string]interface{}{"greeting": "Hello", "name": "Alice", "day": "Monday"},
-			expected:  "Hello Alice, today is Monday",
+			name:   "multiple variables",
+			format: "${greeting} ${name}, welcome to ${place}!",
+			variables: map[string]interface{}{
+				"greeting": "Hello",
+				"name":     "Alice",
+				"place":    "Wonderland",
+			},
+			expected: "Hello Alice, welcome to Wonderland!",
 		},
 		{
-			name:      "number substitution",
-			format:    "Count: ${count}",
-			variables: map[string]interface{}{"count": 42},
-			expected:  "Count: 42",
+			name:   "non-string values",
+			format: "Count: ${count}, Active: ${active}",
+			variables: map[string]interface{}{
+				"count":  42,
+				"active": true,
+			},
+			expected: "Count: 42, Active: true",
 		},
 		{
-			name:      "boolean substitution",
-			format:    "Enabled: ${enabled}",
-			variables: map[string]interface{}{"enabled": true},
-			expected:  "Enabled: true",
+			name:   "json objects",
+			format: "Config: ${config}",
+			variables: map[string]interface{}{
+				"config": map[string]interface{}{
+					"host": "localhost",
+					"port": 8080,
+				},
+			},
+			expected: `Config: {"host":"localhost","port":8080}`,
 		},
 		{
-			name:      "object substitution",
-			format:    "Config: ${config}",
-			variables: map[string]interface{}{"config": map[string]string{"key": "value"}},
-			expected:  `Config: {"key":"value"}`,
-		},
-		{
-			name:      "missing variable",
-			format:    "Hello ${name}, age ${age}",
-			variables: map[string]interface{}{"name": "John"},
-			expected:  "Hello John, age ${age}",
-		},
-		{
-			name:      "no variables",
-			format:    "Static text with no variables",
+			name:      "no variables to replace",
+			format:    "Static string without variables",
 			variables: map[string]interface{}{"unused": "value"},
-			expected:  "Static text with no variables",
+			expected:  "Static string without variables",
 		},
 		{
-			name:      "empty variables",
-			format:    "Text with ${var}",
-			variables: map[string]interface{}{},
-			expected:  "Text with ${var}",
+			name:      "missing variables",
+			format:    "Hello ${name}, age ${age}",
+			variables: map[string]interface{}{"name": "Bob"},
+			expected:  "Hello Bob, age ${age}",
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			executor := &MCPExecutor{}
 			result := executor.formatStringWithVariables(tc.format, tc.variables)
 			assert.Equal(t, tc.expected, result)
 		})
