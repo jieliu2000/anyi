@@ -34,7 +34,7 @@
 
 完整的技术文档：
 
-- [API 参考](reference/api.md) - 完整的 API 文档
+- [API 参考](https://pkg.go.dev/github.com/jieliu2000/anyi) - 完整的 API 文档
 - [配置参考](reference/configuration.md) - 所有配置选项
 - [内置组件](reference/components.md) - 执行器和验证器参考
 

@@ -385,7 +385,7 @@ func main() {
 
 **A:** Several options:
 
-1. **Documentation**: Check this documentation and the [API reference](api.md)
+1. **Documentation**: Check this documentation and the [API reference](https://pkg.go.dev/github.com/jieliu2000/anyi)
 2. **Examples**: Browse the [examples directory](../../../examples/)
 3. **GitHub Issues**: Search existing [issues](https://github.com/jieliu2000/anyi/issues) or create a new one
 4. **Discussions**: Join [GitHub Discussions](https://github.com/jieliu2000/anyi/discussions)

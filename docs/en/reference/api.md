@@ -1,5 +1,7 @@
 # API Reference
 
+> **📚 For the most up-to-date and comprehensive API documentation, visit: [pkg.go.dev/github.com/jieliu2000/anyi](https://pkg.go.dev/github.com/jieliu2000/anyi)**
+
 This document provides a comprehensive reference for the Anyi framework's public API. It covers the core interfaces, methods, and data structures you'll use when building AI applications.
 
 ## Core Interfaces
