@@ -5,7 +5,6 @@ This tutorial covers how to work with multimodal AI models that can process both
 ## Table of Contents
 
 - [Understanding Multimodal Models](#understanding-multimodal-models)
-- [Supported Multimodal Providers](#supported-multimodal-providers)
 - [Basic Image Processing](#basic-image-processing)
 - [Image Input Methods](#image-input-methods)
 - [Multimodal Workflows](#multimodal-workflows)
@@ -22,28 +21,6 @@ Multimodal AI models can process and understand multiple types of input simultan
 - **Extract Information**: Read text from images (OCR)
 - **Generate Descriptions**: Create detailed image captions
 - **Understand Context**: Combine visual and textual information
-
-## Supported Multimodal Providers
-
-### OpenAI GPT-4 Vision
-
-- **Models**: `gpt-4-vision-preview`, `gpt-4o`, `gpt-4o-mini`
-- **Image Formats**: PNG, JPEG, WebP, GIF
-- **Max Image Size**: 20MB per image
-- **Features**: Image analysis, OCR, visual reasoning
-
-### Anthropic Claude 3
-
-- **Models**: `claude-3.5-sonnet-20241022`, `claude-3-opus-20240229`, `claude-3-haiku-20240307`
-- **Image Formats**: PNG, JPEG, WebP, GIF
-- **Max Image Size**: 5MB per image
-- **Features**: Document analysis, chart interpretation, visual reasoning
-
-### Google Gemini
-
-- **Models**: `gemini-pro-vision`, `gemini-1.5-pro`
-- **Image Formats**: PNG, JPEG, WebP
-- **Features**: Video analysis (in addition to images), spatial reasoning
 
 ## Basic Image Processing
 
