@@ -10,6 +10,13 @@
 2. 完成了 [Anyi 安装](installation.md)
 3. 获得了至少一个 LLM 提供商的 API 密钥
 
+> **📌 为什么选择 DeepSeek？** 本指南使用 DeepSeek 作为主要示例，因为：
+>
+> - 🌍 中国用户可以直接访问，无需代理
+> - 💰 价格实惠，适合初学者试用
+> - 🚀 API 兼容性好，性能优秀
+> - 如果您偏好其他提供商，可以轻松替换配置
+
 ## 第一步：创建项目
 
 创建一个新的 Go 项目：
@@ -27,10 +34,10 @@ go get github.com/jieliu2000/anyi
 
 ```bash
 # .env
-OPENAI_API_KEY=your-openai-api-key-here
+DEEPSEEK_API_KEY=your-deepseek-api-key-here
 ```
 
-> **提示：** 如果您没有 OpenAI API 密钥，可以使用其他提供商如 Ollama（本地）、Anthropic 或 DeepSeek。
+> **提示：** DeepSeek 是中国用户推荐的提供商。您也可以使用其他提供商如智谱 AI、通义千问或 Ollama（本地）。
 
 ## 第三步：编写您的第一个应用
 
@@ -45,7 +52,7 @@ import (
     "os"
 
     "github.com/jieliu2000/anyi"
-    "github.com/jieliu2000/anyi/llm/openai"
+    "github.com/jieliu2000/anyi/llm/deepseek"
     "github.com/jieliu2000/anyi/llm/chat"
     "github.com/joho/godotenv"
 )
@@ -56,9 +63,9 @@ func main() {
         log.Println("警告：未找到 .env 文件")
     }
 
-    // 创建 OpenAI 客户端
-    config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
-    client, err := anyi.NewClient("openai", config)
+    // 创建 DeepSeek 客户端
+    config := deepseek.DefaultConfig(os.Getenv("DEEPSEEK_API_KEY"), "deepseek-reasoner")
+    client, err := anyi.NewClient("deepseek", config)
     if err != nil {
         log.Fatalf("创建客户端失败: %v", err)
     }
@@ -100,7 +107,7 @@ go run main.go
 🤖 AI 回复:
 人工智能（AI）是一种让计算机系统能够执行通常需要人类智能的任务的技术。它包括机器学习、自然语言处理、计算机视觉等领域，可以帮助我们解决复杂问题、自动化任务，并在医疗、教育、交通等各个领域提供智能化解决方案。
 
-📊 使用统计: 156 个 token
+📊 使用统计: 95 个 token
 ```
 
 ## 第五步：使用配置文件（可选）
@@ -111,16 +118,16 @@ go run main.go
 
 ```yaml
 clients:
-  - name: "openai"
-    type: "openai"
+  - name: "deepseek"
+    type: "deepseek"
     config:
-      apiKey: "$OPENAI_API_KEY"
-      model: "gpt-4.1-mini"
+      apiKey: "$DEEPSEEK_API_KEY"
+      model: "deepseek-reasoner"
       temperature: 0.7
 
 flows:
   - name: "chat_assistant"
-    clientName: "openai"
+    clientName: "deepseek"
     steps:
       - name: "respond"
         executor:
@@ -183,7 +190,7 @@ go run config_main.go
 
 ### Ollama（本地模型）
 
-如果您想使用本地模型，可以使用 Ollama：
+如果您想使用完全离线的本地模型，可以使用 Ollama：
 
 ```go
 package main
@@ -224,7 +231,7 @@ func main() {
 
 ### Anthropic Claude
 
-使用 Claude：
+如果您有 Anthropic API 访问权限，可以使用 Claude：
 
 ```go
 package main
@@ -280,7 +287,7 @@ import (
     "os"
 
     "github.com/jieliu2000/anyi"
-    "github.com/jieliu2000/anyi/llm/openai"
+    "github.com/jieliu2000/anyi/llm/deepseek"
     "github.com/joho/godotenv"
 )
 
@@ -291,18 +298,18 @@ func main() {
     config := anyi.AnyiConfig{
         Clients: []anyi.ClientConfig{
             {
-                Name: "openai",
-                Type: "openai",
+                Name: "deepseek",
+                Type: "deepseek",
                 Config: map[string]interface{}{
-                    "apiKey": os.Getenv("OPENAI_API_KEY"),
-                    "model":  "gpt-4.1-mini",
+                    "apiKey": os.Getenv("DEEPSEEK_API_KEY"),
+                    "model":  "deepseek-reasoner",
                 },
             },
         },
         Flows: []anyi.FlowConfig{
             {
                 Name:       "content_creator",
-                ClientName: "openai",
+                ClientName: "deepseek",
                 Steps: []anyi.StepConfig{
                     {
                         Name: "analyze_topic",
@@ -375,25 +382,25 @@ func main() {
 ### 问题：网络连接问题
 
 ```
-错误: dial tcp: lookup api.openai.com: no such host
+错误: dial tcp: connection timeout
 ```
 
 **解决方案：**
 
 1. 检查网络连接
-2. 如果在中国，可能需要使用代理或 VPN
+2. 确认 API 服务器是否可访问
 3. 考虑使用本地模型（Ollama）作为替代
 
 ### 问题：模型不存在
 
 ```
-错误: model 'gpt-5' not found
+错误: model 'xxx' not found
 ```
 
 **解决方案：**
 
 1. 检查模型名称是否正确
-2. 使用支持的模型名称，如 `gpt-4.1-mini`、`gpt-4.1`、`gpt-4o`
+2. 使用支持的模型名称，如 `deepseek-reasoner`、`deepseek-chat`
 3. 查看提供商文档了解可用模型
 
 ## 下一步
