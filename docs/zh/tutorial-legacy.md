@@ -82,7 +82,7 @@ import (
 
 func main() {
     // 1. 创建客户端
-    config := zhipu.DefaultConfig(os.Getenv("ZHIPU_API_KEY"), "glm-4")
+    config := zhipu.DefaultConfig(os.Getenv("ZHIPU_API_KEY"))
     client, err := anyi.NewClient("glm4", config)
     if err != nil {
         log.Fatalf("创建客户端失败: %v", err)
@@ -167,22 +167,22 @@ import (
     "os"
 
     "github.com/jieliu2000/anyi"
-    "github.com/jieliu2000/anyi/llm/openai"
+    "github.com/jieliu2000/anyi/llm/zhipu"
     "github.com/jieliu2000/anyi/llm/chat"
 )
 
 func main() {
-    // 创建一个名为"gpt4"的客户端
-    config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
-    config.Model = openai.GPT4o // 使用GPT-4o模型
+    // 创建一个名为"glm4"的客户端
+    config := zhipu.DefaultConfig(os.Getenv("ZHIPU_API_KEY"))
+    config.Model = "glm-4-flash-250414" // 使用GLM-4-flash模型
 
-    client, err := anyi.NewClient("gpt4", config)
+    client, err := anyi.NewClient("glm4", config)
     if err != nil {
         log.Fatalf("创建客户端失败: %v", err)
     }
 
     // 之后可以通过名称检索此客户端
-    retrievedClient, err := anyi.GetClient("gpt4")
+    retrievedClient, err := anyi.GetClient("glm4")
     if err != nil {
         log.Fatalf("检索客户端失败: %v", err)
     }
@@ -532,11 +532,11 @@ func main() {
 	// 使用 GLM-4-Flash 模型的默认配置
 	config := zhipu.DefaultConfig(os.Getenv("ZHIPU_API_KEY"), "glm-4-flash")
 
-	// 使用 GLM-4 模型进行更复杂任务的配置
-	config := zhipu.DefaultConfig(os.Getenv("ZHIPU_API_KEY"), "glm-4")
+	// 使用 GLM-4-flash 模型进行更复杂任务的配置
+	config := zhipu.DefaultConfig(os.Getenv("ZHIPU_API_KEY"), "glm-4-flash-250414")
 
 	// 使用特定基础 URL 的自定义配置
-	config := zhipu.NewConfig(os.Getenv("ZHIPU_API_KEY"), "glm-4", "https://open.bigmodel.cn/api/paas/v4/")
+	config := zhipu.NewConfig(os.Getenv("ZHIPU_API_KEY"), "glm-4-flash-250414", "https://open.bigmodel.cn/api/paas/v4/")
 
 	// 创建客户端和使用示例
 	client, err := anyi.NewClient("zhipu", config)

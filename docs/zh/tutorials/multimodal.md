@@ -36,16 +36,16 @@ import (
     "os"
 
     "github.com/jieliu2000/anyi"
-    "github.com/jieliu2000/anyi/llm/openai"
+    "github.com/jieliu2000/anyi/llm/dashscope"
     "github.com/jieliu2000/anyi/llm/chat"
 )
 
 func main() {
-    // 创建支持视觉的 OpenAI 客户端
-    config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
-    config.Model = "gpt-4o" // 使用支持图像的模型
+    // 创建支持视觉的通义千问客户端
+    config := dashscope.DefaultConfig(os.Getenv("DASHSCOPE_API_KEY"))
+    config.Model = "qwen-vl-max" // 使用支持图像的模型
 
-    client, err := anyi.NewClient("openai-vision", config)
+    client, err := anyi.NewClient("qwen-vision", config)
     if err != nil {
         log.Fatalf("创建客户端失败: %v", err)
     }
@@ -81,16 +81,16 @@ func main() {
 ```yaml
 # multimodal_config.yaml
 clients:
-  - name: "openai-vision"
-    type: "openai"
+  - name: "qwen-vision"
+    type: "dashscope"
     config:
-      apiKey: "$OPENAI_API_KEY"
-      model: "gpt-4o"
+      apiKey: "$DASHSCOPE_API_KEY"
+      model: "qwen-vl-max"
       maxTokens: 1000
 
 flows:
   - name: "image_analyzer"
-    clientName: "openai-vision"
+    clientName: "qwen-vision"
     steps:
       - name: "describe_image"
         executor:
@@ -171,7 +171,7 @@ import (
     "path/filepath"
 
     "github.com/jieliu2000/anyi"
-    "github.com/jieliu2000/anyi/llm/openai"
+    "github.com/jieliu2000/anyi/llm/dashscope"
     "github.com/jieliu2000/anyi/llm/chat"
 )
 
@@ -206,10 +206,10 @@ func imageToBase64(imagePath string) (string, error) {
 }
 
 func main() {
-    config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
-    config.Model = "gpt-4o"
+    config := dashscope.DefaultConfig(os.Getenv("DASHSCOPE_API_KEY"))
+    config.Model = "qwen-vl-max"
 
-    client, err := anyi.NewClient("openai-vision", config)
+    client, err := anyi.NewClient("qwen-vision", config)
     if err != nil {
         log.Fatal(err)
     }
@@ -311,10 +311,10 @@ func processImagesInDirectory(dir string, client anyi.Client) ([]ImageResult, er
 
 func main() {
     // 设置客户端
-    config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
-    config.Model = "gpt-4o"
+    config := dashscope.DefaultConfig(os.Getenv("DASHSCOPE_API_KEY"))
+    config.Model = "qwen-vl-max"
 
-    client, err := anyi.NewClient("openai-vision", config)
+    client, err := anyi.NewClient("qwen-vision", config)
     if err != nil {
         log.Fatal(err)
     }
@@ -466,10 +466,10 @@ func (qa *ImageQASystem) Ask(question string) (string, error) {
 
 func main() {
     // 设置客户端
-    config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
-    config.Model = "gpt-4o"
+    config := dashscope.DefaultConfig(os.Getenv("DASHSCOPE_API_KEY"))
+    config.Model = "qwen-vl-max"
 
-    client, err := anyi.NewClient("openai-vision", config)
+    client, err := anyi.NewClient("qwen-vision", config)
     if err != nil {
         log.Fatal(err)
     }
@@ -555,10 +555,10 @@ func compareImages(client anyi.Client, image1Path, image2Path string) (string, e
 }
 
 func main() {
-    config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
-    config.Model = "gpt-4o"
+    config := dashscope.DefaultConfig(os.Getenv("DASHSCOPE_API_KEY"))
+    config.Model = "qwen-vl-max"
 
-    client, err := anyi.NewClient("openai-vision", config)
+    client, err := anyi.NewClient("qwen-vision", config)
     if err != nil {
         log.Fatal(err)
     }
@@ -577,15 +577,15 @@ func main() {
 ```yaml
 # image_extraction.yaml
 clients:
-  - name: "openai-vision"
-    type: "openai"
+  - name: "qwen-vision"
+    type: "dashscope"
     config:
-      apiKey: "$OPENAI_API_KEY"
-      model: "gpt-4o"
+      apiKey: "$DASHSCOPE_API_KEY"
+      model: "qwen-vl-max"
 
 flows:
   - name: "extract_image_content"
-    clientName: "openai-vision"
+    clientName: "qwen-vision"
     steps:
       - name: "extract_text"
         executor:

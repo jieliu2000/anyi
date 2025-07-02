@@ -106,14 +106,14 @@ import (
     "os"
 
     "github.com/jieliu2000/anyi"
-    "github.com/jieliu2000/anyi/llm/openai"
+    "github.com/jieliu2000/anyi/llm/zhipu"
     "github.com/jieliu2000/anyi/llm/chat"
 )
 
 func main() {
     // 创建客户端
-    config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
-    client, err := anyi.NewClient("openai", config)
+    config := zhipu.DefaultConfig(os.Getenv("ZHIPU_API_KEY"))
+    client, err := anyi.NewClient("zhipu", config)
     if err != nil {
         log.Fatalf("创建客户端失败: %v", err)
     }
@@ -137,15 +137,15 @@ func main() {
 ```yaml
 # config.yaml
 clients:
-  - name: "openai"
-    type: "openai"
+  - name: "zhipu"
+    type: "zhipu"
     config:
-      apiKey: "$OPENAI_API_KEY"
-      model: "gpt-4"
+      apiKey: "$ZHIPU_API_KEY"
+      model: "glm-4-flash-250414"
 
 flows:
   - name: "content_processor"
-    clientName: "openai"
+    clientName: "zhipu"
     steps:
       - name: "analyze"
         executor:

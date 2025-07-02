@@ -253,7 +253,7 @@ import (
 func setupZhipu() {
     config := zhipu.Config{
         APIKey:      os.Getenv("ZHIPU_API_KEY"),
-        Model:       "glm-4",
+        Model:       "glm-4-flash-250414",
         Temperature: 0.7,
         MaxTokens:   1000,
     }
@@ -270,7 +270,7 @@ func setupZhipu() {
 ```bash
 # .env
 ZHIPU_API_KEY=your-zhipu-api-key-here
-ZHIPU_MODEL=glm-4
+ZHIPU_MODEL=glm-4-flash-250414
 ```
 
 ### 4. 可用模型
@@ -437,7 +437,7 @@ clients:
     type: "zhipu"
     config:
       apiKey: "$ZHIPU_API_KEY"
-      model: "glm-4"
+      model: "glm-4-flash-250414"
 
   - name: "qwen-max"
     type: "dashscope"

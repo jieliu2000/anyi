@@ -24,11 +24,11 @@ Anyi 支持多种配置方式：
 ```yaml
 # config.yaml
 clients:
-  - name: "openai-gpt4"
-    type: "openai"
+  - name: "zhipu-glm4"
+    type: "zhipu"
     config:
-      apiKey: "$OPENAI_API_KEY"
-      model: "gpt-4"
+      apiKey: "$ZHIPU_API_KEY"
+      model: "glm-4-flash-250414"
       temperature: 0.7
       maxTokens: 2000
 
@@ -48,7 +48,7 @@ clients:
 
 flows:
   - name: "content_analyzer"
-    clientName: "openai-gpt4"
+    clientName: "zhipu-glm4"
     steps:
       - name: "analyze_sentiment"
         executor:
@@ -76,11 +76,11 @@ flows:
 {
   "clients": [
     {
-      "name": "openai-gpt4",
-      "type": "openai",
+      "name": "zhipu-glm4",
+      "type": "zhipu",
       "config": {
-        "apiKey": "$OPENAI_API_KEY",
-        "model": "gpt-4",
+        "apiKey": "$ZHIPU_API_KEY",
+        "model": "glm-4-flash-250414",
         "temperature": 0.7
       }
     }
@@ -88,7 +88,7 @@ flows:
   "flows": [
     {
       "name": "simple_chat",
-      "clientName": "openai-gpt4",
+      "clientName": "zhipu-glm4",
       "steps": [
         {
           "name": "chat",
@@ -114,10 +114,10 @@ flows:
 
 ```bash
 # .env
-# OpenAI 配置
-OPENAI_API_KEY=sk-your-openai-key-here
-OPENAI_MODEL=gpt-4
-OPENAI_TEMPERATURE=0.7
+# 中文 LLM 配置（推荐优先使用）
+ZHIPU_API_KEY=your-zhipu-key-here
+DASHSCOPE_API_KEY=your-dashscope-key-here
+DEEPSEEK_API_KEY=your-deepseek-key-here
 
 # Anthropic 配置
 ANTHROPIC_API_KEY=sk-ant-your-anthropic-key-here
@@ -126,10 +126,10 @@ ANTHROPIC_API_KEY=sk-ant-your-anthropic-key-here
 AZURE_OPENAI_API_KEY=your-azure-key-here
 AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
 
-# 中文 LLM 配置
-ZHIPU_API_KEY=your-zhipu-key-here
-DASHSCOPE_API_KEY=your-dashscope-key-here
-DEEPSEEK_API_KEY=your-deepseek-key-here
+# OpenAI 配置（如需使用国外服务）
+OPENAI_API_KEY=sk-your-openai-key-here
+OPENAI_MODEL=gpt-4
+OPENAI_TEMPERATURE=0.7
 
 # 应用配置
 APP_ENV=development
@@ -160,12 +160,12 @@ func init() {
 
 func main() {
     // 读取环境变量
-    openaiKey := os.Getenv("OPENAI_API_KEY")
-    if openaiKey == "" {
-        log.Fatal("OPENAI_API_KEY 环境变量未设置")
+    zhipuKey := os.Getenv("ZHIPU_API_KEY")
+    if zhipuKey == "" {
+        log.Fatal("ZHIPU_API_KEY 环境变量未设置")
     }
 
-    temperature, err := strconv.ParseFloat(os.Getenv("OPENAI_TEMPERATURE"), 64)
+    temperature, err := strconv.ParseFloat(os.Getenv("ZHIPU_TEMPERATURE"), 64)
     if err != nil {
         temperature = 0.7 // 默认值
     }
@@ -174,11 +174,11 @@ func main() {
     config := anyi.AnyiConfig{
         Clients: []anyi.ClientConfig{
             {
-                Name: "openai",
-                Type: "openai",
+                Name: "zhipu",
+                Type: "zhipu",
                 Config: map[string]interface{}{
-                    "apiKey":     openaiKey,
-                    "model":      getEnvOrDefault("OPENAI_MODEL", "gpt-4o-mini"),
+                    "apiKey":     zhipuKey,
+                    "model":      getEnvOrDefault("ZHIPU_MODEL", "glm-4-flash-250414"),
                     "temperature": temperature,
                 },
             },
@@ -235,10 +235,10 @@ flows:
 ```yaml
 # configs/development.yaml
 clients:
-  - name: "openai"
-    type: "openai"
+  - name: "zhipu"
+    type: "zhipu"
     config:
-      apiKey: "$OPENAI_API_KEY_DEV"
+      apiKey: "$ZHIPU_API_KEY_DEV"
       temperature: 0.9 # 开发环境使用更高创造性
 
 server:
@@ -249,11 +249,11 @@ server:
 ```yaml
 # configs/production.yaml
 clients:
-  - name: "openai"
-    type: "openai"
+  - name: "zhipu"
+    type: "zhipu"
     config:
-      apiKey: "$OPENAI_API_KEY_PROD"
-      model: "gpt-4" # 生产环境使用更好的模型
+      apiKey: "$ZHIPU_API_KEY_PROD"
+      model: "glm-4-flash-250414" # 生产环境使用更好的模型
       temperature: 0.3 # 生产环境更保守
 
 server:
@@ -562,12 +562,12 @@ project/
 
 # LLM 客户端配置
 clients:
-  # OpenAI 客户端配置
-  - name: "openai-gpt4" # 客户端名称
-    type: "openai" # 客户端类型
+  # 智谱AI 客户端配置
+  - name: "zhipu-glm4" # 客户端名称
+    type: "zhipu" # 客户端类型
     config:
-      apiKey: "$OPENAI_API_KEY" # API 密钥（环境变量）
-      model: "gpt-4" # 使用的模型
+      apiKey: "$ZHIPU_API_KEY" # API 密钥（环境变量）
+      model: "glm-4-flash-250414" # 使用的模型
       temperature: 0.7 # 创造性参数 (0.0-2.0)
       maxTokens: 2000 # 最大 token 数
 
@@ -575,7 +575,7 @@ clients:
 flows:
   # 内容分析工作流
   - name: "content_analyzer" # 工作流名称
-    clientName: "openai-gpt4" # 使用的客户端
+    clientName: "zhipu-glm4" # 使用的客户端
     description: "分析文本内容" # 工作流描述
     steps:
       - name: "analyze" # 步骤名称

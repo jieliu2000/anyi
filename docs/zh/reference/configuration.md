@@ -145,7 +145,7 @@ clients:
     type: "zhipu"
     config:
       apiKey: "$ZHIPU_API_KEY"
-      model: "glm-4"
+      model: "glm-4-flash-250414"
       baseURL: "https://open.bigmodel.cn/api/paas/v4" # 可选
       temperature: 0.7 # 可选
       maxTokens: 1000 # 可选

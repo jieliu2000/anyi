@@ -363,7 +363,7 @@ import (
 func main() {
     // 智谱 AI 配置
     config := zhipu.DefaultConfig(os.Getenv("ZHIPU_API_KEY"))
-    config.Model = "glm-4"
+    config.Model = "glm-4-flash-250414"
 
     client, err := anyi.NewClient("zhipu", config)
     if err != nil {
@@ -625,7 +625,7 @@ clients:
     type: "zhipu"
     config:
       apiKey: "$ZHIPU_API_KEY"
-      model: "glm-4"
+      model: "glm-4-flash-250414"
 ```
 
 ### 加载配置

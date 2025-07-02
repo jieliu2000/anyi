@@ -38,13 +38,13 @@ import (
     "os"
 
     "github.com/jieliu2000/anyi"
-    "github.com/jieliu2000/anyi/llm/openai"
+    "github.com/jieliu2000/anyi/llm/zhipu"
 )
 
 func main() {
     // 配置客户端
-    config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
-    client, err := anyi.NewClient("openai", config)
+    config := zhipu.DefaultConfig(os.Getenv("ZHIPU_API_KEY"))
+    client, err := anyi.NewClient("zhipu", config)
     if err != nil {
         log.Fatal(err)
     }
@@ -53,18 +53,18 @@ func main() {
     flowConfig := anyi.AnyiConfig{
         Clients: []anyi.ClientConfig{
             {
-                Name: "openai",
-                Type: "openai",
+                Name: "zhipu",
+                Type: "zhipu",
                 Config: map[string]interface{}{
-                    "apiKey": os.Getenv("OPENAI_API_KEY"),
-                    "model":  "gpt-4o-mini",
+                    "apiKey": os.Getenv("ZHIPU_API_KEY"),
+                    "model":  "glm-4-flash-250414",
                 },
             },
         },
         Flows: []anyi.FlowConfig{
             {
                 Name:       "text_processor",
-                ClientName: "openai",
+                ClientName: "zhipu",
                 Steps: []anyi.StepConfig{
                     {
                         Name: "analyze",
@@ -120,16 +120,16 @@ func main() {
 
 ```yaml
 clients:
-  - name: "openai"
-    type: "openai"
+  - name: "zhipu"
+    type: "zhipu"
     config:
-      apiKey: "$OPENAI_API_KEY"
-      model: "gpt-4o-mini"
+      apiKey: "$ZHIPU_API_KEY"
+      model: "glm-4-flash-250414"
       temperature: 0.7
 
 flows:
   - name: "content_creator"
-    clientName: "openai"
+    clientName: "zhipu"
     steps:
       - name: "brainstorm"
         executor:
@@ -193,7 +193,7 @@ func main() {
 ```yaml
 flows:
   - name: "quality_assured_writer"
-    clientName: "openai"
+    clientName: "zhipu"
     steps:
       - name: "write_draft"
         executor:
@@ -222,7 +222,7 @@ flows:
 ```yaml
 flows:
   - name: "smart_responder"
-    clientName: "openai"
+    clientName: "zhipu"
     steps:
       - name: "classify_intent"
         executor:
@@ -243,7 +243,7 @@ flows:
             default: "general_response"
 
   - name: "answer_question"
-    clientName: "openai"
+    clientName: "zhipu"
     steps:
       - name: "provide_answer"
         executor:
@@ -253,7 +253,7 @@ flows:
             systemMessage: "你是一个知识渊博的助手。"
 
   - name: "handle_complaint"
-    clientName: "openai"
+    clientName: "zhipu"
     steps:
       - name: "apologize_and_solve"
         executor:
@@ -279,18 +279,18 @@ func main() {
     config := anyi.AnyiConfig{
         Clients: []anyi.ClientConfig{
             {
-                Name: "openai",
-                Type: "openai",
+                Name: "zhipu",
+                Type: "zhipu",
                 Config: map[string]interface{}{
-                    "apiKey": os.Getenv("OPENAI_API_KEY"),
-                    "model":  "gpt-4o-mini",
+                    "apiKey": os.Getenv("ZHIPU_API_KEY"),
+                    "model":  "glm-4-flash-250414",
                 },
             },
         },
         Flows: []anyi.FlowConfig{
             {
                 Name:       "data_processor",
-                ClientName: "openai",
+                ClientName: "zhipu",
                 Steps: []anyi.StepConfig{
                     {
                         Name: "extract_data",
@@ -361,7 +361,7 @@ func main() {
 ```yaml
 flows:
   - name: "context_demo"
-    clientName: "openai"
+    clientName: "zhipu"
     steps:
       - name: "store_user_info"
         executor:
@@ -423,7 +423,7 @@ func runContextAwareFlow() {
 ```yaml
 flows:
   - name: "robust_processor"
-    clientName: "openai"
+    clientName: "zhipu"
     steps:
       - name: "critical_step"
         executor:
@@ -469,7 +469,7 @@ func runWithErrorHandling() {
 ```yaml
 flows:
   - name: "parallel_processor"
-    clientName: "openai"
+    clientName: "zhipu"
     steps:
       - name: "parallel_group"
         executor:
@@ -577,7 +577,7 @@ func processBatch(inputs []string) {
 ```yaml
 flows:
   - name: "logged_flow"
-    clientName: "openai"
+    clientName: "zhipu"
     steps:
       - name: "log_input"
         executor:
