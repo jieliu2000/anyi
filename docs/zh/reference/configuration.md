@@ -173,7 +173,7 @@ clients:
     type: "deepseek"
     config:
       apiKey: "$DEEPSEEK_API_KEY"
-      model: "deepseek-chat"
+      model: "deepseek-reasoner"
       baseURL: "https://api.deepseek.com/v1" # 可选
       temperature: 0.7 # 可选
       maxTokens: 2000 # 可选

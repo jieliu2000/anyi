@@ -38,12 +38,12 @@ import (
     "os"
 
     "github.com/jieliu2000/anyi"
-    "github.com/jieliu2000/anyi/llm/zhipu"
+    "github.com/jieliu2000/anyi/llm/openai"
 )
 
 func main() {
     // 配置客户端
-    config := zhipu.DefaultConfig(os.Getenv("ZHIPU_API_KEY"))
+    config := zhipu.DefaultConfig(os.Getenv("ZHIPU_API_KEY"), "glm-4-flash-250414")
     client, err := anyi.NewClient("zhipu", config)
     if err != nil {
         log.Fatal(err)
@@ -193,7 +193,7 @@ func main() {
 ```yaml
 flows:
   - name: "quality_assured_writer"
-    clientName: "zhipu"
+    clientName: "openai"
     steps:
       - name: "write_draft"
         executor:
@@ -222,7 +222,7 @@ flows:
 ```yaml
 flows:
   - name: "smart_responder"
-    clientName: "zhipu"
+    clientName: "openai"
     steps:
       - name: "classify_intent"
         executor:
@@ -243,7 +243,7 @@ flows:
             default: "general_response"
 
   - name: "answer_question"
-    clientName: "zhipu"
+    clientName: "openai"
     steps:
       - name: "provide_answer"
         executor:
@@ -253,7 +253,7 @@ flows:
             systemMessage: "你是一个知识渊博的助手。"
 
   - name: "handle_complaint"
-    clientName: "zhipu"
+    clientName: "openai"
     steps:
       - name: "apologize_and_solve"
         executor:
@@ -290,7 +290,7 @@ func main() {
         Flows: []anyi.FlowConfig{
             {
                 Name:       "data_processor",
-                ClientName: "zhipu",
+                ClientName: "openai",
                 Steps: []anyi.StepConfig{
                     {
                         Name: "extract_data",
@@ -361,7 +361,7 @@ func main() {
 ```yaml
 flows:
   - name: "context_demo"
-    clientName: "zhipu"
+    clientName: "openai"
     steps:
       - name: "store_user_info"
         executor:
@@ -423,7 +423,7 @@ func runContextAwareFlow() {
 ```yaml
 flows:
   - name: "robust_processor"
-    clientName: "zhipu"
+    clientName: "openai"
     steps:
       - name: "critical_step"
         executor:
@@ -469,7 +469,7 @@ func runWithErrorHandling() {
 ```yaml
 flows:
   - name: "parallel_processor"
-    clientName: "zhipu"
+    clientName: "openai"
     steps:
       - name: "parallel_group"
         executor:
@@ -577,7 +577,7 @@ func processBatch(inputs []string) {
 ```yaml
 flows:
   - name: "logged_flow"
-    clientName: "zhipu"
+    clientName: "openai"
     steps:
       - name: "log_input"
         executor:

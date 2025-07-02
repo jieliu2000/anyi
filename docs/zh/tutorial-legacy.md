@@ -82,7 +82,7 @@ import (
 
 func main() {
     // 1. 创建客户端
-    config := zhipu.DefaultConfig(os.Getenv("ZHIPU_API_KEY"))
+    config := zhipu.DefaultConfig(os.Getenv("ZHIPU_API_KEY"), "glm-4-flash-250414")
     client, err := anyi.NewClient("glm4", config)
     if err != nil {
         log.Fatalf("创建客户端失败: %v", err)
@@ -167,22 +167,22 @@ import (
     "os"
 
     "github.com/jieliu2000/anyi"
-    "github.com/jieliu2000/anyi/llm/zhipu"
+    "github.com/jieliu2000/anyi/llm/openai"
     "github.com/jieliu2000/anyi/llm/chat"
 )
 
 func main() {
-    // 创建一个名为"glm4"的客户端
-    config := zhipu.DefaultConfig(os.Getenv("ZHIPU_API_KEY"))
-    config.Model = "glm-4-flash-250414" // 使用GLM-4-flash模型
+    // 创建一个名为"gpt4"的客户端
+    config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
+    config.Model = openai.GPT4o // 使用GPT-4o模型
 
-    client, err := anyi.NewClient("glm4", config)
+    client, err := anyi.NewClient("gpt4", config)
     if err != nil {
         log.Fatalf("创建客户端失败: %v", err)
     }
 
     // 之后可以通过名称检索此客户端
-    retrievedClient, err := anyi.GetClient("glm4")
+    retrievedClient, err := anyi.GetClient("gpt4")
     if err != nil {
         log.Fatalf("检索客户端失败: %v", err)
     }
@@ -378,10 +378,10 @@ import (
 
 func main() {
     // 使用 DeepSeek Chat 模型配置
-    config := deepseek.DefaultConfig(os.Getenv("DEEPSEEK_API_KEY"), "deepseek-chat")
+    config := deepseek.DefaultConfig(os.Getenv("DEEPSEEK_API_KEY"), "deepseek-reasoner")
 
     // 使用 DeepSeek Chat 模型配置
-    config := deepseek.DefaultConfig(os.Getenv("DEEPSEEK_API_KEY"), "deepseek-chat")
+    config := deepseek.DefaultConfig(os.Getenv("DEEPSEEK_API_KEY"), "deepseek-reasoner")
 
     // 创建客户端和使用示例
     client, err := llm.NewClient(config)
@@ -510,7 +510,7 @@ func main() {
 ##### 功能和优势
 
 - 出色的中文语言理解和生成能力
-- GLM-4 系列模型具有强大的推理能力
+- GLM-4-Flash 系列模型具有强大的推理能力
 - 针对中国市场的经济实惠定价
 - 支持聊天和代码生成任务
 
@@ -530,9 +530,9 @@ import (
 
 func main() {
 	// 使用 GLM-4-Flash 模型的默认配置
-	config := zhipu.DefaultConfig(os.Getenv("ZHIPU_API_KEY"), "glm-4-flash")
+	config := zhipu.DefaultConfig(os.Getenv("ZHIPU_API_KEY"), "glm-4-flash-250414")
 
-	// 使用 GLM-4-flash 模型进行更复杂任务的配置
+	// 使用 GLM-4-Flash 模型进行更复杂任务的配置
 	config := zhipu.DefaultConfig(os.Getenv("ZHIPU_API_KEY"), "glm-4-flash-250414")
 
 	// 使用特定基础 URL 的自定义配置
@@ -703,7 +703,7 @@ import (
 
 func main() {
 	// 默认配置
-	config := siliconcloud.DefaultConfig(os.Getenv("SILICONCLOUD_API_KEY"), "deepseek-chat")
+	config := siliconcloud.DefaultConfig(os.Getenv("SILICONCLOUD_API_KEY"), "deepseek-reasoner")
 
 	// 使用特定基础 URL 的自定义配置
 	config := siliconcloud.NewConfig(

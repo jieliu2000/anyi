@@ -112,7 +112,7 @@ import (
 
 func main() {
     // 创建客户端
-    config := zhipu.DefaultConfig(os.Getenv("ZHIPU_API_KEY"))
+    config := zhipu.DefaultConfig(os.Getenv("ZHIPU_API_KEY"), "glm-4-flash-250414")
     client, err := anyi.NewClient("zhipu", config)
     if err != nil {
         log.Fatalf("创建客户端失败: %v", err)

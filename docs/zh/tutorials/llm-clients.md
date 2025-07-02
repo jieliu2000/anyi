@@ -14,9 +14,9 @@ Anyi 支持多个 LLM 提供商，提供统一的接口来访问不同的 AI 模
 | Anthropic    | 云端 | Claude 3.5, Claude 3      | 安全，长上下文   |
 | Azure OpenAI | 云端 | GPT-4, GPT-3.5            | 企业级，合规性   |
 | Ollama       | 本地 | Llama, Mistral, CodeLlama | 隐私，离线使用   |
-| 智谱 AI      | 云端 | GLM-4, ChatGLM            | 中文优化         |
+| 智谱 AI      | 云端 | GLM-4-Flash, ChatGLM      | 中文优化         |
 | 通义千问     | 云端 | Qwen-Max, Qwen-Plus       | 阿里云，中文     |
-| DeepSeek     | 云端 | DeepSeek-Chat             | 代码生成         |
+| DeepSeek     | 云端 | DeepSeek-Reasoner         | 代码生成         |
 | SiliconCloud | 云端 | 多种模型                  | 高性价比         |
 
 ## OpenAI 客户端
@@ -447,7 +447,7 @@ import (
 func main() {
     // DeepSeek 配置
     config := deepseek.DefaultConfig(os.Getenv("DEEPSEEK_API_KEY"))
-    config.Model = "deepseek-chat"
+    config.Model = "deepseek-reasoner"
 
     client, err := anyi.NewClient("deepseek", config)
     if err != nil {

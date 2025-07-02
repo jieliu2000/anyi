@@ -275,11 +275,11 @@ ZHIPU_MODEL=glm-4-flash-250414
 
 ### 4. 可用模型
 
-| 模型        | 描述         |
-| ----------- | ------------ |
-| glm-4       | 最新一代模型 |
-| glm-3-turbo | 快速响应模型 |
-| chatglm3-6b | 开源模型     |
+| 模型               | 描述         |
+| ------------------ | ------------ |
+| glm-4-flash-250414 | 最新一代模型 |
+| glm-3-turbo        | 快速响应模型 |
+| chatglm3-6b        | 开源模型     |
 
 ## 通义千问设置
 
@@ -352,7 +352,7 @@ import (
 func setupDeepSeek() {
     config := deepseek.Config{
         APIKey:      os.Getenv("DEEPSEEK_API_KEY"),
-        Model:       "deepseek-chat",
+        Model:       "deepseek-reasoner",
         Temperature: 0.7,
     }
 
@@ -368,7 +368,7 @@ func setupDeepSeek() {
 ```bash
 # .env
 DEEPSEEK_API_KEY=your-deepseek-api-key-here
-DEEPSEEK_MODEL=deepseek-chat
+DEEPSEEK_MODEL=deepseek-reasoner
 ```
 
 ## SiliconCloud 设置
@@ -393,7 +393,7 @@ import (
 func setupSiliconCloud() {
     config := siliconcloud.Config{
         APIKey:      os.Getenv("SILICONCLOUD_API_KEY"),
-        Model:       "deepseek-ai/deepseek-chat",
+        Model:       "deepseek-ai/deepseek-reasoner",
         Temperature: 0.7,
     }
 
@@ -445,11 +445,11 @@ clients:
       apiKey: "$DASHSCOPE_API_KEY"
       model: "qwen-max"
 
-  - name: "deepseek-chat"
+  - name: "deepseek-reasoner"
     type: "deepseek"
     config:
       apiKey: "$DEEPSEEK_API_KEY"
-      model: "deepseek-chat"
+      model: "deepseek-reasoner"
 
   # 本地提供商
   - name: "local-llama"

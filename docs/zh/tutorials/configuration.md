@@ -114,22 +114,21 @@ flows:
 
 ```bash
 # .env
-# 中文 LLM 配置（推荐优先使用）
+# 智谱 AI 配置
 ZHIPU_API_KEY=your-zhipu-key-here
+ZHIPU_MODEL=glm-4-flash-250414
+ZHIPU_TEMPERATURE=0.7
+
+# 中文 LLM 配置（推荐）
 DASHSCOPE_API_KEY=your-dashscope-key-here
 DEEPSEEK_API_KEY=your-deepseek-key-here
 
-# Anthropic 配置
+# 其他提供商配置（可选）
 ANTHROPIC_API_KEY=sk-ant-your-anthropic-key-here
 
-# Azure OpenAI 配置
+# Azure OpenAI 配置（如需要）
 AZURE_OPENAI_API_KEY=your-azure-key-here
 AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
-
-# OpenAI 配置（如需使用国外服务）
-OPENAI_API_KEY=sk-your-openai-key-here
-OPENAI_MODEL=gpt-4
-OPENAI_TEMPERATURE=0.7
 
 # 应用配置
 APP_ENV=development
@@ -215,15 +214,15 @@ configs/
 ```yaml
 # configs/base.yaml
 clients:
-  - name: "openai"
-    type: "openai"
+  - name: "zhipu"
+    type: "zhipu"
     config:
-      model: "gpt-4o-mini"
+      model: "glm-4-flash-250414"
       temperature: 0.7
 
 flows:
   - name: "chat"
-    clientName: "openai"
+    clientName: "zhipu"
     steps:
       - name: "respond"
         executor:
@@ -394,13 +393,13 @@ func validateConfig(config *anyi.AnyiConfig) error {
 
 func validateClientConfig(client anyi.ClientConfig) error {
     switch client.Type {
-    case "openai":
+    case "zhipu":
         if apiKey, ok := client.Config["apiKey"].(string); ok {
-            if !strings.HasPrefix(apiKey, "sk-") {
-                return fmt.Errorf("无效的 OpenAI API 密钥格式")
+            if apiKey == "" {
+                return fmt.Errorf("智谱 AI API 密钥不能为空")
             }
         } else {
-            return fmt.Errorf("缺少 OpenAI API 密钥")
+            return fmt.Errorf("缺少智谱 AI API 密钥")
         }
     case "anthropic":
         if apiKey, ok := client.Config["apiKey"].(string); ok {
@@ -562,7 +561,7 @@ project/
 
 # LLM 客户端配置
 clients:
-  # 智谱AI 客户端配置
+  # 智谱 AI 客户端配置
   - name: "zhipu-glm4" # 客户端名称
     type: "zhipu" # 客户端类型
     config:
