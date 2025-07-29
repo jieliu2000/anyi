@@ -96,13 +96,8 @@ type MCPClient interface {
 	Close() error
 }
 
-// MCPExecutor is an optimized executor that communicates with MCP servers.
-// It uses a simplified configuration format similar to VSCode/Cursor implementations.
-type MCPExecutor struct {
-	// Server configuration (can use preset or custom config)
-	Preset MCPServerPreset  `json:"preset,omitempty" yaml:"preset,omitempty" mapstructure:"preset"`
-	Server *MCPServerConfig `json:"server,omitempty" yaml:"server,omitempty" mapstructure:"server"`
-
+// BaseMCPExecutor provides common functionality for all MCP executors
+type BaseMCPExecutor struct {
 	// Dynamic operation parameters (set at runtime)
 	Action   string                 `json:"action" yaml:"action" mapstructure:"action"` // "call_tool", "read_resource", "get_prompt", "list_tools", "list_resources"
 	ToolName string                 `json:"toolName,omitempty" yaml:"toolName,omitempty" mapstructure:"toolName"`
@@ -122,6 +117,60 @@ type MCPExecutor struct {
 	client      MCPClient
 	initialized bool
 	mutex       sync.RWMutex
+}
+
+// MCPExecutor is a unified executor that can work with different transport types
+// It uses a simplified configuration format similar to VSCode/Cursor implementations.
+type MCPExecutor struct {
+	BaseMCPExecutor
+	
+	// Server configuration (can use preset or custom config)
+	Preset MCPServerPreset  `json:"preset,omitempty" yaml:"preset,omitempty" mapstructure:"preset"`
+	Server *MCPServerConfig `json:"server,omitempty" yaml:"server,omitempty" mapstructure:"server"`
+}
+
+// HTTPMCPExecutor is a dedicated executor for HTTP transport
+type HTTPMCPExecutor struct {
+	BaseMCPExecutor
+	
+	ServerConfig *MCPServerConfig `json:"serverConfig,omitempty" yaml:"serverConfig,omitempty" mapstructure:"serverConfig"`
+	
+	// HTTP-specific fields
+	endpoint string
+	apiKey   string
+	client   *http.Client
+}
+
+// SSEMCPExecutor is a dedicated executor for SSE transport
+type SSEMCPExecutor struct {
+	BaseMCPExecutor
+	
+	ServerConfig *MCPServerConfig `json:"serverConfig,omitempty" yaml:"serverConfig,omitempty" mapstructure:"serverConfig"`
+	
+	// SSE-specific fields
+	endpoint string
+	apiKey   string
+	client   *http.Client
+	eventCh  chan []byte
+	done     chan struct{}
+}
+
+// STDIOMCPExecutor is a dedicated executor for STDIO transport
+type STDIOMCPExecutor struct {
+	BaseMCPExecutor
+	
+	ServerConfig *MCPServerConfig `json:"serverConfig,omitempty" yaml:"serverConfig,omitempty" mapstructure:"serverConfig"`
+	
+	// STDIO-specific fields
+	command string
+	args    []string
+	cmd     *exec.Cmd
+	stdin   io.WriteCloser
+	stdout  io.ReadCloser
+	stderr  io.ReadCloser
+	scanner *bufio.Scanner
+	responses map[string]chan *MCPResponse
+	done    chan struct{}
 }
 
 // getPresetConfig returns the configuration for a preset server
@@ -386,8 +435,231 @@ func (executor *MCPExecutor) createClient(config *MCPServerConfig) (MCPClient, e
 	}
 }
 
+// HTTPMCPExecutor Init method
+func (executor *HTTPMCPExecutor) Init() error {
+	executor.mutex.Lock()
+	defer executor.mutex.Unlock()
+
+	if executor.initialized {
+		return nil
+	}
+
+	// Validate configuration
+	if err := executor.validateHTTPConfig(); err != nil {
+		return fmt.Errorf("invalid HTTP configuration: %w", err)
+	}
+
+	// Set defaults
+	executor.setDefaults()
+
+	// Create HTTP client
+	executor.client = &http.Client{Timeout: executor.ServerConfig.Timeout}
+	
+	// Extract API key from headers if present
+	if executor.ServerConfig.Headers != nil {
+		if auth, ok := executor.ServerConfig.Headers["Authorization"]; ok {
+			executor.apiKey = strings.TrimPrefix(auth, "Bearer ")
+		}
+	}
+
+	executor.initialized = true
+	return nil
+}
+
+// validateHTTPConfig validates the HTTP server configuration
+func (executor *HTTPMCPExecutor) validateHTTPConfig() error {
+	if executor.ServerConfig == nil {
+		return errors.New("server configuration is required")
+	}
+
+	if executor.ServerConfig.URL == "" {
+		return errors.New("url is required for HTTP transport")
+	}
+
+	// Validate action if specified
+	if executor.Action != "" {
+		validActions := map[string]bool{
+			"call_tool":      true,
+			"read_resource":  true,
+			"get_prompt":     true,
+			"list_tools":     true,
+			"list_resources": true,
+		}
+		if !validActions[executor.Action] {
+			return fmt.Errorf("invalid action: %s (must be one of: call_tool, read_resource, get_prompt, list_tools, list_resources)", executor.Action)
+		}
+
+		// Validate action-specific parameters
+		switch executor.Action {
+		case "call_tool":
+			if executor.ToolName == "" {
+				return errors.New("toolName is required for call_tool action")
+			}
+		case "read_resource":
+			if executor.Resource == "" {
+				return errors.New("resource is required for read_resource action")
+			}
+		case "get_prompt":
+			if executor.Prompt == "" {
+				return errors.New("prompt is required for get_prompt action")
+			}
+		}
+	}
+
+	return nil
+}
+
+// SSEMCPExecutor Init method
+func (executor *SSEMCPExecutor) Init() error {
+	executor.mutex.Lock()
+	defer executor.mutex.Unlock()
+
+	if executor.initialized {
+		return nil
+	}
+
+	// Validate configuration
+	if err := executor.validateSSEConfig(); err != nil {
+		return fmt.Errorf("invalid SSE configuration: %w", err)
+	}
+
+	// Set defaults
+	executor.setDefaults()
+
+	// Create HTTP client
+	executor.client = &http.Client{Timeout: executor.ServerConfig.Timeout}
+	executor.eventCh = make(chan []byte, 100)
+	executor.done = make(chan struct{})
+	
+	// Extract API key from headers if present
+	if executor.ServerConfig.Headers != nil {
+		if auth, ok := executor.ServerConfig.Headers["Authorization"]; ok {
+			executor.apiKey = strings.TrimPrefix(auth, "Bearer ")
+		}
+	}
+
+	executor.initialized = true
+	return nil
+}
+
+// validateSSEConfig validates the SSE server configuration
+func (executor *SSEMCPExecutor) validateSSEConfig() error {
+	if executor.ServerConfig == nil {
+		return errors.New("server configuration is required")
+	}
+
+	if executor.ServerConfig.URL == "" {
+		return errors.New("url is required for SSE transport")
+	}
+
+	// Validate action if specified
+	if executor.Action != "" {
+		validActions := map[string]bool{
+			"call_tool":      true,
+			"read_resource":  true,
+			"get_prompt":     true,
+			"list_tools":     true,
+			"list_resources": true,
+		}
+		if !validActions[executor.Action] {
+			return fmt.Errorf("invalid action: %s (must be one of: call_tool, read_resource, get_prompt, list_tools, list_resources)", executor.Action)
+		}
+
+		// Validate action-specific parameters
+		switch executor.Action {
+		case "call_tool":
+			if executor.ToolName == "" {
+				return errors.New("toolName is required for call_tool action")
+			}
+		case "read_resource":
+			if executor.Resource == "" {
+				return errors.New("resource is required for read_resource action")
+			}
+		case "get_prompt":
+			if executor.Prompt == "" {
+				return errors.New("prompt is required for get_prompt action")
+			}
+		}
+	}
+
+	return nil
+}
+
+// STDIOMCPExecutor Init method
+func (executor *STDIOMCPExecutor) Init() error {
+	executor.mutex.Lock()
+	defer executor.mutex.Unlock()
+
+	if executor.initialized {
+		return nil
+	}
+
+	// Validate configuration
+	if err := executor.validateSTDIOConfig(); err != nil {
+		return fmt.Errorf("invalid STDIO configuration: %w", err)
+	}
+
+	// Set defaults
+	executor.setDefaults()
+	
+	// Set command and args
+	if executor.ServerConfig != nil {
+		executor.command = executor.ServerConfig.Command
+		executor.args = executor.ServerConfig.Args
+	}
+
+	executor.responses = make(map[string]chan *MCPResponse)
+	executor.done = make(chan struct{})
+
+	executor.initialized = true
+	return nil
+}
+
+// validateSTDIOConfig validates the STDIO server configuration
+func (executor *STDIOMCPExecutor) validateSTDIOConfig() error {
+	if executor.ServerConfig == nil {
+		return errors.New("server configuration is required")
+	}
+
+	if executor.ServerConfig.Command == "" {
+		return errors.New("command is required for stdio transport")
+	}
+
+	// Validate action if specified
+	if executor.Action != "" {
+		validActions := map[string]bool{
+			"call_tool":      true,
+			"read_resource":  true,
+			"get_prompt":     true,
+			"list_tools":     true,
+			"list_resources": true,
+		}
+		if !validActions[executor.Action] {
+			return fmt.Errorf("invalid action: %s (must be one of: call_tool, read_resource, get_prompt, list_tools, list_resources)", executor.Action)
+		}
+
+		// Validate action-specific parameters
+		switch executor.Action {
+		case "call_tool":
+			if executor.ToolName == "" {
+				return errors.New("toolName is required for call_tool action")
+			}
+		case "read_resource":
+			if executor.Resource == "" {
+				return errors.New("resource is required for read_resource action")
+			}
+		case "get_prompt":
+			if executor.Prompt == "" {
+				return errors.New("prompt is required for get_prompt action")
+			}
+		}
+	}
+
+	return nil
+}
+
 // setDefaults sets default values for optional fields
-func (executor *MCPExecutor) setDefaults() {
+func (executor *BaseMCPExecutor) setDefaults() {
 	if executor.ResultVarName == "" {
 		executor.ResultVarName = "mcpResult"
 	}
@@ -405,7 +677,7 @@ func (executor *MCPExecutor) setDefaults() {
 	}
 }
 
-// Run executes the MCP operation
+// Run executes the MCP operation for the unified executor
 func (executor *MCPExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
 	if !executor.initialized {
 		if err := executor.Init(); err != nil {
@@ -447,8 +719,139 @@ func (executor *MCPExecutor) Run(flowContext flow.FlowContext, step *flow.Step) 
 	return executor.processResponse(response, flowContext)
 }
 
-// executeOperation executes the specific MCP operation
-func (executor *MCPExecutor) executeOperation(ctx context.Context, flowContext flow.FlowContext) (*MCPResponse, error) {
+// Run executes the MCP operation for HTTP executor
+func (executor *HTTPMCPExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
+	if !executor.initialized {
+		if err := executor.Init(); err != nil {
+			return &flowContext, err
+		}
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), executor.Timeout)
+	defer cancel()
+
+	// Create client if needed
+	if executor.client == nil {
+		executor.client = &http.Client{Timeout: executor.Timeout}
+	}
+
+	// Execute operation with retry logic
+	var response *MCPResponse
+	var err error
+
+	for attempt := 0; attempt < executor.RetryAttempts; attempt++ {
+		response, err = executor.executeHTTPOperation(ctx, flowContext)
+		if err == nil {
+			break
+		}
+
+		if attempt < executor.RetryAttempts-1 {
+			log.Printf("MCP HTTP operation failed (attempt %d/%d): %v, retrying...",
+				attempt+1, executor.RetryAttempts, err)
+			time.Sleep(time.Duration(attempt+1) * time.Second)
+		}
+	}
+
+	if err != nil {
+		return &flowContext, fmt.Errorf("MCP HTTP operation failed after %d attempts: %w",
+			executor.RetryAttempts, err)
+	}
+
+	// Process response
+	return executor.processResponse(response, flowContext)
+}
+
+// Run executes the MCP operation for SSE executor
+func (executor *SSEMCPExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
+	if !executor.initialized {
+		if err := executor.Init(); err != nil {
+			return &flowContext, err
+		}
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), executor.Timeout)
+	defer cancel()
+
+	// Create client if needed
+	if executor.client == nil {
+		executor.client = &http.Client{Timeout: executor.Timeout}
+	}
+
+	// Initialize SSE connection
+	if err := executor.initializeSSE(ctx); err != nil {
+		return &flowContext, fmt.Errorf("failed to initialize SSE connection: %w", err)
+	}
+
+	// Execute operation with retry logic
+	var response *MCPResponse
+	var err error
+
+	for attempt := 0; attempt < executor.RetryAttempts; attempt++ {
+		response, err = executor.executeSSEOperation(ctx, flowContext)
+		if err == nil {
+			break
+		}
+
+		if attempt < executor.RetryAttempts-1 {
+			log.Printf("MCP SSE operation failed (attempt %d/%d): %v, retrying...",
+				attempt+1, executor.RetryAttempts, err)
+			time.Sleep(time.Duration(attempt+1) * time.Second)
+		}
+	}
+
+	if err != nil {
+		return &flowContext, fmt.Errorf("MCP SSE operation failed after %d attempts: %w",
+			executor.RetryAttempts, err)
+	}
+
+	// Process response
+	return executor.processResponse(response, flowContext)
+}
+
+// Run executes the MCP operation for STDIO executor
+func (executor *STDIOMCPExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
+	if !executor.initialized {
+		if err := executor.Init(); err != nil {
+			return &flowContext, err
+		}
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), executor.Timeout)
+	defer cancel()
+
+	// Initialize STDIO connection
+	if err := executor.initializeSTDIO(ctx); err != nil {
+		return &flowContext, fmt.Errorf("failed to initialize STDIO connection: %w", err)
+	}
+
+	// Execute operation with retry logic
+	var response *MCPResponse
+	var err error
+
+	for attempt := 0; attempt < executor.RetryAttempts; attempt++ {
+		response, err = executor.executeSTDIOOperation(ctx, flowContext)
+		if err == nil {
+			break
+		}
+
+		if attempt < executor.RetryAttempts-1 {
+			log.Printf("MCP STDIO operation failed (attempt %d/%d): %v, retrying...",
+				attempt+1, executor.RetryAttempts, err)
+			time.Sleep(time.Duration(attempt+1) * time.Second)
+		}
+	}
+
+	if err != nil {
+		return &flowContext, fmt.Errorf("MCP STDIO operation failed after %d attempts: %w",
+			executor.RetryAttempts, err)
+	}
+
+	// Process response
+	return executor.processResponse(response, flowContext)
+}
+
+// executeOperation executes the specific MCP operation for unified executor
+func (executor *BaseMCPExecutor) executeOperation(ctx context.Context, flowContext flow.FlowContext) (*MCPResponse, error) {
 	switch executor.Action {
 	case "call_tool":
 		args := executor.buildToolArguments(flowContext)
@@ -473,8 +876,132 @@ func (executor *MCPExecutor) executeOperation(ctx context.Context, flowContext f
 	}
 }
 
+// executeHTTPOperation executes the specific MCP operation for HTTP executor
+func (executor *HTTPMCPExecutor) executeHTTPOperation(ctx context.Context, flowContext flow.FlowContext) (*MCPResponse, error) {
+	client := &HTTPMCPClient{
+		endpoint: executor.endpoint,
+		apiKey:   executor.apiKey,
+		client:   executor.client,
+		timeout:  executor.Timeout,
+	}
+
+	switch executor.Action {
+	case "call_tool":
+		args := executor.buildToolArguments(flowContext)
+		return client.CallTool(ctx, executor.ToolName, args)
+
+	case "read_resource":
+		uri := executor.formatStringWithVariables(executor.Resource, flowContext.Variables)
+		return client.ReadResource(ctx, uri)
+
+	case "get_prompt":
+		args := executor.buildPromptArguments(flowContext)
+		return client.GetPrompt(ctx, executor.Prompt, args)
+
+	case "list_tools":
+		return client.ListTools(ctx)
+
+	case "list_resources":
+		return client.ListResources(ctx)
+
+	default:
+		return nil, fmt.Errorf("unsupported operation: %s", executor.Action)
+	}
+}
+
+// executeSSEOperation executes the specific MCP operation for SSE executor
+func (executor *SSEMCPExecutor) executeSSEOperation(ctx context.Context, flowContext flow.FlowContext) (*MCPResponse, error) {
+	client := &SSEMCPClient{
+		endpoint: executor.endpoint,
+		apiKey:   executor.apiKey,
+		client:   executor.client,
+		timeout:  executor.Timeout,
+		eventCh:  executor.eventCh,
+		done:     executor.done,
+	}
+
+	switch executor.Action {
+	case "call_tool":
+		args := executor.buildToolArguments(flowContext)
+		return client.CallTool(ctx, executor.ToolName, args)
+
+	case "read_resource":
+		uri := executor.formatStringWithVariables(executor.Resource, flowContext.Variables)
+		return client.ReadResource(ctx, uri)
+
+	case "get_prompt":
+		args := executor.buildPromptArguments(flowContext)
+		return client.GetPrompt(ctx, executor.Prompt, args)
+
+	case "list_tools":
+		return client.ListTools(ctx)
+
+	case "list_resources":
+		return client.ListResources(ctx)
+
+	default:
+		return nil, fmt.Errorf("unsupported operation: %s", executor.Action)
+	}
+}
+
+// executeSTDIOOperation executes the specific MCP operation for STDIO executor
+func (executor *STDIOMCPExecutor) executeSTDIOOperation(ctx context.Context, flowContext flow.FlowContext) (*MCPResponse, error) {
+	switch executor.Action {
+	case "call_tool":
+		args := executor.buildToolArguments(flowContext)
+		return (&STDIOMCPClient{
+			command:   executor.command,
+			args:      executor.args,
+			timeout:   executor.Timeout,
+			responses: executor.responses,
+			done:      executor.done,
+		}).CallTool(ctx, executor.ToolName, args)
+
+	case "read_resource":
+		uri := executor.formatStringWithVariables(executor.Resource, flowContext.Variables)
+		return (&STDIOMCPClient{
+			command:   executor.command,
+			args:      executor.args,
+			timeout:   executor.Timeout,
+			responses: executor.responses,
+			done:      executor.done,
+		}).ReadResource(ctx, uri)
+
+	case "get_prompt":
+		args := executor.buildPromptArguments(flowContext)
+		return (&STDIOMCPClient{
+			command:   executor.command,
+			args:      executor.args,
+			timeout:   executor.Timeout,
+			responses: executor.responses,
+			done:      executor.done,
+		}).GetPrompt(ctx, executor.Prompt, args)
+
+	case "list_tools":
+		return (&STDIOMCPClient{
+			command:   executor.command,
+			args:      executor.args,
+			timeout:   executor.Timeout,
+			responses: executor.responses,
+			done:      executor.done,
+		}).ListTools(ctx)
+
+	case "list_resources":
+		return (&STDIOMCPClient{
+			command:   executor.command,
+			args:      executor.args,
+			timeout:   executor.Timeout,
+			responses: executor.responses,
+			done:      executor.done,
+		}).ListResources(ctx)
+
+	default:
+		return nil, fmt.Errorf("unsupported operation: %s", executor.Action)
+	}
+}
+
 // buildToolArguments builds tool arguments from configuration and flow context
-func (executor *MCPExecutor) buildToolArguments(flowContext flow.FlowContext) map[string]interface{} {
+func (executor *BaseMCPExecutor) buildToolArguments(flowContext flow.FlowContext) map[string]interface{} {
 	args := make(map[string]interface{})
 
 	// Copy static arguments
@@ -493,7 +1020,7 @@ func (executor *MCPExecutor) buildToolArguments(flowContext flow.FlowContext) ma
 }
 
 // buildPromptArguments builds prompt arguments from configuration and flow context
-func (executor *MCPExecutor) buildPromptArguments(flowContext flow.FlowContext) map[string]interface{} {
+func (executor *BaseMCPExecutor) buildPromptArguments(flowContext flow.FlowContext) map[string]interface{} {
 	args := make(map[string]interface{})
 
 	// For prompt arguments, we use ToolArgs as the general arguments container
@@ -512,7 +1039,7 @@ func (executor *MCPExecutor) buildPromptArguments(flowContext flow.FlowContext) 
 }
 
 // processResponse processes the MCP response and updates flow context
-func (executor *MCPExecutor) processResponse(response *MCPResponse, flowContext flow.FlowContext) (*flow.FlowContext, error) {
+func (executor *BaseMCPExecutor) processResponse(response *MCPResponse, flowContext flow.FlowContext) (*flow.FlowContext, error) {
 	if response.Error != nil {
 		return &flowContext, fmt.Errorf("MCP error %d: %s", response.Error.Code, response.Error.Message)
 	}
@@ -531,7 +1058,7 @@ func (executor *MCPExecutor) processResponse(response *MCPResponse, flowContext 
 }
 
 // setContextOutput sets the flow context text based on the response
-func (executor *MCPExecutor) setContextOutput(result interface{}, flowContext *flow.FlowContext) error {
+func (executor *BaseMCPExecutor) setContextOutput(result interface{}, flowContext *flow.FlowContext) error {
 	switch v := result.(type) {
 	case string:
 		flowContext.Text = v
@@ -559,7 +1086,7 @@ func (executor *MCPExecutor) setContextOutput(result interface{}, flowContext *f
 }
 
 // formatStringWithVariables replaces variable placeholders
-func (executor *MCPExecutor) formatStringWithVariables(format string, variables map[string]interface{}) string {
+func (executor *BaseMCPExecutor) formatStringWithVariables(format string, variables map[string]interface{}) string {
 	result := format
 
 	for key, value := range variables {
@@ -587,7 +1114,7 @@ func (executor *MCPExecutor) formatStringWithVariables(format string, variables 
 	return result
 }
 
-// Close closes the MCP client connection
+// Close closes the MCP client connection for unified executor
 func (executor *MCPExecutor) Close() error {
 	executor.mutex.Lock()
 	defer executor.mutex.Unlock()
@@ -597,6 +1124,304 @@ func (executor *MCPExecutor) Close() error {
 	}
 
 	return nil
+}
+
+// Close closes the HTTP connection
+func (executor *HTTPMCPExecutor) Close() error {
+	// HTTP client doesn't need explicit closing
+	return nil
+}
+
+// Close closes the SSE connection
+func (executor *SSEMCPExecutor) Close() error {
+	executor.mutex.Lock()
+	defer executor.mutex.Unlock()
+
+	close(executor.done)
+	return nil
+}
+
+// Close closes the STDIO connection
+func (executor *STDIOMCPExecutor) Close() error {
+	executor.mutex.Lock()
+	defer executor.mutex.Unlock()
+
+	// Signal shutdown
+	close(executor.done)
+
+	// Close pipes
+	if executor.stdin != nil {
+		executor.stdin.Close()
+	}
+	if executor.stdout != nil {
+		executor.stdout.Close()
+	}
+	if executor.stderr != nil {
+		executor.stderr.Close()
+	}
+
+	// Terminate process
+	if executor.cmd != nil && executor.cmd.Process != nil {
+		// Try graceful shutdown first
+		executor.cmd.Process.Signal(os.Interrupt)
+
+		// Wait for process to exit or kill it
+		done := make(chan error, 1)
+		go func() {
+			done <- executor.cmd.Wait()
+		}()
+
+		select {
+		case <-time.After(5 * time.Second):
+			// Force kill if not exited within 5 seconds
+			executor.cmd.Process.Kill()
+			executor.cmd.Wait()
+		case <-done:
+			// Process exited gracefully
+		}
+	}
+
+	return nil
+}
+
+// initializeSSE initializes the SSE connection
+func (executor *SSEMCPExecutor) initializeSSE(ctx context.Context) error {
+	executor.mutex.Lock()
+	defer executor.mutex.Unlock()
+
+	// Create SSE connection
+	req, err := http.NewRequestWithContext(ctx, "GET", executor.endpoint, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create SSE request: %w", err)
+	}
+
+	req.Header.Set("Accept", "text/event-stream")
+	req.Header.Set("Cache-Control", "no-cache")
+	if executor.apiKey != "" {
+		req.Header.Set("Authorization", "Bearer "+executor.apiKey)
+	}
+
+	resp, err := executor.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to connect to SSE endpoint: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		resp.Body.Close()
+		return fmt.Errorf("SSE connection failed with status %d: %s", resp.StatusCode, resp.Status)
+	}
+
+	// Start reading SSE events
+	go executor.readSSEEvents(resp.Body)
+
+	return nil
+}
+
+// readSSEEvents reads Server-Sent Events from the response body
+func (executor *SSEMCPExecutor) readSSEEvents(body io.ReadCloser) {
+	defer body.Close()
+	defer close(executor.eventCh)
+
+	scanner := bufio.NewScanner(body)
+	var eventData bytes.Buffer
+
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		// Handle SSE format
+		if strings.HasPrefix(line, "data: ") {
+			data := strings.TrimPrefix(line, "data: ")
+			if data == "[DONE]" {
+				return
+			}
+			eventData.WriteString(data)
+		} else if line == "" {
+			// Empty line indicates end of event
+			if eventData.Len() > 0 {
+				select {
+				case executor.eventCh <- eventData.Bytes():
+				case <-executor.done:
+					return
+				}
+				eventData.Reset()
+			}
+		}
+	}
+}
+
+// initializeSTDIO initializes the STDIO connection by starting the MCP server process
+func (executor *STDIOMCPExecutor) initializeSTDIO(ctx context.Context) error {
+	executor.mutex.Lock()
+	defer executor.mutex.Unlock()
+
+	if executor.cmd != nil {
+		return nil // Already initialized
+	}
+
+	// Create the command
+	executor.cmd = exec.CommandContext(ctx, executor.command, executor.args...)
+
+	// Set up pipes
+	stdin, err := executor.cmd.StdinPipe()
+	if err != nil {
+		return fmt.Errorf("failed to create stdin pipe: %w", err)
+	}
+	executor.stdin = stdin
+
+	stdout, err := executor.cmd.StdoutPipe()
+	if err != nil {
+		executor.stdin.Close()
+		return fmt.Errorf("failed to create stdout pipe: %w", err)
+	}
+	executor.stdout = stdout
+
+	stderr, err := executor.cmd.StderrPipe()
+	if err != nil {
+		executor.stdin.Close()
+		executor.stdout.Close()
+		return fmt.Errorf("failed to create stderr pipe: %w", err)
+	}
+	executor.stderr = stderr
+
+	// Start the process
+	if err := executor.cmd.Start(); err != nil {
+		executor.stdin.Close()
+		executor.stdout.Close()
+		executor.stderr.Close()
+		return fmt.Errorf("failed to start MCP server process: %w", err)
+	}
+
+	// Set up scanner for reading responses
+	executor.scanner = bufio.NewScanner(executor.stdout)
+
+	// Start goroutines to handle I/O
+	go executor.readResponses()
+	go executor.readErrors()
+
+	// Send initialization request
+	initRequest := MCPRequest{
+		JSONRPC: "2.0",
+		ID:      "init",
+		Method:  "initialize",
+		Params: map[string]interface{}{
+			"protocolVersion": "2024-11-05",
+			"capabilities": map[string]interface{}{
+				"roots": map[string]interface{}{
+					"listChanged": true,
+				},
+				"sampling": map[string]interface{}{},
+			},
+			"clientInfo": map[string]interface{}{
+				"name":    "anyi-mcp-client",
+				"version": "1.0.0",
+			},
+		},
+	}
+
+	response, err := executor.sendSTDIORequest(ctx, initRequest)
+	if err != nil {
+		executor.Close()
+		return fmt.Errorf("failed to initialize MCP server: %w", err)
+	}
+
+	if response.Error != nil {
+		executor.Close()
+		return fmt.Errorf("MCP server initialization error: %s", response.Error.Message)
+	}
+
+	return nil
+}
+
+// readResponses reads JSON-RPC responses from stdout
+func (executor *STDIOMCPExecutor) readResponses() {
+	defer func() {
+		executor.mutex.Lock()
+		for _, ch := range executor.responses {
+			close(ch)
+		}
+		executor.mutex.Unlock()
+	}()
+
+	for executor.scanner.Scan() {
+		line := executor.scanner.Bytes()
+		if len(line) == 0 {
+			continue
+		}
+
+		var response MCPResponse
+		if err := json.Unmarshal(line, &response); err != nil {
+			log.Printf("Failed to unmarshal MCP response: %v", err)
+			continue
+		}
+
+		executor.mutex.RLock()
+		if ch, exists := executor.responses[response.ID]; exists {
+			select {
+			case ch <- &response:
+			case <-executor.done:
+				executor.mutex.RUnlock()
+				return
+			}
+		}
+		executor.mutex.RUnlock()
+	}
+}
+
+// readErrors reads error messages from stderr
+func (executor *STDIOMCPExecutor) readErrors() {
+	scanner := bufio.NewScanner(executor.stderr)
+	for scanner.Scan() {
+		log.Printf("MCP server stderr: %s", scanner.Text())
+	}
+}
+
+// sendSTDIORequest sends a JSON-RPC request via STDIO and waits for response
+func (executor *STDIOMCPExecutor) sendSTDIORequest(ctx context.Context, request MCPRequest) (*MCPResponse, error) {
+	// Create response channel
+	responseCh := make(chan *MCPResponse, 1)
+
+	executor.mutex.Lock()
+	executor.responses[request.ID] = responseCh
+	executor.mutex.Unlock()
+
+	// Clean up response channel when done
+	defer func() {
+		executor.mutex.Lock()
+		delete(executor.responses, request.ID)
+		executor.mutex.Unlock()
+		close(responseCh)
+	}()
+
+	// Marshal and send request
+	jsonData, err := json.Marshal(request)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	// Add newline for JSON-RPC over STDIO
+	jsonData = append(jsonData, '\n')
+
+	if _, err := executor.stdin.Write(jsonData); err != nil {
+		return nil, fmt.Errorf("failed to write request to stdin: %w", err)
+	}
+
+	// Wait for response
+	timeout := time.NewTimer(executor.Timeout)
+	defer timeout.Stop()
+
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case <-timeout.C:
+		return nil, errors.New("timeout waiting for STDIO response")
+	case response := <-responseCh:
+		if response == nil {
+			return nil, errors.New("STDIO connection closed")
+		}
+		return response, nil
+	case <-executor.done:
+		return nil, errors.New("STDIO client closed")
+	}
 }
 
 // HTTPMCPClient implements MCPClient for HTTP transport
@@ -1255,7 +2080,10 @@ func (c *STDIOMCPClient) Close() error {
 	return nil
 }
 
-// Register the optimized MCP executor
+// Register the optimized MCP executors
 func init() {
 	RegisterExecutor("mcp", &MCPExecutor{})
+	RegisterExecutor("mcp-http", &HTTPMCPExecutor{})
+	RegisterExecutor("mcp-sse", &SSEMCPExecutor{})
+	RegisterExecutor("mcp-stdio", &STDIOMCPExecutor{})
 }

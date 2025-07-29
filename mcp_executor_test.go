@@ -20,23 +20,27 @@ func TestMCPExecutor_Init(t *testing.T) {
 		{
 			name: "valid preset configuration",
 			executor: MCPExecutor{
+				BaseMCPExecutor: BaseMCPExecutor{
+					Action:   "call_tool",
+					ToolName: "test_tool",
+				},
 				Preset:   PresetGitHub,
-				Action:   "call_tool",
-				ToolName: "test_tool",
 			},
 			expectError: false,
 		},
 		{
 			name: "valid custom server configuration",
 			executor: MCPExecutor{
+				BaseMCPExecutor: BaseMCPExecutor{
+					Action:   "call_tool",
+					ToolName: "test_tool",
+				},
 				Server: &MCPServerConfig{
 					Name:    "test-server",
 					Type:    TransportHTTP,
 					URL:     "http://localhost:8080",
 					Enabled: true,
 				},
-				Action:   "call_tool",
-				ToolName: "test_tool",
 			},
 			expectError: false,
 		},
@@ -44,8 +48,10 @@ func TestMCPExecutor_Init(t *testing.T) {
 		{
 			name: "missing server configuration",
 			executor: MCPExecutor{
-				Action:   "call_tool",
-				ToolName: "test_tool",
+				BaseMCPExecutor: BaseMCPExecutor{
+					Action:   "call_tool",
+					ToolName: "test_tool",
+				},
 			},
 			expectError:    true,
 			errorSubstring: "no server configuration provided",
@@ -53,8 +59,10 @@ func TestMCPExecutor_Init(t *testing.T) {
 		{
 			name: "invalid action",
 			executor: MCPExecutor{
+				BaseMCPExecutor: BaseMCPExecutor{
+					Action: "invalid_action",
+				},
 				Preset: PresetGitHub,
-				Action: "invalid_action",
 			},
 			expectError:    true,
 			errorSubstring: "invalid action",
@@ -62,8 +70,10 @@ func TestMCPExecutor_Init(t *testing.T) {
 		{
 			name: "missing tool name for call_tool action",
 			executor: MCPExecutor{
+				BaseMCPExecutor: BaseMCPExecutor{
+					Action: "call_tool",
+				},
 				Preset: PresetGitHub,
-				Action: "call_tool",
 			},
 			expectError:    true,
 			errorSubstring: "toolName is required",
@@ -71,8 +81,10 @@ func TestMCPExecutor_Init(t *testing.T) {
 		{
 			name: "missing resource for read_resource action",
 			executor: MCPExecutor{
+				BaseMCPExecutor: BaseMCPExecutor{
+					Action: "read_resource",
+				},
 				Preset: PresetGitHub,
-				Action: "read_resource",
 			},
 			expectError:    true,
 			errorSubstring: "resource is required",
@@ -80,8 +92,10 @@ func TestMCPExecutor_Init(t *testing.T) {
 		{
 			name: "missing prompt for get_prompt action",
 			executor: MCPExecutor{
+				BaseMCPExecutor: BaseMCPExecutor{
+					Action: "get_prompt",
+				},
 				Preset: PresetGitHub,
-				Action: "get_prompt",
 			},
 			expectError:    true,
 			errorSubstring: "prompt is required",
@@ -102,6 +116,193 @@ func TestMCPExecutor_Init(t *testing.T) {
 				assert.NoError(t, err)
 				assert.True(t, executor.initialized)
 				assert.NotNil(t, executor.client)
+			}
+		})
+	}
+}
+
+func TestHTTPMCPExecutor_Init(t *testing.T) {
+	tests := []struct {
+		name           string
+		executor       HTTPMCPExecutor
+		expectError    bool
+		errorSubstring string
+	}{
+		{
+			name: "valid HTTP configuration",
+			executor: HTTPMCPExecutor{
+				BaseMCPExecutor: BaseMCPExecutor{
+					Action:   "call_tool",
+					ToolName: "test_tool",
+				},
+				ServerConfig: &MCPServerConfig{
+					Name: "http-server",
+					Type: TransportHTTP,
+					URL:  "http://localhost:8080",
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "HTTP missing URL",
+			executor: HTTPMCPExecutor{
+				BaseMCPExecutor: BaseMCPExecutor{
+					Action: "call_tool",
+					ToolName: "test_tool",
+				},
+				ServerConfig: &MCPServerConfig{
+					Name: "http-server",
+					Type: TransportHTTP,
+				},
+			},
+			expectError:    true,
+			errorSubstring: "url is required",
+		},
+		{
+			name: "missing tool name for call_tool action",
+			executor: HTTPMCPExecutor{
+				BaseMCPExecutor: BaseMCPExecutor{
+					Action: "call_tool",
+				},
+				ServerConfig: &MCPServerConfig{
+					Name: "http-server",
+					Type: TransportHTTP,
+					URL:  "http://localhost:8080",
+				},
+			},
+			expectError:    true,
+			errorSubstring: "toolName is required",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			executor := tc.executor
+			err := executor.Init()
+
+			if tc.expectError {
+				assert.Error(t, err)
+				if tc.errorSubstring != "" {
+					assert.Contains(t, err.Error(), tc.errorSubstring)
+				}
+			} else {
+				assert.NoError(t, err)
+				assert.True(t, executor.initialized)
+			}
+		})
+	}
+}
+
+func TestSSEMCPExecutor_Init(t *testing.T) {
+	tests := []struct {
+		name           string
+		executor       SSEMCPExecutor
+		expectError    bool
+		errorSubstring string
+	}{
+		{
+			name: "valid SSE configuration",
+			executor: SSEMCPExecutor{
+				BaseMCPExecutor: BaseMCPExecutor{
+					Action:   "call_tool",
+					ToolName: "test_tool",
+				},
+				ServerConfig: &MCPServerConfig{
+					Name: "sse-server",
+					Type: TransportSSE,
+					URL:  "http://localhost:8080/events",
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "SSE missing URL",
+			executor: SSEMCPExecutor{
+				BaseMCPExecutor: BaseMCPExecutor{
+					Action: "call_tool",
+					ToolName: "test_tool",
+				},
+				ServerConfig: &MCPServerConfig{
+					Name: "sse-server",
+					Type: TransportSSE,
+				},
+			},
+			expectError:    true,
+			errorSubstring: "url is required",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			executor := tc.executor
+			err := executor.Init()
+
+			if tc.expectError {
+				assert.Error(t, err)
+				if tc.errorSubstring != "" {
+					assert.Contains(t, err.Error(), tc.errorSubstring)
+				}
+			} else {
+				assert.NoError(t, err)
+				assert.True(t, executor.initialized)
+			}
+		})
+	}
+}
+
+func TestSTDIOMCPExecutor_Init(t *testing.T) {
+	tests := []struct {
+		name           string
+		executor       STDIOMCPExecutor
+		expectError    bool
+		errorSubstring string
+	}{
+		{
+			name: "valid STDIO configuration",
+			executor: STDIOMCPExecutor{
+				BaseMCPExecutor: BaseMCPExecutor{
+					Action:   "call_tool",
+					ToolName: "test_tool",
+				},
+				ServerConfig: &MCPServerConfig{
+					Name:    "stdio-server",
+					Type:    TransportSTDIO,
+					Command: "node",
+					Args:    []string{"server.js"},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "STDIO missing command",
+			executor: STDIOMCPExecutor{
+				BaseMCPExecutor: BaseMCPExecutor{
+					Action: "call_tool",
+					ToolName: "test_tool",
+				},
+				ServerConfig: &MCPServerConfig{
+					Name: "stdio-server",
+					Type: TransportSTDIO,
+				},
+			},
+			expectError:    true,
+			errorSubstring: "command is required",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			executor := tc.executor
+			err := executor.Init()
+
+			if tc.expectError {
+				assert.Error(t, err)
+				if tc.errorSubstring != "" {
+					assert.Contains(t, err.Error(), tc.errorSubstring)
+				}
+			} else {
+				assert.NoError(t, err)
+				assert.True(t, executor.initialized)
 			}
 		})
 	}
@@ -202,9 +403,10 @@ func TestMCPExecutor_FormatStringWithVariables(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			executor := &MCPExecutor{
-				Preset:   PresetGitHub,
-				Action:   "call_tool",
-				ToolName: "test_tool",
+				BaseMCPExecutor: BaseMCPExecutor{
+					Action:   "call_tool",
+					ToolName: "test_tool",
+				},
 			}
 			result := executor.formatStringWithVariables(tc.format, tc.variables)
 			assert.Equal(t, tc.expected, result)
@@ -222,14 +424,16 @@ func TestMCPExecutor_WithMockServer(t *testing.T) {
 		mockServer.ClearRequests()
 
 		executor := &MCPExecutor{
+			BaseMCPExecutor: BaseMCPExecutor{
+				Action:   "call_tool",
+				ToolName: "test_tool",
+				ToolArgs: map[string]interface{}{"param1": "value1"},
+			},
 			Server: &MCPServerConfig{
 				Name: "test-server",
 				Type: TransportHTTP,
 				URL:  mockServer.URL(),
 			},
-			Action:   "call_tool",
-			ToolName: "test_tool",
-			ToolArgs: map[string]interface{}{"param1": "value1"},
 		}
 
 		// Initialize
@@ -255,15 +459,17 @@ func TestMCPExecutor_WithMockServer(t *testing.T) {
 		mockServer.ClearRequests()
 
 		executor := &MCPExecutor{
+			BaseMCPExecutor: BaseMCPExecutor{
+				Action:          "read_resource",
+				Resource:        "/test-resource",
+				OutputToContext: true,
+				ResultVarName:   "resourceResult",
+			},
 			Server: &MCPServerConfig{
 				Name: "test-server",
 				Type: TransportHTTP,
 				URL:  mockServer.URL(),
 			},
-			Action:          "read_resource",
-			Resource:        "/test-resource",
-			OutputToContext: true,
-			ResultVarName:   "resourceResult",
 		}
 
 		// Initialize
@@ -292,15 +498,17 @@ func TestMCPExecutor_WithMockServer(t *testing.T) {
 		mockServer.ClearRequests()
 
 		executor := &MCPExecutor{
+			BaseMCPExecutor: BaseMCPExecutor{
+				Action:        "get_prompt",
+				Prompt:        "test_prompt",
+				ToolArgs:      map[string]interface{}{"param1": "value1"},
+				ResultVarName: "promptResult",
+			},
 			Server: &MCPServerConfig{
 				Name: "test-server",
 				Type: TransportHTTP,
 				URL:  mockServer.URL(),
 			},
-			Action:        "get_prompt",
-			Prompt:        "test_prompt",
-			ToolArgs:      map[string]interface{}{"param1": "value1"},
-			ResultVarName: "promptResult",
 		}
 
 		// Initialize
@@ -329,13 +537,15 @@ func TestMCPExecutor_WithMockServer(t *testing.T) {
 		mockServer.ClearRequests()
 
 		executor := &MCPExecutor{
+			BaseMCPExecutor: BaseMCPExecutor{
+				Action:        "list_tools",
+				ResultVarName: "toolsList",
+			},
 			Server: &MCPServerConfig{
 				Name: "test-server",
 				Type: TransportHTTP,
 				URL:  mockServer.URL(),
 			},
-			Action:        "list_tools",
-			ResultVarName: "toolsList",
 		}
 
 		// Initialize
@@ -364,13 +574,15 @@ func TestMCPExecutor_WithMockServer(t *testing.T) {
 		mockServer.ClearRequests()
 
 		executor := &MCPExecutor{
+			BaseMCPExecutor: BaseMCPExecutor{
+				Action:        "list_resources",
+				ResultVarName: "resourcesList",
+			},
 			Server: &MCPServerConfig{
 				Name: "test-server",
 				Type: TransportHTTP,
 				URL:  mockServer.URL(),
 			},
-			Action:        "list_resources",
-			ResultVarName: "resourcesList",
 		}
 
 		// Initialize
@@ -453,8 +665,10 @@ func TestMCPExecutor_TransportSpecificValidation(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			executor := &MCPExecutor{
+				BaseMCPExecutor: BaseMCPExecutor{
+					Action: "list_tools",
+				},
 				Server: tc.serverConfig,
-				Action: "list_tools",
 			}
 
 			err := executor.Init()
@@ -473,9 +687,10 @@ func TestMCPExecutor_TransportSpecificValidation(t *testing.T) {
 
 func TestMCPExecutor_DefaultSettings(t *testing.T) {
 	executor := &MCPExecutor{
-		Preset:   PresetGitHub,
-		Action:   "call_tool",
-		ToolName: "test_tool",
+		BaseMCPExecutor: BaseMCPExecutor{
+			Action:   "call_tool",
+			ToolName: "test_tool",
+		},
 	}
 
 	err := executor.Init()
@@ -490,10 +705,12 @@ func TestMCPExecutor_DefaultSettings(t *testing.T) {
 
 func TestMCPExecutor_ArgumentBuilding(t *testing.T) {
 	executor := &MCPExecutor{
-		ToolArgs: map[string]interface{}{
-			"static_param":   "static_value",
-			"template_param": "${user_id}",
-			"number_param":   42,
+		BaseMCPExecutor: BaseMCPExecutor{
+			ToolArgs: map[string]interface{}{
+				"static_param":   "static_value",
+				"template_param": "${user_id}",
+				"number_param":   42,
+			},
 		},
 	}
 
@@ -512,9 +729,11 @@ func TestMCPExecutor_ArgumentBuilding(t *testing.T) {
 
 func TestMCPExecutor_PromptArgumentBuilding(t *testing.T) {
 	executor := &MCPExecutor{
-		ToolArgs: map[string]interface{}{
-			"context":  "${context_data}",
-			"language": "en",
+		BaseMCPExecutor: BaseMCPExecutor{
+			ToolArgs: map[string]interface{}{
+				"context":  "${context_data}",
+				"language": "en",
+			},
 		},
 	}
 
@@ -545,8 +764,10 @@ func TestMCPExecutor_ResponseProcessing(t *testing.T) {
 				Result:  "Simple text result",
 			},
 			executor: &MCPExecutor{
-				OutputToContext: true,
-				ResultVarName:   "testResult",
+				BaseMCPExecutor: BaseMCPExecutor{
+					OutputToContext: true,
+					ResultVarName:   "testResult",
+				},
 			},
 			expected: "Simple text result",
 		},
@@ -561,8 +782,10 @@ func TestMCPExecutor_ResponseProcessing(t *testing.T) {
 				},
 			},
 			executor: &MCPExecutor{
-				OutputToContext: true,
-				ResultVarName:   "testResult",
+				BaseMCPExecutor: BaseMCPExecutor{
+					OutputToContext: true,
+					ResultVarName:   "testResult",
+				},
 			},
 			expected: "Text from map",
 		},
@@ -577,8 +800,10 @@ func TestMCPExecutor_ResponseProcessing(t *testing.T) {
 				},
 			},
 			executor: &MCPExecutor{
-				OutputToContext: true,
-				ResultVarName:   "testResult",
+				BaseMCPExecutor: BaseMCPExecutor{
+					OutputToContext: true,
+					ResultVarName:   "testResult",
+				},
 			},
 			expected: "Content from map",
 		},
@@ -611,7 +836,9 @@ func TestMCPExecutor_ErrorHandling(t *testing.T) {
 	}
 
 	executor := &MCPExecutor{
-		ResultVarName: "testResult",
+		BaseMCPExecutor: BaseMCPExecutor{
+			ResultVarName: "testResult",
+		},
 	}
 
 	flowContext := flow.FlowContext{
@@ -628,13 +855,15 @@ func TestMCPExecutor_ErrorHandling(t *testing.T) {
 func TestMCPExecutor_CustomServerConfiguration(t *testing.T) {
 	// Test that custom server configuration works
 	executor := &MCPExecutor{
+		BaseMCPExecutor: BaseMCPExecutor{
+			Action: "list_tools",
+		},
 		Server: &MCPServerConfig{
 			Name:    "custom-server",
 			Type:    TransportSTDIO,
 			Command: "node",
 			Args:    []string{"server.js"},
 		},
-		Action: "list_tools",
 	}
 
 	err := executor.Init()
@@ -702,7 +931,9 @@ func TestMCPExecutor_StringFormatting(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			executor := &MCPExecutor{}
+			executor := &MCPExecutor{
+				BaseMCPExecutor: BaseMCPExecutor{},
+			}
 			result := executor.formatStringWithVariables(tc.format, tc.variables)
 			assert.Equal(t, tc.expected, result)
 		})
