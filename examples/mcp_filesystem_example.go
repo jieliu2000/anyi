@@ -1,35 +1,43 @@
-package main
+package examples
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
+	"testing"
 
 	"github.com/jieliu2000/anyi"
 	"github.com/jieliu2000/anyi/flow"
 )
 
-func main() {
-	// 创建一个临时目录用于示例
+// ExampleMCPExecutor_ExtendedFileSystem demonstrates how to use Anyi's MCP executors
+// with a filesystem server in a more extended example.
+//
+// This example shows:
+// 1. Creating and using a filesystem MCP server
+// 2. Reading file content via MCP protocol
+// 3. Using both generic and specialized MCP executors
+func ExampleMCPExecutor_ExtendedFileSystem() {
+	// Create a temporary directory for our example
 	tempDir, err := os.MkdirTemp("", "mcp_example")
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Error creating temp dir: %v\n", err)
+		return
 	}
-	defer os.RemoveAll(tempDir)
+	defer os.RemoveAll(tempDir) // Clean up
 
-	// 在临时目录中创建一个示例文件
+	// Create an example file in our temporary directory
 	exampleFile := filepath.Join(tempDir, "example.txt")
 	content := "Hello, MCP! This is an example file for demonstrating Anyi's MCP functionality."
 	if err := os.WriteFile(exampleFile, []byte(content), 0644); err != nil {
-		log.Fatal(err)
+		fmt.Printf("Error writing file: %v\n", err)
+		return
 	}
 
 	fmt.Printf("Created example file at: %s\n", exampleFile)
 	fmt.Printf("File content: %s\n\n", content)
 
-	// 创建一个使用STDIO传输的MCP执行器
-	// 这里使用文件系统MCP服务器，它可以读取和操作本地文件
+	// Create an MCP executor that uses the filesystem server via STDIO
 	executor := &anyi.MCPExecutor{
 		Server: &anyi.MCPServerConfig{
 			Name:    "filesystem",
@@ -42,38 +50,36 @@ func main() {
 		ResultVarName: "fileContent",
 	}
 
-	// 初始化执行器
+	// Initialize the executor
 	if err := executor.Init(); err != nil {
-		// 如果npx命令不可用或包未找到，给出友好的提示
+		// If npx command is not available, provide a friendly message
 		if err.Error() == "exec: \"npx\": executable file not found in $PATH" {
-			fmt.Println("Error: npx command not found. Please ensure Node.js is installed.")
-			fmt.Println("You can download Node.js from: https://nodejs.org/")
+			fmt.Println("Example requires Node.js to be installed")
 			return
 		}
-		log.Fatal("Failed to initialize MCP executor:", err)
+		fmt.Printf("Error initializing executor: %v\n", err)
+		return
 	}
 
-	// 创建一个简单的流程上下文
+	// Create flow context
 	flowContext := flow.FlowContext{}
 
-	// 运行MCP执行器
+	// Run the MCP executor
 	fmt.Println("Reading file content via MCP filesystem server...")
 	result, err := executor.Run(flowContext, nil)
 	if err != nil {
 		fmt.Printf("Error running MCP executor: %v\n", err)
-		fmt.Println("This might be because the MCP server package is not available or there was a network issue.")
-		fmt.Println("Please ensure you have internet connection and Node.js installed.")
 		return
 	}
 
-	// 输出结果
+	// Print the result
 	fmt.Println("MCP execution completed successfully!")
 	fileContent := result.GetVariable("fileContent")
 	if fileContent != nil {
-		fmt.Printf("File content retrieved via MCP: %+v\n", fileContent)
+		fmt.Printf("File content retrieved via MCP: %s\n", fileContent)
 	}
 
-	// 展示如何使用专门的STDIO MCP执行器
+	// Demonstrate how to use the specialized STDIO MCP executor
 	fmt.Println("\n--- Using specialized STDIOMCPExecutor ---")
 	stdioExecutor := &anyi.STDIOMCPExecutor{
 		BaseMCPExecutor: anyi.BaseMCPExecutor{
@@ -90,13 +96,13 @@ func main() {
 	}
 
 	if err := stdioExecutor.Init(); err != nil {
-		// 如果npx命令不可用或包未找到，给出友好的提示
+		// If npx command is not available, provide a friendly message
 		if err.Error() == "exec: \"npx\": executable file not found in $PATH" {
-			fmt.Println("Error: npx command not found. Please ensure Node.js is installed.")
-			fmt.Println("You can download Node.js from: https://nodejs.org/")
+			fmt.Println("Example requires Node.js to be installed")
 			return
 		}
-		log.Fatal("Failed to initialize STDIOMCPExecutor:", err)
+		fmt.Printf("Error initializing executor: %v\n", err)
+		return
 	}
 
 	stdioResult, err := stdioExecutor.Run(flowContext, nil)
@@ -108,8 +114,22 @@ func main() {
 	fmt.Println("STDIOMCPExecutor execution completed successfully!")
 	stdioFileContent := stdioResult.GetVariable("fileContent")
 	if stdioFileContent != nil {
-		fmt.Printf("File content retrieved via STDIOMCPExecutor: %+v\n", stdioFileContent)
+		fmt.Printf("File content retrieved via STDIOMCPExecutor: %s\n", stdioFileContent)
 	}
 
 	fmt.Println("\nExample completed!")
+
+	// Output:
+	// Created example file at: /tmp/mcp_exampleXXXXXX/example.txt
+	// File content: Hello, MCP! This is an example file for demonstrating Anyi's MCP functionality.
+	//
+	// Reading file content via MCP filesystem server...
+	// MCP execution completed successfully!
+	// File content retrieved via MCP: Hello, MCP! This is an example file for demonstrating Anyi's MCP functionality.
+	//
+	// --- Using specialized STDIOMCPExecutor ---
+	// STDIOMCPExecutor execution completed successfully!
+	// File content retrieved via STDIOMCPExecutor: Hello, MCP! This is an example file for demonstrating Anyi's MCP functionality.
+	//
+	// Example completed!
 }

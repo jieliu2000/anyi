@@ -1,22 +1,28 @@
-// mcp_simple_example.go demonstrates how to use Anyi's MCP executors
-// with a simple file system server that can read local files.
-package main
+package examples
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
+	"testing"
 
 	"github.com/jieliu2000/anyi"
 	"github.com/jieliu2000/anyi/flow"
 )
 
-func main() {
+// ExampleMCPExecutor_FileSystem demonstrates how to use Anyi's MCP executors
+// with a simple file system server that can read local files.
+//
+// This example shows:
+// 1. Using the generic MCPExecutor with STDIO transport
+// 2. Using the specialized STDIOMCPExecutor
+// 3. Reading a file through the MCP filesystem server
+func ExampleMCPExecutor_FileSystem() {
 	// Create a temporary directory for our example
 	tempDir, err := os.MkdirTemp("", "mcp_simple_example")
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Error creating temp dir: %v\n", err)
+		return
 	}
 	defer os.RemoveAll(tempDir) // Clean up
 
@@ -25,7 +31,8 @@ func main() {
 	content := "Hello, Model Context Protocol!"
 	err = os.WriteFile(exampleFile, []byte(content), 0644)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Error writing file: %v\n", err)
+		return
 	}
 
 	fmt.Printf("Created example file at: %s\n", exampleFile)
@@ -33,22 +40,22 @@ func main() {
 
 	// Example 1: Using the generic MCPExecutor with STDIO transport
 	fmt.Println("=== Example 1: Generic MCPExecutor ===")
-	
+
 	// Create an MCP executor that uses the filesystem server via STDIO
 	executor := &anyi.MCPExecutor{
 		Server: &anyi.MCPServerConfig{
 			Name:    "filesystem-server",
-			Type:    anyi.TransportSTDIO,      // Use STDIO transport
-			Command: "npx",                    // Command to start the server
-			Args:    []string{                 // Arguments for the command
-				"-y", 
-				"@modelcontextprotocol/server-filesystem", 
-				tempDir,                       // Root directory for the filesystem server
+			Type:    anyi.TransportSTDIO, // Use STDIO transport
+			Command: "npx",               // Command to start the server
+			Args: []string{ // Arguments for the command
+				"-y",
+				"@modelcontextprotocol/server-filesystem",
+				tempDir, // Root directory for the filesystem server
 			},
 		},
-		Action:        "read_resource",      // Action to perform
+		Action:        "read_resource",         // Action to perform
 		Resource:      "file://" + exampleFile, // Resource to read
-		ResultVarName: "fileContent",        // Variable name to store the result
+		ResultVarName: "fileContent",           // Variable name to store the result
 	}
 
 	// Initialize the executor
@@ -75,7 +82,7 @@ func main() {
 
 	// Example 2: Using the specialized STDIOMCPExecutor
 	fmt.Println("\n=== Example 2: Specialized STDIOMCPExecutor ===")
-	
+
 	// For STDIO-specific use cases, we can use the specialized executor
 	stdioExecutor := &anyi.STDIOMCPExecutor{
 		BaseMCPExecutor: anyi.BaseMCPExecutor{
@@ -88,8 +95,8 @@ func main() {
 			Type:    anyi.TransportSTDIO,
 			Command: "npx",
 			Args: []string{
-				"-y", 
-				"@modelcontextprotocol/server-filesystem", 
+				"-y",
+				"@modelcontextprotocol/server-filesystem",
 				tempDir,
 			},
 		},
@@ -112,6 +119,22 @@ func main() {
 	fmt.Printf("Success! File content: %s\n", stdioFileContent)
 
 	fmt.Println("\nExample completed successfully!")
+
+	// Output:
+	// Created example file at: /tmp/mcp_simple_exampleXXXXXX/hello.txt
+	// File content: Hello, Model Context Protocol!
+	//
+	// === Example 1: Generic MCPExecutor ===
+	// Initializing MCP executor...
+	// Reading file via MCP filesystem server...
+	// Success! File content: Hello, Model Context Protocol!
+	//
+	// === Example 2: Specialized STDIOMCPExecutor ===
+	// Initializing STDIOMCPExecutor...
+	// Reading file via specialized STDIOMCPExecutor...
+	// Success! File content: Hello, Model Context Protocol!
+	//
+	// Example completed successfully!
 }
 
 // handleInitError provides user-friendly error messages

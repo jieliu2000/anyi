@@ -51,7 +51,35 @@ go run mcp_tools_example.go
 
 This uses the [@modelcontextprotocol/server-memory](https://github.com/modelcontextprotocol/servers) package which provides tools for working with in-memory data.
 
-### Understanding the MCP Executors
+### mcp_filesystem_example.go
+
+An extended example showing how to use Anyi's MCP executors with a filesystem server, demonstrating both generic and specialized executors.
+
+To run this example:
+
+```bash
+go run mcp_filesystem_example.go
+```
+
+### Example test files (Go documentation format)
+
+In addition to the runnable examples, we also provide example tests in the project root directory which demonstrate the same functionality but in the form of Go example tests. These follow Go's convention for example functions and can be run with:
+
+```bash
+go test -run Example
+```
+
+These examples show:
+- How to use `MCPExecutor` with filesystem servers
+- How to use specialized `STDIOMCPExecutor` for STDIO transport
+- How to call tools provided by MCP servers
+
+The test files are:
+- `mcp_simple_example_test.go` - Simple filesystem example
+- `mcp_tools_example_test.go` - Tools calling example
+- `mcp_filesystem_example_test.go` - Extended filesystem example
+
+## Understanding the MCP Executors
 
 Anyi provides several MCP executors for different use cases:
 
