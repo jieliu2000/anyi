@@ -2,7 +2,6 @@ package examples
 
 import (
 	"fmt"
-	"testing"
 
 	"github.com/jieliu2000/anyi"
 	"github.com/jieliu2000/anyi/flow"
@@ -26,6 +25,15 @@ func ExampleMCPExecutor_Tools() {
 	// Create an MCP executor that uses the memory server via STDIO
 	// The memory server provides tools for working with in-memory data
 	executor := &anyi.MCPExecutor{
+		BaseMCPExecutor: anyi.BaseMCPExecutor{
+			Action:   "call_tool",          // Action to perform - calling a tool
+			ToolName: "create_memory_item", // Tool to call
+			ToolArgs: map[string]interface{}{ // Arguments for the tool
+				"key":   "example_key",
+				"value": "Hello, MCP Tools!",
+			},
+			ResultVarName: "toolResult", // Variable name to store the result
+		},
 		Server: &anyi.MCPServerConfig{
 			Name:    "memory-server",
 			Type:    anyi.TransportSTDIO, // Use STDIO transport
@@ -35,19 +43,13 @@ func ExampleMCPExecutor_Tools() {
 				"@modelcontextprotocol/server-memory",
 			},
 		},
-		Action:        "call_tool",          // Action to perform - calling a tool
-		ToolName:      "create_memory_item", // Tool to call
-		ToolArgs: map[string]interface{}{    // Arguments for the tool
-			"key":   "example_key",
-			"value": "Hello, MCP Tools!",
-		},
-		ResultVarName: "toolResult", // Variable name to store the result
 	}
 
 	// Initialize the executor
 	fmt.Println("   Initializing MCP executor...")
-	if err := executor.Init(); err != nil {
-		handleInitError(err)
+	err := executor.Init()
+	if err != nil {
+		handleToolsInitError(err)
 		return
 	}
 
@@ -70,6 +72,14 @@ func ExampleMCPExecutor_Tools() {
 	fmt.Println("\n2. Reading the memory item we created:")
 
 	readExecutor := &anyi.MCPExecutor{
+		BaseMCPExecutor: anyi.BaseMCPExecutor{
+			Action:   "call_tool",
+			ToolName: "read_memory_item",
+			ToolArgs: map[string]interface{}{
+				"key": "example_key",
+			},
+			ResultVarName: "readResult",
+		},
 		Server: &anyi.MCPServerConfig{
 			Name:    "memory-server",
 			Type:    anyi.TransportSTDIO,
@@ -79,16 +89,10 @@ func ExampleMCPExecutor_Tools() {
 				"@modelcontextprotocol/server-memory",
 			},
 		},
-		Action:   "call_tool",
-		ToolName: "read_memory_item",
-		ToolArgs: map[string]interface{}{
-			"key": "example_key",
-		},
-		ResultVarName: "readResult",
 	}
 
 	if err := readExecutor.Init(); err != nil {
-		handleInitError(err)
+		handleToolsInitError(err)
 		return
 	}
 
@@ -106,6 +110,10 @@ func ExampleMCPExecutor_Tools() {
 	fmt.Println("\n3. Listing available tools from the memory server:")
 
 	listToolsExecutor := &anyi.MCPExecutor{
+		BaseMCPExecutor: anyi.BaseMCPExecutor{
+			Action:        "list_tools", // Action to list tools
+			ResultVarName: "toolsList",
+		},
 		Server: &anyi.MCPServerConfig{
 			Name:    "memory-server",
 			Type:    anyi.TransportSTDIO,
@@ -115,12 +123,10 @@ func ExampleMCPExecutor_Tools() {
 				"@modelcontextprotocol/server-memory",
 			},
 		},
-		Action:        "list_tools", // Action to list tools
-		ResultVarName: "toolsList",
 	}
 
 	if err := listToolsExecutor.Init(); err != nil {
-		handleInitError(err)
+		handleToolsInitError(err)
 		return
 	}
 
@@ -165,8 +171,8 @@ func ExampleMCPExecutor_Tools() {
 	//  - Listing available tools from an MCP server
 }
 
-// handleInitError provides user-friendly error messages
-func handleInitError(err error) {
+// handleToolsInitError provides user-friendly error messages for tools example
+func handleToolsInitError(err error) {
 	switch err.Error() {
 	case "exec: \"npx\": executable file not found in $PATH":
 		fmt.Println("Error: npx command not found.")

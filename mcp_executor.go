@@ -123,7 +123,7 @@ type BaseMCPExecutor struct {
 // It uses a simplified configuration format similar to VSCode/Cursor implementations.
 type MCPExecutor struct {
 	BaseMCPExecutor
-	
+
 	// Server configuration (can use preset or custom config)
 	Preset MCPServerPreset  `json:"preset,omitempty" yaml:"preset,omitempty" mapstructure:"preset"`
 	Server *MCPServerConfig `json:"server,omitempty" yaml:"server,omitempty" mapstructure:"server"`
@@ -132,9 +132,9 @@ type MCPExecutor struct {
 // HTTPMCPExecutor is a dedicated executor for HTTP transport
 type HTTPMCPExecutor struct {
 	BaseMCPExecutor
-	
+
 	ServerConfig *MCPServerConfig `json:"serverConfig,omitempty" yaml:"serverConfig,omitempty" mapstructure:"serverConfig"`
-	
+
 	// HTTP-specific fields
 	endpoint string
 	apiKey   string
@@ -144,9 +144,9 @@ type HTTPMCPExecutor struct {
 // SSEMCPExecutor is a dedicated executor for SSE transport
 type SSEMCPExecutor struct {
 	BaseMCPExecutor
-	
+
 	ServerConfig *MCPServerConfig `json:"serverConfig,omitempty" yaml:"serverConfig,omitempty" mapstructure:"serverConfig"`
-	
+
 	// SSE-specific fields
 	endpoint string
 	apiKey   string
@@ -158,19 +158,19 @@ type SSEMCPExecutor struct {
 // STDIOMCPExecutor is a dedicated executor for STDIO transport
 type STDIOMCPExecutor struct {
 	BaseMCPExecutor
-	
+
 	ServerConfig *MCPServerConfig `json:"serverConfig,omitempty" yaml:"serverConfig,omitempty" mapstructure:"serverConfig"`
-	
+
 	// STDIO-specific fields
-	command string
-	args    []string
-	cmd     *exec.Cmd
-	stdin   io.WriteCloser
-	stdout  io.ReadCloser
-	stderr  io.ReadCloser
-	scanner *bufio.Scanner
+	command   string
+	args      []string
+	cmd       *exec.Cmd
+	stdin     io.WriteCloser
+	stdout    io.ReadCloser
+	stderr    io.ReadCloser
+	scanner   *bufio.Scanner
 	responses map[string]chan *MCPResponse
-	done    chan struct{}
+	done      chan struct{}
 }
 
 // getPresetConfig returns the configuration for a preset server
@@ -454,7 +454,7 @@ func (executor *HTTPMCPExecutor) Init() error {
 
 	// Create HTTP client
 	executor.client = &http.Client{Timeout: executor.ServerConfig.Timeout}
-	
+
 	// Extract API key from headers if present
 	if executor.ServerConfig.Headers != nil {
 		if auth, ok := executor.ServerConfig.Headers["Authorization"]; ok {
@@ -530,7 +530,7 @@ func (executor *SSEMCPExecutor) Init() error {
 	executor.client = &http.Client{Timeout: executor.ServerConfig.Timeout}
 	executor.eventCh = make(chan []byte, 100)
 	executor.done = make(chan struct{})
-	
+
 	// Extract API key from headers if present
 	if executor.ServerConfig.Headers != nil {
 		if auth, ok := executor.ServerConfig.Headers["Authorization"]; ok {
@@ -601,7 +601,7 @@ func (executor *STDIOMCPExecutor) Init() error {
 
 	// Set defaults
 	executor.setDefaults()
-	
+
 	// Set command and args
 	if executor.ServerConfig != nil {
 		executor.command = executor.ServerConfig.Command

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"testing"
 
 	"github.com/jieliu2000/anyi"
 	"github.com/jieliu2000/anyi/flow"
@@ -39,15 +38,17 @@ func ExampleMCPExecutor_ExtendedFileSystem() {
 
 	// Create an MCP executor that uses the filesystem server via STDIO
 	executor := &anyi.MCPExecutor{
+		BaseMCPExecutor: anyi.BaseMCPExecutor{
+			Action:        "read_resource",
+			Resource:      "file://" + exampleFile,
+			ResultVarName: "fileContent",
+		},
 		Server: &anyi.MCPServerConfig{
 			Name:    "filesystem",
 			Type:    anyi.TransportSTDIO,
 			Command: "npx",
 			Args:    []string{"-y", "@modelcontextprotocol/server-filesystem", tempDir},
 		},
-		Action:        "read_resource",
-		Resource:      "file://" + exampleFile,
-		ResultVarName: "fileContent",
 	}
 
 	// Initialize the executor

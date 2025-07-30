@@ -13,24 +13,24 @@ import (
 func TestMCPExecutor_Init(t *testing.T) {
 	tests := []struct {
 		name           string
-		executor       MCPExecutor
+		executor       *MCPExecutor
 		expectError    bool
 		errorSubstring string
 	}{
 		{
 			name: "valid preset configuration",
-			executor: MCPExecutor{
+			executor: &MCPExecutor{
 				BaseMCPExecutor: BaseMCPExecutor{
 					Action:   "call_tool",
 					ToolName: "test_tool",
 				},
-				Preset:   PresetGitHub,
+				Preset: PresetGitHub,
 			},
 			expectError: false,
 		},
 		{
 			name: "valid custom server configuration",
-			executor: MCPExecutor{
+			executor: &MCPExecutor{
 				BaseMCPExecutor: BaseMCPExecutor{
 					Action:   "call_tool",
 					ToolName: "test_tool",
@@ -47,7 +47,7 @@ func TestMCPExecutor_Init(t *testing.T) {
 
 		{
 			name: "missing server configuration",
-			executor: MCPExecutor{
+			executor: &MCPExecutor{
 				BaseMCPExecutor: BaseMCPExecutor{
 					Action:   "call_tool",
 					ToolName: "test_tool",
@@ -58,7 +58,7 @@ func TestMCPExecutor_Init(t *testing.T) {
 		},
 		{
 			name: "invalid action",
-			executor: MCPExecutor{
+			executor: &MCPExecutor{
 				BaseMCPExecutor: BaseMCPExecutor{
 					Action: "invalid_action",
 				},
@@ -69,7 +69,7 @@ func TestMCPExecutor_Init(t *testing.T) {
 		},
 		{
 			name: "missing tool name for call_tool action",
-			executor: MCPExecutor{
+			executor: &MCPExecutor{
 				BaseMCPExecutor: BaseMCPExecutor{
 					Action: "call_tool",
 				},
@@ -80,7 +80,7 @@ func TestMCPExecutor_Init(t *testing.T) {
 		},
 		{
 			name: "missing resource for read_resource action",
-			executor: MCPExecutor{
+			executor: &MCPExecutor{
 				BaseMCPExecutor: BaseMCPExecutor{
 					Action: "read_resource",
 				},
@@ -91,7 +91,7 @@ func TestMCPExecutor_Init(t *testing.T) {
 		},
 		{
 			name: "missing prompt for get_prompt action",
-			executor: MCPExecutor{
+			executor: &MCPExecutor{
 				BaseMCPExecutor: BaseMCPExecutor{
 					Action: "get_prompt",
 				},
@@ -124,13 +124,13 @@ func TestMCPExecutor_Init(t *testing.T) {
 func TestHTTPMCPExecutor_Init(t *testing.T) {
 	tests := []struct {
 		name           string
-		executor       HTTPMCPExecutor
+		executor       *HTTPMCPExecutor
 		expectError    bool
 		errorSubstring string
 	}{
 		{
 			name: "valid HTTP configuration",
-			executor: HTTPMCPExecutor{
+			executor: &HTTPMCPExecutor{
 				BaseMCPExecutor: BaseMCPExecutor{
 					Action:   "call_tool",
 					ToolName: "test_tool",
@@ -145,9 +145,9 @@ func TestHTTPMCPExecutor_Init(t *testing.T) {
 		},
 		{
 			name: "HTTP missing URL",
-			executor: HTTPMCPExecutor{
+			executor: &HTTPMCPExecutor{
 				BaseMCPExecutor: BaseMCPExecutor{
-					Action: "call_tool",
+					Action:   "call_tool",
 					ToolName: "test_tool",
 				},
 				ServerConfig: &MCPServerConfig{
@@ -160,7 +160,7 @@ func TestHTTPMCPExecutor_Init(t *testing.T) {
 		},
 		{
 			name: "missing tool name for call_tool action",
-			executor: HTTPMCPExecutor{
+			executor: &HTTPMCPExecutor{
 				BaseMCPExecutor: BaseMCPExecutor{
 					Action: "call_tool",
 				},
@@ -196,13 +196,13 @@ func TestHTTPMCPExecutor_Init(t *testing.T) {
 func TestSSEMCPExecutor_Init(t *testing.T) {
 	tests := []struct {
 		name           string
-		executor       SSEMCPExecutor
+		executor       *SSEMCPExecutor
 		expectError    bool
 		errorSubstring string
 	}{
 		{
 			name: "valid SSE configuration",
-			executor: SSEMCPExecutor{
+			executor: &SSEMCPExecutor{
 				BaseMCPExecutor: BaseMCPExecutor{
 					Action:   "call_tool",
 					ToolName: "test_tool",
@@ -217,9 +217,9 @@ func TestSSEMCPExecutor_Init(t *testing.T) {
 		},
 		{
 			name: "SSE missing URL",
-			executor: SSEMCPExecutor{
+			executor: &SSEMCPExecutor{
 				BaseMCPExecutor: BaseMCPExecutor{
-					Action: "call_tool",
+					Action:   "call_tool",
 					ToolName: "test_tool",
 				},
 				ServerConfig: &MCPServerConfig{
@@ -253,13 +253,13 @@ func TestSSEMCPExecutor_Init(t *testing.T) {
 func TestSTDIOMCPExecutor_Init(t *testing.T) {
 	tests := []struct {
 		name           string
-		executor       STDIOMCPExecutor
+		executor       *STDIOMCPExecutor
 		expectError    bool
 		errorSubstring string
 	}{
 		{
 			name: "valid STDIO configuration",
-			executor: STDIOMCPExecutor{
+			executor: &STDIOMCPExecutor{
 				BaseMCPExecutor: BaseMCPExecutor{
 					Action:   "call_tool",
 					ToolName: "test_tool",
@@ -275,9 +275,9 @@ func TestSTDIOMCPExecutor_Init(t *testing.T) {
 		},
 		{
 			name: "STDIO missing command",
-			executor: STDIOMCPExecutor{
+			executor: &STDIOMCPExecutor{
 				BaseMCPExecutor: BaseMCPExecutor{
-					Action: "call_tool",
+					Action:   "call_tool",
 					ToolName: "test_tool",
 				},
 				ServerConfig: &MCPServerConfig{
@@ -691,6 +691,7 @@ func TestMCPExecutor_DefaultSettings(t *testing.T) {
 			Action:   "call_tool",
 			ToolName: "test_tool",
 		},
+		Preset: PresetMemory, // Add a preset to provide server configuration
 	}
 
 	err := executor.Init()
