@@ -173,6 +173,7 @@ Focus on answering these questions:
 Provide detailed findings for each question.`,
 			SystemMessage: "You are a research scientist with expertise in emerging technologies.",
 		},
+		VarsImmutable: true,  // Preserve variables during execution
 	}
 
 	// Step 2: Synthesize conclusions
@@ -186,6 +187,7 @@ Provide detailed findings for each question.`,
 Summarize the key insights and implications.`,
 			SystemMessage: "You are an expert analyst who synthesizes complex information.",
 		},
+		MemoryImmutable: true,  // Preserve memory data during execution
 	}
 
 	// Create and run flow

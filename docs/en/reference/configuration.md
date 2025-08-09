@@ -220,6 +220,9 @@ type StepConfig struct {
     Executor      *ExecutorConfig  `yaml:"executor,omitempty" json:"executor,omitempty" toml:"executor,omitempty"`
     Validator     *ValidatorConfig `yaml:"validator,omitempty" json:"validator,omitempty" toml:"validator,omitempty"`
     MaxRetryTimes int              `yaml:"maxRetryTimes,omitempty" json:"maxRetryTimes,omitempty" toml:"maxRetryTimes,omitempty"`
+    VarsImmutable bool             `yaml:"varsImmutable,omitempty" json:"varsImmutable,omitempty" toml:"varsImmutable,omitempty"`
+    TextImmutable bool             `yaml:"textImmutable,omitempty" json:"textImmutable,omitempty" toml:"textImmutable,omitempty"`
+    MemoryImmutable  bool             `yaml:"memoryImmutable,omitempty" json:"memoryImmutable,omitempty" toml:"memoryImmutable,omitempty"`
 }
 ```
 
@@ -230,6 +233,9 @@ type StepConfig struct {
 - `Executor`: Executor configuration
 - `Validator`: Validator configuration
 - `MaxRetryTimes`: Maximum retry attempts
+- `VarsImmutable`: When true, prevents modification of context variables during step execution
+- `TextImmutable`: When true, prevents modification of context text during step execution
+- `MemoryImmutable`: When true, prevents modification of context memory during step execution
 
 ### ExecutorConfig Structure
 
@@ -368,6 +374,7 @@ flows:
           withconfig:
             minLength: 50
         maxRetryTimes: 2
+        textImmutable: true  # Preserve original text
 ```
 
 ### JSON Format
@@ -396,7 +403,9 @@ flows:
             "withconfig": {
               "template": "Analyze: {{.Text}}"
             }
-          }
+          },
+          "textImmutable": true,
+          "memoryImmutable": false
         }
       ]
     }
@@ -422,6 +431,7 @@ clientName = "openai"
 
 [[flows.steps]]
 name = "analyze"
+textImmutable = true
 
 [flows.steps.executor]
 type = "llm"

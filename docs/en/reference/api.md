@@ -266,6 +266,34 @@ Retrieves a configured flow by name.
 - `Flow`: The flow instance
 - `error`: Error if flow not found
 
+## Step Management
+
+### Step Structure
+
+```go
+type Step struct {
+    Name          string
+    ClientName    string
+    Executor      Executor
+    Validator     Validator
+    MaxRetryTimes int
+    VarsImmutable bool
+    TextImmutable bool
+    MemoryImmutable  bool
+}
+```
+
+**Fields:**
+
+- `Name`: Step identifier
+- `ClientName`: Client to use for this step
+- `Executor`: Executor instance
+- `Validator`: Validator instance
+- `MaxRetryTimes`: Maximum retry attempts
+- `VarsImmutable`: When true, prevents modification of context variables during step execution
+- `TextImmutable`: When true, prevents modification of context text during step execution
+- `MemoryImmutable`: When true, prevents modification of context memory during step execution
+
 ## Flow Context
 
 ### FlowContext Structure
