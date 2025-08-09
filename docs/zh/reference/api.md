@@ -280,6 +280,9 @@ type Step struct {
     Executor      Executor
     Validator     Validator
     MaxRetryTimes int
+    VarsImmutable bool
+    TextImmutable bool
+    MemoryImmutable  bool
 }
 ```
 
@@ -290,6 +293,9 @@ type Step struct {
 - `Executor`: 执行器实例
 - `Validator`: 验证器实例
 - `MaxRetryTimes`: 最大重试次数
+- `VarsImmutable`: 当设置为 true 时，步骤执行过程中不会修改上下文变量
+- `TextImmutable`: 当设置为 true 时，步骤执行过程中不会修改上下文文本
+- `MemoryImmutable`: 当设置为 true 时，步骤执行过程中不会修改上下文内存
 
 ## 执行器接口
 

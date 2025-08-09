@@ -76,6 +76,38 @@ powerClient, _ := anyi.NewClient("power", powerConfig)
 
 ## Workflows and Development
 
+### Q: What are the VarsImmutable, TextImmutable, and MemoryImmutable properties in Step?
+
+**A:** These properties control how a step modifies the context during execution:
+
+- **TextImmutable**: When set to true, the step won't modify the context text. This is useful when you want to preserve the original text for multiple analyses.
+
+```yaml
+steps:
+  - name: "analysis_step"
+    textImmutable: true  # Text content will remain unchanged
+    executor:
+      type: "llm"
+      withconfig:
+        template: "Analyze this text: {{.Text}}"
+```
+
+- **MemoryImmutable**: When set to true, the step won't modify the context memory. Use this when you need to preserve structured data.
+
+```yaml
+steps:
+  - name: "query_step"
+    memoryImmutable: true  # Memory data will remain unchanged
+    executor:
+      type: "llm"
+      withconfig:
+        template: "Answer based on this data: {{.Memory}}"
+```
+
+- **VarsImmutable**: When set to true, the step won't modify context variables. This is useful when you need to preserve variable state.
+
+These properties are particularly useful in multi-step workflows where you want certain steps to read data without modifying it.
+
 ### Q: How do I handle large texts that exceed token limits?
 
 **A:** Several approaches:

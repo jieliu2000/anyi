@@ -521,6 +521,13 @@ func (executor *DeepSeekStyleResponseFilter) Run(flowContext flow.FlowContext, s
 //	  }
 //	}
 func (executor *SetVariablesExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
+	// Check if variables are immutable for this step
+	if step != nil && step.VarsImmutable {
+		// If variables are immutable, return the context unchanged
+		log.Debug("Variables are immutable for this step, skipping variable modification")
+		return &flowContext, nil
+	}
+
 	// Ensure Variables is initialized in flowContext
 	if flowContext.Variables == nil {
 		flowContext.Variables = make(map[string]any)

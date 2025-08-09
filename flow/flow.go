@@ -57,6 +57,18 @@ type Step struct {
 	runTimes      int
 	MaxRetryTimes int
 	Name          string
+
+	// Controls whether variables can be modified during step execution
+	// When true, variables cannot be modified
+	VarsImmutable bool `json:"varsImmutable,omitempty" yaml:"varsImmutable,omitempty" mapstructure:"varsImmutable,omitempty"`
+	
+	// Controls whether text can be modified during step execution
+	// When true, text cannot be modified
+	TextImmutable bool `json:"textImmutable,omitempty" yaml:"textImmutable,omitempty" mapstructure:"textImmutable,omitempty"`
+	
+	// Controls whether memory can be modified during step execution
+	// When true, memory cannot be modified
+	MemoryImmutable bool `json:"memoryImmutable,omitempty" yaml:"memoryImmutable,omitempty" mapstructure:"memoryImmutable,omitempty"`
 }
 
 // GetClient function returns the client of the Step.
@@ -179,7 +191,15 @@ func (flow *Flow) NewFlowContext(flowContext string, memory any) *FlowContext {
 }
 
 func NewStep(executor StepExecutor, validator StepValidator, client llm.Client) *Step {
-	return &Step{Executor: executor, Validator: validator, ClientImpl: client, MaxRetryTimes: DefaultMaxRetryTimes}
+	return &Step{
+		Executor:      executor, 
+		Validator:     validator, 
+		ClientImpl:    client, 
+		MaxRetryTimes: DefaultMaxRetryTimes,
+		VarsImmutable: false,
+		TextImmutable: false,
+		MemoryImmutable:  false,
+	}
 }
 
 // Create a new flow step with executor and validator.
@@ -198,6 +218,9 @@ func NewStepWithValidator(stepConfig any, executor StepExecutor, validator StepV
 		MaxRetryTimes:      DefaultMaxRetryTimes,
 		ClientImpl:         client,
 		validateClientImpl: validateClient,
+		VarsImmutable:      false,
+		TextImmutable:      false,
+		MemoryImmutable:       false,
 	}
 }
 
@@ -205,11 +228,46 @@ func tryStep(step *Step, flowContext FlowContext) (*FlowContext, error) {
 	var err error
 
 	log.Debug("Running step ", step, ".")
+	// Store original values if immutability is enabled
+	originalVars := make(map[string]any)
+	originalText := flowContext.Text
+	var originalMemory any
+	
+	// Copy original variables if immutable
+	if step.VarsImmutable && flowContext.Variables != nil {
+		for k, v := range flowContext.Variables {
+			originalVars[k] = v
+		}
+	}
+	
+	// Store original memory if immutable
+	if step.MemoryImmutable {
+		originalMemory = flowContext.Memory
+	}
+	
 	// Run the step and get the updated flowContext
 	result, err := step.Executor.Run(flowContext, step)
 	step.runTimes++
 	if err != nil {
 		return result, err
+	}
+	
+	// Apply immutability constraints if needed
+	if result != nil {
+		// Restore original variables if immutable
+		if step.VarsImmutable && flowContext.Variables != nil {
+			result.Variables = originalVars
+		}
+		
+		// Restore original text if immutable
+		if step.TextImmutable {
+			result.Text = originalText
+		}
+		
+		// Restore original memory if immutable
+		if step.MemoryImmutable {
+			result.Memory = originalMemory
+		}
 	}
 
 	// Sync variables from flowContext to flow

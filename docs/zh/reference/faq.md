@@ -76,6 +76,38 @@ powerClient, _ := anyi.NewClient("power", powerConfig)
 
 ## 工作流和开发
 
+### 问：Step 中的 VarsImmutable、TextImmutable 和 MemoryImmutable 属性有什么用途？
+
+**答：** 这些属性用于控制步骤执行过程中对上下文的修改行为：
+
+- **TextImmutable**：设置为 true 时，步骤执行过程中不会修改上下文文本（Text）。这在您希望保留原始文本进行多次分析时很有用。
+
+```yaml
+steps:
+  - name: "分析步骤"
+    textImmutable: true  # 文本内容将保持不变
+    executor:
+      type: "llm"
+      withconfig:
+        template: "分析这个文本：{{.Text}}"
+```
+
+- **MemoryImmutable**：设置为 true 时，步骤执行过程中不会修改上下文内存（Memory）。当您需要保留结构化数据不被修改时使用。
+
+```yaml
+steps:
+  - name: "查询步骤"
+    memoryImmutable: true  # 内存数据将保持不变
+    executor:
+      type: "llm"
+      withconfig:
+        template: "基于这些数据回答问题：{{.Memory}}"
+```
+
+- **VarsImmutable**：设置为 true 时，步骤执行过程中不会修改上下文变量。这在您需要保留变量状态时很有用。
+
+这些属性特别适用于多步骤流程中，当您希望某些步骤只读取数据而不修改数据时。
+
 ### 问：如何处理超过令牌限制的大文本？
 
 **答：** 几种方法：
