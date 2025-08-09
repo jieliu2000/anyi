@@ -6,14 +6,17 @@ import (
 	"fmt"
 	"os"
 	"sync"
+
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
+	"github.com/jieliu2000/anyi/agent"
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/internal/test"
 	"github.com/jieliu2000/anyi/llm"
 	"github.com/jieliu2000/anyi/llm/chat"
 	"github.com/jieliu2000/anyi/llm/openai"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestNewClientWithName(t *testing.T) {
@@ -558,6 +561,127 @@ func TestRegisterFormatter(t *testing.T) {
 		assert.Equal(t, formatter2, GlobalRegistry.Formatters["formatter"])
 		assert.NotEqual(t, formatter1, GlobalRegistry.Formatters["formatter"])
 	})
+}
+
+// TestRegisterAndGetAgent tests agent registration and retrieval
+func TestRegisterAndGetAgent(t *testing.T) {
+	// Reset the registry for testing
+	GlobalRegistry = &anyiRegistry{
+		Clients:    make(map[string]llm.Client),
+		Flows:      make(map[string]*flow.Flow),
+		Validators: make(map[string]flow.StepValidator),
+		Executors:  make(map[string]flow.StepExecutor),
+		Formatters: make(map[string]chat.PromptFormatter),
+		Agents:     make(map[string]*agent.Agent),
+	}
+
+	// Create a mock flow
+	mockFlow := &flow.Flow{
+		Name: "test-flow",
+	}
+
+	// Create an agent
+	testAgent := &agent.Agent{
+		Role:              "Test Role",
+		PreferredLanguage: "English",
+		BackStory:         "Test backstory",
+		Flows:             []*flow.Flow{mockFlow},
+	}
+
+	// Register the agent
+	err := RegisterAgent("test-agent", testAgent)
+	assert.NoError(t, err)
+
+	// Retrieve the agent
+	retrievedAgent, err := GetAgent("test-agent")
+	assert.NoError(t, err)
+	assert.Equal(t, testAgent, retrievedAgent)
+	assert.Equal(t, "Test Role", retrievedAgent.Role)
+	assert.Equal(t, "English", retrievedAgent.PreferredLanguage)
+	assert.Equal(t, "Test backstory", retrievedAgent.BackStory)
+}
+
+func TestRegisterAgentWithEmptyName(t *testing.T) {
+	// Reset the registry for testing
+	GlobalRegistry = &anyiRegistry{
+		Clients:    make(map[string]llm.Client),
+		Flows:      make(map[string]*flow.Flow),
+		Validators: make(map[string]flow.StepValidator),
+		Executors:  make(map[string]flow.StepExecutor),
+		Formatters: make(map[string]chat.PromptFormatter),
+		Agents:     make(map[string]*agent.Agent),
+	}
+
+	// Try to register an agent with an empty name
+	testAgent := &agent.Agent{
+		Role: "Test Role",
+	}
+	err := RegisterAgent("", testAgent)
+	assert.Error(t, err)
+	assert.Equal(t, "name cannot be empty", err.Error())
+}
+
+func TestGetAgentWithEmptyName(t *testing.T) {
+	// Reset the registry for testing
+	GlobalRegistry = &anyiRegistry{
+		Clients:    make(map[string]llm.Client),
+		Flows:      make(map[string]*flow.Flow),
+		Validators: make(map[string]flow.StepValidator),
+		Executors:  make(map[string]flow.StepExecutor),
+		Formatters: make(map[string]chat.PromptFormatter),
+		Agents:     make(map[string]*agent.Agent),
+	}
+
+	// Try to get an agent with an empty name
+	_, err := GetAgent("")
+	assert.Error(t, err)
+	assert.Equal(t, "name cannot be empty", err.Error())
+}
+
+func TestGetNonExistentAgent(t *testing.T) {
+	// Reset the registry for testing
+	GlobalRegistry = &anyiRegistry{
+		Clients:    make(map[string]llm.Client),
+		Flows:      make(map[string]*flow.Flow),
+		Validators: make(map[string]flow.StepValidator),
+		Executors:  make(map[string]flow.StepExecutor),
+		Formatters: make(map[string]chat.PromptFormatter),
+		Agents:     make(map[string]*agent.Agent),
+	}
+
+	// Try to get an agent that doesn't exist
+	_, err := GetAgent("non-existent-agent")
+	assert.Error(t, err)
+	assert.Equal(t, "no agent found with the given name: non-existent-agent", err.Error())
+}
+
+func TestRegisterDuplicateAgent(t *testing.T) {
+	// Reset the registry for testing
+	GlobalRegistry = &anyiRegistry{
+		Clients:    make(map[string]llm.Client),
+		Flows:      make(map[string]*flow.Flow),
+		Validators: make(map[string]flow.StepValidator),
+		Executors:  make(map[string]flow.StepExecutor),
+		Formatters: make(map[string]chat.PromptFormatter),
+		Agents:     make(map[string]*agent.Agent),
+	}
+
+	// Create an agent
+	mockFlow := &flow.Flow{Name: "test-flow"}
+	testAgent := &agent.Agent{
+		Role:  "Test Role",
+		Flows: []*flow.Flow{mockFlow},
+	}
+
+	// Register the agent
+	err := RegisterAgent("test-agent", testAgent)
+	assert.NoError(t, err)
+
+	// Try to register another agent with the same name
+	duplicateAgent := &agent.Agent{Role: "Duplicate Role"}
+	err = RegisterAgent("test-agent", duplicateAgent)
+	assert.Error(t, err)
+	assert.Equal(t, "agent with name \"test-agent\" already exists", err.Error())
 }
 
 // TestNewClientFromConfigFile tests the NewClientFromConfigFile function

@@ -7,6 +7,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/jieliu2000/anyi/agent"
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/internal/utils"
 	"github.com/jieliu2000/anyi/llm"
@@ -19,6 +20,17 @@ type AnyiConfig struct {
 	Clients    []llm.ClientConfig
 	Flows      []FlowConfig
 	Formatters []FormatterConfig
+	Agents     []AgentConfig
+}
+
+// AgentConfig defines the configuration structure for agents.
+// Agents are autonomous entities that can plan and execute workflows.
+type AgentConfig struct {
+	Name             string   `mapstructure:"name" json:"name" yaml:"name"`
+	Role             string   `mapstructure:"role" json:"role" yaml:"role"`
+	PreferredLanguage string  `mapstructure:"preferredLanguage" json:"preferredLanguage" yaml:"preferredLanguage"`
+	BackStory        string   `mapstructure:"backStory" json:"backStory" yaml:"backStory"`
+	Flows            []string `mapstructure:"flows" json:"flows" yaml:"flows"`
 }
 
 // ValidatorConfig defines the configuration structure for validators.
@@ -207,6 +219,44 @@ func NewFlowFromConfig(flowConfig *FlowConfig) (*flow.Flow, error) {
 	return flow, err
 }
 
+// NewAgentFromConfig creates a new agent from an agent configuration.
+//
+// Parameters:
+//   - config: Agent configuration containing role, backstory, and flow settings
+//
+// Returns:
+//   - A new agent instance
+//   - Any error encountered during agent creation
+func NewAgentFromConfig(config *AgentConfig) (*agent.Agent, error) {
+	if config == nil {
+		return nil, errors.New("agent config is nil")
+	}
+
+	// Convert flow names to actual flow objects
+	flowObjects := make([]*flow.Flow, len(config.Flows))
+	for i, flowName := range config.Flows {
+		flowObj, err := GetFlow(flowName)
+		if err != nil {
+			return nil, fmt.Errorf("flow %q not found for agent %q", flowName, config.Name)
+		}
+		flowObjects[i] = flowObj
+	}
+
+	agentObj := &agent.Agent{
+		Role:              config.Role,
+		PreferredLanguage: config.PreferredLanguage,
+		BackStory:         config.BackStory,
+		Flows:             flowObjects,
+	}
+
+	// Register Agent to the global registry
+	if err := RegisterAgent(config.Name, agentObj); err != nil {
+		return nil, err
+	}
+
+	return agentObj, nil
+}
+
 // NewExecutorFromConfig creates a new executor from an executor configuration.
 // It instantiates the appropriate executor type based on the configuration,
 // decodes the configuration parameters, and initializes the executor.
@@ -305,6 +355,14 @@ func Config(config *AnyiConfig) error {
 	// Init flows
 	for _, flowConfig := range config.Flows {
 		_, err := NewFlowFromConfig(&flowConfig)
+		if err != nil {
+			return err
+		}
+	}
+	
+	// Init agents (depends on flows being initialized first)
+	for _, agentConfig := range config.Agents {
+		_, err := NewAgentFromConfig(&agentConfig)
 		if err != nil {
 			return err
 		}

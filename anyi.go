@@ -8,6 +8,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/jieliu2000/anyi/agent"
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/llm"
 	"github.com/jieliu2000/anyi/llm/chat"
@@ -22,6 +23,7 @@ type anyiRegistry struct {
 	Validators        map[string]flow.StepValidator
 	Executors         map[string]flow.StepExecutor
 	Formatters        map[string]chat.PromptFormatter
+	Agents            map[string]*agent.Agent  // Add agent registry
 	defaultClientName string
 }
 
@@ -33,6 +35,7 @@ var GlobalRegistry *anyiRegistry = &anyiRegistry{
 	Validators: make(map[string]flow.StepValidator),
 	Executors:  make(map[string]flow.StepExecutor),
 	Formatters: make(map[string]chat.PromptFormatter),
+	Agents:     make(map[string]*agent.Agent), // Initialize agent registry
 }
 
 // RegisterNewDefaultClient registers a client as the default client in the global registry.
@@ -304,6 +307,54 @@ func GetClient(name string) (llm.Client, error) {
 		return nil, errors.New("no client found with the given name: " + name)
 	}
 	return client, nil
+}
+
+// RegisterAgent registers an agent in the global registry.
+// Each agent must have a unique name.
+//
+// Parameters:
+//   - name: Name to register the agent under
+//   - agent: Agent to register
+//
+// Returns:
+//   - Any error encountered during registration
+func RegisterAgent(name string, agent *agent.Agent) error {
+	if name == "" {
+		return errors.New("name cannot be empty")
+	}
+
+	GlobalRegistry.mu.Lock()
+	defer GlobalRegistry.mu.Unlock()
+
+	if _, exists := GlobalRegistry.Agents[name]; exists {
+		return fmt.Errorf("agent with name %q already exists", name)
+	}
+
+	GlobalRegistry.Agents[name] = agent
+	return nil
+}
+
+// GetAgent retrieves an agent from the global registry by name.
+//
+// Parameters:
+//   - name: Name of the agent to retrieve
+//
+// Returns:
+//   - The requested agent
+//   - An error if the agent is not found
+func GetAgent(name string) (*agent.Agent, error) {
+	if name == "" {
+		return nil, errors.New("name cannot be empty")
+	}
+
+	GlobalRegistry.mu.RLock()
+	defer GlobalRegistry.mu.RUnlock()
+
+	a, ok := GlobalRegistry.Agents[name]
+	if !ok {
+		return nil, errors.New("no agent found with the given name: " + name)
+	}
+	return a, nil
 }
 
 // NewClientFromConfigFile creates a new client from a configuration file and optionally registers it.
