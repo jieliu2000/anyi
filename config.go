@@ -26,11 +26,11 @@ type AnyiConfig struct {
 // AgentConfig defines the configuration structure for agents.
 // Agents are autonomous entities that can plan and execute workflows.
 type AgentConfig struct {
-	Name             string   `mapstructure:"name" json:"name" yaml:"name"`
-	Role             string   `mapstructure:"role" json:"role" yaml:"role"`
-	PreferredLanguage string  `mapstructure:"preferredLanguage" json:"preferredLanguage" yaml:"preferredLanguage"`
-	BackStory        string   `mapstructure:"backStory" json:"backStory" yaml:"backStory"`
-	Flows            []string `mapstructure:"flows" json:"flows" yaml:"flows"`
+	Name              string   `mapstructure:"name" json:"name" yaml:"name"`
+	Role              string   `mapstructure:"role" json:"role" yaml:"role"`
+	PreferredLanguage string   `mapstructure:"preferredLanguage" json:"preferredLanguage" yaml:"preferredLanguage"`
+	BackStory         string   `mapstructure:"backStory" json:"backStory" yaml:"backStory"`
+	Flows             []string `mapstructure:"flows" json:"flows" yaml:"flows"`
 }
 
 // ValidatorConfig defines the configuration structure for validators.
@@ -102,7 +102,7 @@ func NewClientFromConfig(config *llm.ClientConfig) (llm.Client, error) {
 	if config.Default {
 		defaultClient, err := GetDefaultClient()
 		if err == nil || defaultClient != nil {
-			log.Error("Default client is already set: ", GlobalRegistry.defaultClientName)
+			log.Error("Default client is already set: ", GlobalRegistry.DefaultClientName)
 			log.Error("New default client: ", config.Name)
 		}
 		RegisterNewDefaultClient("", client)
@@ -359,7 +359,7 @@ func Config(config *AnyiConfig) error {
 			return err
 		}
 	}
-	
+
 	// Init agents (depends on flows being initialized first)
 	for _, agentConfig := range config.Agents {
 		_, err := NewAgentFromConfig(&agentConfig)

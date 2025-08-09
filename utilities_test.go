@@ -8,6 +8,7 @@ import (
 	"github.com/jieliu2000/anyi/internal/test"
 	"github.com/jieliu2000/anyi/llm"
 	"github.com/jieliu2000/anyi/llm/chat"
+	"github.com/jieliu2000/anyi/registry"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,13 +20,13 @@ func TestSimpleChat(t *testing.T) {
 
 	t.Run("Success case", func(t *testing.T) {
 		// Setup - Register a mock client that returns a preset response
-		GlobalRegistry = &anyiRegistry{
+		GlobalRegistry = &registry.AnyiRegistry{
 			Clients:           make(map[string]llm.Client),
 			Flows:             make(map[string]*flow.Flow),
 			Validators:        make(map[string]flow.StepValidator),
 			Executors:         make(map[string]flow.StepExecutor),
 			Formatters:        make(map[string]chat.PromptFormatter),
-			defaultClientName: "default",
+			DefaultClientName: "default",
 		}
 		mockClient := &test.MockClient{
 			ChatOutput: "This is a test response",
@@ -42,13 +43,13 @@ func TestSimpleChat(t *testing.T) {
 
 	t.Run("Empty input", func(t *testing.T) {
 		// Setup
-		GlobalRegistry = &anyiRegistry{
+		GlobalRegistry = &registry.AnyiRegistry{
 			Clients:           make(map[string]llm.Client),
 			Flows:             make(map[string]*flow.Flow),
 			Validators:        make(map[string]flow.StepValidator),
 			Executors:         make(map[string]flow.StepExecutor),
 			Formatters:        make(map[string]chat.PromptFormatter),
-			defaultClientName: "default",
+			DefaultClientName: "default",
 		}
 		mockClient := &test.MockClient{}
 		RegisterNewDefaultClient("default", mockClient)
@@ -64,7 +65,7 @@ func TestSimpleChat(t *testing.T) {
 
 	t.Run("No default client", func(t *testing.T) {
 		// Setup - Create a registry with no default client
-		GlobalRegistry = &anyiRegistry{
+		GlobalRegistry = &registry.AnyiRegistry{
 			Clients:    make(map[string]llm.Client),
 			Flows:      make(map[string]*flow.Flow),
 			Validators: make(map[string]flow.StepValidator),
@@ -83,13 +84,13 @@ func TestSimpleChat(t *testing.T) {
 
 	t.Run("Client error", func(t *testing.T) {
 		// Setup - Register a mock client that returns an error
-		GlobalRegistry = &anyiRegistry{
+		GlobalRegistry = &registry.AnyiRegistry{
 			Clients:           make(map[string]llm.Client),
 			Flows:             make(map[string]*flow.Flow),
 			Validators:        make(map[string]flow.StepValidator),
 			Executors:         make(map[string]flow.StepExecutor),
 			Formatters:        make(map[string]chat.PromptFormatter),
-			defaultClientName: "default",
+			DefaultClientName: "default",
 		}
 		mockClient := &test.MockClient{
 			Err: errors.New("client error"),

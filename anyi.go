@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"sync"
 
 	log "github.com/sirupsen/logrus"
 
@@ -12,31 +11,10 @@ import (
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/llm"
 	"github.com/jieliu2000/anyi/llm/chat"
+	"github.com/jieliu2000/anyi/registry"
 )
 
-// anyiRegistry is the central registry for all components in the Anyi framework.
-// It stores clients, flows, validators, executors, and formatters for reuse across the application.
-type anyiRegistry struct {
-	mu                sync.RWMutex
-	Clients           map[string]llm.Client
-	Flows             map[string]*flow.Flow
-	Validators        map[string]flow.StepValidator
-	Executors         map[string]flow.StepExecutor
-	Formatters        map[string]chat.PromptFormatter
-	Agents            map[string]*agent.Agent  // Add agent registry
-	defaultClientName string
-}
-
-// GlobalRegistry is the singleton instance of anyiRegistry.
-// All components are registered and retrieved through this global registry.
-var GlobalRegistry *anyiRegistry = &anyiRegistry{
-	Clients:    make(map[string]llm.Client),
-	Flows:      make(map[string]*flow.Flow),
-	Validators: make(map[string]flow.StepValidator),
-	Executors:  make(map[string]flow.StepExecutor),
-	Formatters: make(map[string]chat.PromptFormatter),
-	Agents:     make(map[string]*agent.Agent), // Initialize agent registry
-}
+var GlobalRegistry = registry.GlobalRegistry
 
 // RegisterNewDefaultClient registers a client as the default client in the global registry.
 // If no name is provided, it uses "default" as the client name.
@@ -56,10 +34,10 @@ func RegisterNewDefaultClient(name string, client llm.Client) error {
 		return err
 	}
 
-	GlobalRegistry.mu.Lock()
-	defer GlobalRegistry.mu.Unlock()
+	GlobalRegistry.Mu.Lock()
+	defer GlobalRegistry.Mu.Unlock()
 
-	GlobalRegistry.defaultClientName = name
+	GlobalRegistry.DefaultClientName = name
 	return nil
 }
 
@@ -75,10 +53,10 @@ func SetDefaultClient(name string) error {
 		return errors.New("name cannot be empty")
 	}
 
-	GlobalRegistry.mu.Lock()
-	defer GlobalRegistry.mu.Unlock()
+	GlobalRegistry.Mu.Lock()
+	defer GlobalRegistry.Mu.Unlock()
 
-	GlobalRegistry.defaultClientName = name
+	GlobalRegistry.DefaultClientName = name
 	return nil
 }
 
@@ -89,11 +67,11 @@ func SetDefaultClient(name string) error {
 //   - The default LLM client
 //   - An error if no default client is found
 func GetDefaultClient() (llm.Client, error) {
-	GlobalRegistry.mu.RLock()
-	defer GlobalRegistry.mu.RUnlock()
+	GlobalRegistry.Mu.RLock()
+	defer GlobalRegistry.Mu.RUnlock()
 
-	if GlobalRegistry.defaultClientName != "" {
-		if client, ok := GlobalRegistry.Clients[GlobalRegistry.defaultClientName]; ok {
+	if GlobalRegistry.DefaultClientName != "" {
+		if client, ok := GlobalRegistry.Clients[GlobalRegistry.DefaultClientName]; ok {
 			return client, nil
 		}
 	}
@@ -137,8 +115,8 @@ func NewClient(name string, model llm.ModelConfig) (llm.Client, error) {
 	// If name is not empty, Set the client to Anyi.Clients
 	if name != "" {
 		// Use mutex to protect access to the global registry
-		GlobalRegistry.mu.Lock()
-		defer GlobalRegistry.mu.Unlock()
+		GlobalRegistry.Mu.Lock()
+		defer GlobalRegistry.Mu.Unlock()
 
 		GlobalRegistry.Clients[name] = client
 	}
@@ -159,8 +137,8 @@ func RegisterFlow(name string, flow *flow.Flow) error {
 		return errors.New("name cannot be empty")
 	}
 
-	GlobalRegistry.mu.Lock()
-	defer GlobalRegistry.mu.Unlock()
+	GlobalRegistry.Mu.Lock()
+	defer GlobalRegistry.Mu.Unlock()
 
 	if _, exists := GlobalRegistry.Flows[name]; exists {
 		return fmt.Errorf("flow with name %q already exists", name)
@@ -183,8 +161,8 @@ func GetFlow(name string) (*flow.Flow, error) {
 		return nil, errors.New("name cannot be empty")
 	}
 
-	GlobalRegistry.mu.RLock()
-	defer GlobalRegistry.mu.RUnlock()
+	GlobalRegistry.Mu.RLock()
+	defer GlobalRegistry.Mu.RUnlock()
 
 	f, ok := GlobalRegistry.Flows[name]
 	if !ok {
@@ -210,8 +188,8 @@ func RegisterClient(name string, client llm.Client) error {
 		return errors.New("name cannot be empty")
 	}
 
-	GlobalRegistry.mu.Lock()
-	defer GlobalRegistry.mu.Unlock()
+	GlobalRegistry.Mu.Lock()
+	defer GlobalRegistry.Mu.Unlock()
 
 	if _, exists := GlobalRegistry.Clients[name]; exists {
 		return fmt.Errorf("client with name %q already exists", name)
@@ -235,8 +213,8 @@ func GetValidator(name string) (flow.StepValidator, error) {
 		return nil, errors.New("name cannot be empty")
 	}
 
-	GlobalRegistry.mu.RLock()
-	defer GlobalRegistry.mu.RUnlock()
+	GlobalRegistry.Mu.RLock()
+	defer GlobalRegistry.Mu.RUnlock()
 
 	validatorType := GlobalRegistry.Validators[name]
 	if validatorType == nil {
@@ -268,8 +246,8 @@ func GetExecutor(name string) (flow.StepExecutor, error) {
 		return nil, errors.New("name cannot be empty")
 	}
 
-	GlobalRegistry.mu.RLock()
-	defer GlobalRegistry.mu.RUnlock()
+	GlobalRegistry.Mu.RLock()
+	defer GlobalRegistry.Mu.RUnlock()
 
 	executor := GlobalRegistry.Executors[name]
 	if executor == nil {
@@ -299,8 +277,8 @@ func GetClient(name string) (llm.Client, error) {
 		return nil, errors.New("name cannot be empty")
 	}
 
-	GlobalRegistry.mu.RLock()
-	defer GlobalRegistry.mu.RUnlock()
+	GlobalRegistry.Mu.RLock()
+	defer GlobalRegistry.Mu.RUnlock()
 
 	client, ok := GlobalRegistry.Clients[name]
 	if !ok {
@@ -323,8 +301,8 @@ func RegisterAgent(name string, agent *agent.Agent) error {
 		return errors.New("name cannot be empty")
 	}
 
-	GlobalRegistry.mu.Lock()
-	defer GlobalRegistry.mu.Unlock()
+	GlobalRegistry.Mu.Lock()
+	defer GlobalRegistry.Mu.Unlock()
 
 	if _, exists := GlobalRegistry.Agents[name]; exists {
 		return fmt.Errorf("agent with name %q already exists", name)
@@ -347,8 +325,8 @@ func GetAgent(name string) (*agent.Agent, error) {
 		return nil, errors.New("name cannot be empty")
 	}
 
-	GlobalRegistry.mu.RLock()
-	defer GlobalRegistry.mu.RUnlock()
+	GlobalRegistry.Mu.RLock()
+	defer GlobalRegistry.Mu.RUnlock()
 
 	a, ok := GlobalRegistry.Agents[name]
 	if !ok {
@@ -375,8 +353,8 @@ func NewClientFromConfigFile(name string, configFile string) (llm.Client, error)
 	// If name is not empty, Set the client to Anyi.Clients
 	if name != "" {
 		// Use mutex to protect access to the global registry
-		GlobalRegistry.mu.Lock()
-		defer GlobalRegistry.mu.Unlock()
+		GlobalRegistry.Mu.Lock()
+		defer GlobalRegistry.Mu.Unlock()
 
 		GlobalRegistry.Clients[name] = client
 	}
@@ -471,8 +449,8 @@ func NewFlowContextWithVariables(text string, memory flow.ShortTermMemory, varia
 // Returns:
 //   - The requested prompt formatter, or nil if not found
 func GetFormatter(name string) chat.PromptFormatter {
-	GlobalRegistry.mu.RLock()
-	defer GlobalRegistry.mu.RUnlock()
+	GlobalRegistry.Mu.RLock()
+	defer GlobalRegistry.Mu.RUnlock()
 
 	return GlobalRegistry.Formatters[name]
 }
@@ -491,8 +469,8 @@ func RegisterFormatter(name string, formatter chat.PromptFormatter) error {
 		return errors.New("name cannot be empty")
 	}
 
-	GlobalRegistry.mu.Lock()
-	defer GlobalRegistry.mu.Unlock()
+	GlobalRegistry.Mu.Lock()
+	defer GlobalRegistry.Mu.Unlock()
 
 	GlobalRegistry.Formatters[name] = formatter
 	return nil
@@ -568,8 +546,8 @@ func NewFlow(name string, client llm.Client, steps ...flow.Step) (*flow.Flow, er
 		return nil, err
 	}
 
-	GlobalRegistry.mu.Lock()
-	defer GlobalRegistry.mu.Unlock()
+	GlobalRegistry.Mu.Lock()
+	defer GlobalRegistry.Mu.Unlock()
 
 	GlobalRegistry.Flows[name] = f
 	return f, nil
@@ -589,8 +567,8 @@ func RegisterExecutor(name string, executor flow.StepExecutor) error {
 		return errors.New("name cannot be empty")
 	}
 
-	GlobalRegistry.mu.Lock()
-	defer GlobalRegistry.mu.Unlock()
+	GlobalRegistry.Mu.Lock()
+	defer GlobalRegistry.Mu.Unlock()
 
 	if GlobalRegistry.Executors[name] != nil {
 		return fmt.Errorf("executor type with the name %s already exists", name)
@@ -614,8 +592,8 @@ func RegisterValidator(name string, validator flow.StepValidator) error {
 		return errors.New("name cannot be empty")
 	}
 
-	GlobalRegistry.mu.Lock()
-	defer GlobalRegistry.mu.Unlock()
+	GlobalRegistry.Mu.Lock()
+	defer GlobalRegistry.Mu.Unlock()
 
 	if GlobalRegistry.Validators[name] != nil {
 		return fmt.Errorf("validator type with the name %s already exists", name)

@@ -8,6 +8,7 @@ import (
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/internal/test"
 	"github.com/jieliu2000/anyi/llm"
+	"github.com/jieliu2000/anyi/registry"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -41,7 +42,7 @@ func (m MockValidator) Validate(stepOutput string, Step *flow.Step) bool {
 
 func TestNewFlowFromConfig_Success(t *testing.T) {
 	// Setup
-	GlobalRegistry = &anyiRegistry{
+	GlobalRegistry = &registry.AnyiRegistry{
 		Flows:      make(map[string]*flow.Flow),
 		Clients:    make(map[string]llm.Client),
 		Executors:  make(map[string]flow.StepExecutor),
@@ -670,19 +671,19 @@ flows: []
 
 func TestNewAgentFromConfig_Success(t *testing.T) {
 	// Setup
-	GlobalRegistry = &anyiRegistry{
+	GlobalRegistry = &registry.AnyiRegistry{
 		Flows:      make(map[string]*flow.Flow),
 		Clients:    make(map[string]llm.Client),
 		Executors:  make(map[string]flow.StepExecutor),
 		Validators: make(map[string]flow.StepValidator),
 		Agents:     make(map[string]*agent.Agent),
 	}
-	
+
 	// Register a mock flow
 	mockFlow := &flow.Flow{Name: "test-flow"}
 	err := RegisterFlow("test-flow", mockFlow)
 	assert.NoError(t, err)
-	
+
 	// Create agent config
 	agentConfig := &AgentConfig{
 		Name:              "test-agent",
@@ -703,7 +704,7 @@ func TestNewAgentFromConfig_Success(t *testing.T) {
 	assert.Equal(t, "Test backstory", agentInstance.BackStory)
 	assert.Len(t, agentInstance.Flows, 1)
 	assert.Equal(t, mockFlow, agentInstance.Flows[0])
-	
+
 	// Verify agent was registered
 	registeredAgent, err := GetAgent("test-agent")
 	assert.NoError(t, err)
@@ -722,14 +723,14 @@ func TestNewAgentFromConfig_WithNil(t *testing.T) {
 
 func TestNewAgentFromConfig_WithNonExistentFlow(t *testing.T) {
 	// Setup
-	GlobalRegistry = &anyiRegistry{
+	GlobalRegistry = &registry.AnyiRegistry{
 		Flows:      make(map[string]*flow.Flow),
 		Clients:    make(map[string]llm.Client),
 		Executors:  make(map[string]flow.StepExecutor),
 		Validators: make(map[string]flow.StepValidator),
 		Agents:     make(map[string]*agent.Agent),
 	}
-	
+
 	// Create agent config with non-existent flow
 	agentConfig := &AgentConfig{
 		Name:  "test-agent",
@@ -748,19 +749,19 @@ func TestNewAgentFromConfig_WithNonExistentFlow(t *testing.T) {
 
 func TestConfig_WithAgents(t *testing.T) {
 	// Setup
-	GlobalRegistry = &anyiRegistry{
+	GlobalRegistry = &registry.AnyiRegistry{
 		Flows:      make(map[string]*flow.Flow),
 		Clients:    make(map[string]llm.Client),
 		Executors:  make(map[string]flow.StepExecutor),
 		Validators: make(map[string]flow.StepValidator),
 		Agents:     make(map[string]*agent.Agent),
 	}
-	
+
 	// Register a mock flow
 	mockFlow := &flow.Flow{Name: "test-flow"}
 	err := RegisterFlow("test-flow", mockFlow)
 	assert.NoError(t, err)
-	
+
 	// Create config with agents
 	config := &AnyiConfig{
 		Agents: []AgentConfig{
@@ -777,7 +778,7 @@ func TestConfig_WithAgents(t *testing.T) {
 
 	// Verify
 	assert.NoError(t, err)
-	
+
 	// Verify agent was created and registered
 	agentInstance, err := GetAgent("test-agent")
 	assert.NoError(t, err)

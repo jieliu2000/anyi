@@ -12,6 +12,8 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/jieliu2000/anyi/agent"
+	"github.com/jieliu2000/anyi/registry"
+
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/internal/test"
 	"github.com/jieliu2000/anyi/llm"
@@ -503,7 +505,7 @@ func TestRegisterFormatter(t *testing.T) {
 
 	t.Run("Success case", func(t *testing.T) {
 		// Setup a fresh registry
-		GlobalRegistry = &anyiRegistry{
+		GlobalRegistry = &registry.AnyiRegistry{
 			Formatters: make(map[string]chat.PromptFormatter),
 		}
 
@@ -522,7 +524,7 @@ func TestRegisterFormatter(t *testing.T) {
 
 	t.Run("Empty name", func(t *testing.T) {
 		// Setup
-		GlobalRegistry = &anyiRegistry{
+		GlobalRegistry = &registry.AnyiRegistry{
 			Formatters: make(map[string]chat.PromptFormatter),
 		}
 
@@ -541,7 +543,7 @@ func TestRegisterFormatter(t *testing.T) {
 
 	t.Run("Overwriting existing formatter", func(t *testing.T) {
 		// Setup
-		GlobalRegistry = &anyiRegistry{
+		GlobalRegistry = &registry.AnyiRegistry{
 			Formatters: make(map[string]chat.PromptFormatter),
 		}
 
@@ -566,7 +568,7 @@ func TestRegisterFormatter(t *testing.T) {
 // TestRegisterAndGetAgent tests agent registration and retrieval
 func TestRegisterAndGetAgent(t *testing.T) {
 	// Reset the registry for testing
-	GlobalRegistry = &anyiRegistry{
+	GlobalRegistry = &registry.AnyiRegistry{
 		Clients:    make(map[string]llm.Client),
 		Flows:      make(map[string]*flow.Flow),
 		Validators: make(map[string]flow.StepValidator),
@@ -603,7 +605,7 @@ func TestRegisterAndGetAgent(t *testing.T) {
 
 func TestRegisterAgentWithEmptyName(t *testing.T) {
 	// Reset the registry for testing
-	GlobalRegistry = &anyiRegistry{
+	GlobalRegistry = &registry.AnyiRegistry{
 		Clients:    make(map[string]llm.Client),
 		Flows:      make(map[string]*flow.Flow),
 		Validators: make(map[string]flow.StepValidator),
@@ -623,7 +625,7 @@ func TestRegisterAgentWithEmptyName(t *testing.T) {
 
 func TestGetAgentWithEmptyName(t *testing.T) {
 	// Reset the registry for testing
-	GlobalRegistry = &anyiRegistry{
+	GlobalRegistry = &registry.AnyiRegistry{
 		Clients:    make(map[string]llm.Client),
 		Flows:      make(map[string]*flow.Flow),
 		Validators: make(map[string]flow.StepValidator),
@@ -640,7 +642,7 @@ func TestGetAgentWithEmptyName(t *testing.T) {
 
 func TestGetNonExistentAgent(t *testing.T) {
 	// Reset the registry for testing
-	GlobalRegistry = &anyiRegistry{
+	GlobalRegistry = &registry.AnyiRegistry{
 		Clients:    make(map[string]llm.Client),
 		Flows:      make(map[string]*flow.Flow),
 		Validators: make(map[string]flow.StepValidator),
@@ -657,7 +659,7 @@ func TestGetNonExistentAgent(t *testing.T) {
 
 func TestRegisterDuplicateAgent(t *testing.T) {
 	// Reset the registry for testing
-	GlobalRegistry = &anyiRegistry{
+	GlobalRegistry = &registry.AnyiRegistry{
 		Clients:    make(map[string]llm.Client),
 		Flows:      make(map[string]*flow.Flow),
 		Validators: make(map[string]flow.StepValidator),
@@ -708,7 +710,7 @@ config:
 
 	t.Run("Success case with name", func(t *testing.T) {
 		// Setup a fresh registry
-		GlobalRegistry = &anyiRegistry{
+		GlobalRegistry = &registry.AnyiRegistry{
 			Clients: make(map[string]llm.Client),
 		}
 
@@ -727,7 +729,7 @@ config:
 
 	t.Run("Success case without name", func(t *testing.T) {
 		// Setup a fresh registry
-		GlobalRegistry = &anyiRegistry{
+		GlobalRegistry = &registry.AnyiRegistry{
 			Clients: make(map[string]llm.Client),
 		}
 
