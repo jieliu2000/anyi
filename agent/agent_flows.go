@@ -16,9 +16,11 @@ func InitAgentBuiltinFlows() {
 	// For now, we just create empty flows as placeholders
 	AgentPlanningFlow = &flow.Flow{
 		Name: "Anyi_AgentPlanningFlow",
+		Description: "This flow uses LLM to plan the execution steps for an agent's goal based on available flows",
 	}
 
 	AgentReflectionFlow = &flow.Flow{
 		Name: "Anyi_AgentReflectionFlow",
+		Description: "This flow checks if the agent's goal has been achieved and decides next steps",
 	}
 }
