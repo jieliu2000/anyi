@@ -1,5 +1,5 @@
 目前agent_job和agent_flows的代码都没有写完。请尝试写完，
 以下是我的思考：
 1，Agent Job目前已经完成了一个比较大概的运行代码，但是如何进行Plan task等还没有完成。
-2，Agent Job的plan task需要依赖大模型能力，也就是由AgentPlanningFlow进行。这个flow的输入提示词应该包括Agent的的back story， role，以及AgentContext中的goal等（暂时不考虑Shorttermmemory）。最重要的是把Agent里面相关的把这些内容都放入提示词里面，然后要求AI思考在这些背景下要实现goal需要哪些步骤，
-3，
+2，Agent Job的plan task需要依赖大模型能力，也就是由AgentPlanningFlow进行。这个flow的输入提示词应该包括Agent的的back story， role，以及AgentContext中的goal等（暂时不考虑Shorttermmemory）以及agent能用的所有flow的名称和description。最重要的是把Agent里面相关的把这些内容都放入提示词里面，然后要求AI思考在这些背景下要实现goal需要如何按顺序调用这些flow。并给出一个flow执行的列表。
+3，之后，根据这个flow的列表，依次调用这些flow。把调用flow的代码独立成一个方法以便未来继续修改。

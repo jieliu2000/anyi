@@ -17,11 +17,9 @@ const (
 
 type Flow struct {
 	Name string
-
+	Description string `yaml:"description,omitempty" json:"description,omitempty" toml:"description,omitempty"`
 	Steps []Step
-	// The default ClientImpl for the flow
 	ClientImpl llm.Client
-	// Variables are key-value pairs that will be available to all steps in the flow
 	Variables map[string]any
 }
 type StepExecutor interface {

@@ -55,6 +55,7 @@ func TestNewFlowFromConfig_Success(t *testing.T) {
 	flowConfig := &FlowConfig{
 		ClientName: "test-client",
 		Name:       "test-flow",
+		Description: "This is a test flow description",
 		Variables: map[string]any{
 			"var1": "value1",
 			"var2": 123,
@@ -79,6 +80,7 @@ func TestNewFlowFromConfig_Success(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, flowInstance)
 	assert.Equal(t, flowConfig.Name, flowInstance.Name)
+	assert.Equal(t, flowConfig.Description, flowInstance.Description)
 	assert.Equal(t, 1, len(flowInstance.Steps))
 	step := flowInstance.Steps[0]
 	assert.Equal(t, "name1", step.Name)

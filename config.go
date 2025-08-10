@@ -51,6 +51,7 @@ type FlowConfig struct {
 	ClientName   string           `mapstructure:"clientName" json:"clientName" yaml:"clientName"`
 	ClientConfig llm.ClientConfig `mapstructure:"clientConfig" json:"clientConfig" yaml:"clientConfig"`
 	Name         string           `mapstructure:"name" json:"name" yaml:"name"`
+	Description  string           `mapstructure:"description,omitempty" json:"description,omitempty" yaml:"description,omitempty"`
 	Steps        []StepConfig     `mapstructure:"steps" json:"steps" yaml:"steps"`
 	Variables    map[string]any   `mapstructure:"variables" json:"variables" yaml:"variables"`
 }
@@ -196,6 +197,9 @@ func NewFlowFromConfig(flowConfig *FlowConfig) (*flow.Flow, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Set flow description from config
+	flow.Description = flowConfig.Description
 
 	// Set flow variables from config
 	if flowConfig.Variables != nil {
