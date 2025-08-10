@@ -52,9 +52,10 @@ type AgentConfig struct {
 // It returns an AgentJob reference immediately while the job runs asynchronously
 func (a *Agent) StartJob(context *AgentContext) *AgentJob {
 	job := &AgentJob{
-		Agent:   a,
-		Context: context,
-		Status:  "running",
+		Agent:    a,
+		Context:  context,
+		Status:   "running",
+		stopChan: make(chan struct{}),
 	}
 
 	// Run the job asynchronously
