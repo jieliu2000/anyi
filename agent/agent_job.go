@@ -19,8 +19,8 @@ type AgentJob struct {
 	FlowExecutionPlan []*flow.Flow
 }
 
-// execute runs the agent job asynchronously
-func (job *AgentJob) execute() {
+// Execute runs the agent job asynchronously
+func (job *AgentJob) Execute() {
 	// First, call the built-in AgentPlanningFlow to plan the execution
 	// based on the goal in AgentContext
 	planningContext := &flow.FlowContext{
@@ -99,7 +99,7 @@ func (job *AgentJob) execute() {
 func (job *AgentJob) Resume() error {
 	// When resuming, we replan based on the existing context
 	job.Status = "running"
-	go job.execute()
+	go job.Execute()
 	return nil
 }
 

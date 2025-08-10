@@ -657,5 +657,8 @@ func Init() {
 	RegisterValidator("string", &StringValidator{})
 	RegisterValidator("json", &JsonValidator{})
 
+	// Initialize agent flows
+	agent.InitAgentBuiltinFlows()
+
 	log.Debug("Anyi initialized successfully.")
 }

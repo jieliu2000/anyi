@@ -123,29 +123,28 @@ func NewModelConfigFromFile(configFile string) (ModelConfig, error) {
 // For example, if you pass in an OpenAIModelConfig, it will return a new OpenAIClient.
 func NewClient(config ModelConfig) (Client, error) {
 
-	//lint:ignore S1034 config variable will be used in future so we ignore this linter for now
-	switch config.(type) {
+	switch config := config.(type) {
 
 	case *openai.OpenAIModelConfig:
-		return openai.NewClient(config.(*openai.OpenAIModelConfig))
+		return openai.NewClient(config)
 
 	case *azureopenai.AzureOpenAIModelConfig:
-		return azureopenai.NewClient(config.(*azureopenai.AzureOpenAIModelConfig))
+		return azureopenai.NewClient(config)
 
 	case *dashscope.DashScopeModelConfig:
-		return dashscope.NewClient(config.(*dashscope.DashScopeModelConfig))
+		return dashscope.NewClient(config)
 
 	case *zhipu.ZhiPuModelConfig:
-		return zhipu.NewClient(config.(*zhipu.ZhiPuModelConfig))
+		return zhipu.NewClient(config)
 
 	case *siliconcloud.SiliconCloudConfig:
-		return siliconcloud.NewClient(config.(*siliconcloud.SiliconCloudConfig))
+		return siliconcloud.NewClient(config)
 
 	case *ollama.OllamaModelConfig:
-		return ollama.NewClient(config.(*ollama.OllamaModelConfig))
+		return ollama.NewClient(config)
 
 	case *anthropic.AnthropicModelConfig:
-		return anthropic.NewClient(config.(*anthropic.AnthropicModelConfig))
+		return anthropic.NewClient(config)
 	}
 	return nil, errors.New("unknown model config")
 }

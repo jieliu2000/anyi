@@ -137,7 +137,7 @@ type ConditionalFlowExecutor struct {
 // Returns:
 //   - An error if no switches are provided or if any referenced flow cannot be found
 func (executor *ConditionalFlowExecutor) Init() error {
-	if executor.Switch == nil || len(executor.Switch) == 0 {
+	if len(executor.Switch) == 0 {
 		return errors.New("no switch provided")
 	}
 

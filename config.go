@@ -20,17 +20,7 @@ type AnyiConfig struct {
 	Clients    []llm.ClientConfig
 	Flows      []FlowConfig
 	Formatters []FormatterConfig
-	Agents     []AgentConfig
-}
-
-// AgentConfig defines the configuration structure for agents.
-// Agents are autonomous entities that can plan and execute workflows.
-type AgentConfig struct {
-	Name              string   `mapstructure:"name" json:"name" yaml:"name"`
-	Role              string   `mapstructure:"role" json:"role" yaml:"role"`
-	PreferredLanguage string   `mapstructure:"preferredLanguage" json:"preferredLanguage" yaml:"preferredLanguage"`
-	BackStory         string   `mapstructure:"backStory" json:"backStory" yaml:"backStory"`
-	Flows             []string `mapstructure:"flows" json:"flows" yaml:"flows"`
+	Agents     []agent.AgentConfig
 }
 
 // ValidatorConfig defines the configuration structure for validators.
@@ -227,7 +217,7 @@ func NewFlowFromConfig(flowConfig *FlowConfig) (*flow.Flow, error) {
 // Returns:
 //   - A new agent instance
 //   - Any error encountered during agent creation
-func NewAgentFromConfig(config *AgentConfig) (*agent.Agent, error) {
+func NewAgentFromConfig(config *agent.AgentConfig) (*agent.Agent, error) {
 	if config == nil {
 		return nil, errors.New("agent config is nil")
 	}
@@ -247,6 +237,15 @@ func NewAgentFromConfig(config *AgentConfig) (*agent.Agent, error) {
 		PreferredLanguage: config.PreferredLanguage,
 		BackStory:         config.BackStory,
 		Flows:             flowObjects,
+	}
+
+	// Set client if specified
+	if config.ClientName != "" {
+		client, err := GetClient(config.ClientName)
+		if err != nil {
+			return nil, fmt.Errorf("client %q not found for agent %q", config.ClientName, config.Name)
+		}
+		agentObj.Client = client
 	}
 
 	// Register Agent to the global registry

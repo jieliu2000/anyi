@@ -13,13 +13,13 @@ import (
 func TestMCPExecutor_Init(t *testing.T) {
 	tests := []struct {
 		name           string
-		executor       MCPExecutor
+		executor       *MCPExecutor
 		expectError    bool
 		errorSubstring string
 	}{
 		{
 			name: "valid preset configuration",
-			executor: MCPExecutor{
+			executor: &MCPExecutor{
 				Preset:   PresetGitHub,
 				Action:   "call_tool",
 				ToolName: "test_tool",
@@ -28,7 +28,7 @@ func TestMCPExecutor_Init(t *testing.T) {
 		},
 		{
 			name: "valid custom server configuration",
-			executor: MCPExecutor{
+			executor: &MCPExecutor{
 				Server: &MCPServerConfig{
 					Name:    "test-server",
 					Type:    TransportHTTP,
@@ -43,7 +43,7 @@ func TestMCPExecutor_Init(t *testing.T) {
 
 		{
 			name: "missing server configuration",
-			executor: MCPExecutor{
+			executor: &MCPExecutor{
 				Action:   "call_tool",
 				ToolName: "test_tool",
 			},
@@ -52,7 +52,7 @@ func TestMCPExecutor_Init(t *testing.T) {
 		},
 		{
 			name: "invalid action",
-			executor: MCPExecutor{
+			executor: &MCPExecutor{
 				Preset: PresetGitHub,
 				Action: "invalid_action",
 			},
@@ -61,7 +61,7 @@ func TestMCPExecutor_Init(t *testing.T) {
 		},
 		{
 			name: "missing tool name for call_tool action",
-			executor: MCPExecutor{
+			executor: &MCPExecutor{
 				Preset: PresetGitHub,
 				Action: "call_tool",
 			},
@@ -70,7 +70,7 @@ func TestMCPExecutor_Init(t *testing.T) {
 		},
 		{
 			name: "missing resource for read_resource action",
-			executor: MCPExecutor{
+			executor: &MCPExecutor{
 				Preset: PresetGitHub,
 				Action: "read_resource",
 			},
@@ -79,7 +79,7 @@ func TestMCPExecutor_Init(t *testing.T) {
 		},
 		{
 			name: "missing prompt for get_prompt action",
-			executor: MCPExecutor{
+			executor: &MCPExecutor{
 				Preset: PresetGitHub,
 				Action: "get_prompt",
 			},
@@ -90,7 +90,7 @@ func TestMCPExecutor_Init(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			executor := tc.executor
+			executor := tc.executor // Already a pointer now
 			err := executor.Init()
 
 			if tc.expectError {
