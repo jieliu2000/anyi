@@ -9,7 +9,7 @@ import (
 )
 
 func TestAgent_StartJob(t *testing.T) {
-	// Create an agent without flows - should return error
+	// Test case 1: Create an agent without flows - should return error
 	agent := &Agent{
 		Role:              "Test Agent",
 		Client:            &mockClient{},
@@ -31,16 +31,51 @@ func TestAgent_StartJob(t *testing.T) {
 	assert.Nil(t, job)
 	assert.Equal(t, "agent must have at least one flow to start a job", err.Error())
 
-	// Create a mock flow
+	// Test case 2: Create an agent without client - should return error
+	agentWithoutClient := &Agent{
+		Role:              "Test Agent",
+		Client:            nil,
+		PreferredLanguage: "English",
+		BackStory:         "A test agent",
+		Flows:             []*flow.Flow{},
+	}
+
+	// Try to start a job without client - should return error
+	job, err = agentWithoutClient.StartJob(context)
+	assert.Error(t, err)
+	assert.Nil(t, job)
+	assert.Equal(t, "agent must have at least one flow to start a job", err.Error())
+
+	// Test case 3: Create an agent with flows but without client - should return error
 	client := &mockClient{}
 	mockFlow, err := flow.NewFlow(client, "test-flow")
 	assert.NoError(t, err)
 
-	// Update agent with flows
-	agent.Flows = []*flow.Flow{mockFlow}
+	agentWithFlowNoClient := &Agent{
+		Role:              "Test Agent",
+		Client:            nil,
+		PreferredLanguage: "English",
+		BackStory:         "A test agent",
+		Flows:             []*flow.Flow{mockFlow},
+	}
 
-	// Start a job with flows - should succeed
-	job, err = agent.StartJob(context)
+	// Try to start a job with flows but without client - should return error
+	job, err = agentWithFlowNoClient.StartJob(context)
+	assert.Error(t, err)
+	assert.Nil(t, job)
+	assert.Equal(t, "agent must have a valid client to start a job", err.Error())
+
+	// Test case 4: Create an agent with flows and client - should succeed
+	agentWithFlowAndClient := &Agent{
+		Role:              "Test Agent",
+		Client:            &mockClient{},
+		PreferredLanguage: "English",
+		BackStory:         "A test agent",
+		Flows:             []*flow.Flow{mockFlow},
+	}
+
+	// Start a job with flows and client - should succeed
+	job, err = agentWithFlowAndClient.StartJob(context)
 	assert.NoError(t, err)
 	assert.NotNil(t, job)
 
@@ -49,9 +84,9 @@ func TestAgent_StartJob(t *testing.T) {
 
 	// Check that we got a job back
 	assert.NotNil(t, job)
-	assert.Equal(t, agent, job.Agent)
+	assert.Equal(t, agentWithFlowAndClient, job.Agent)
 	assert.Equal(t, context, job.Context)
-
+	
 	// Job should be completed since PlanTasks returns an empty slice
 	assert.Equal(t, "completed", job.Status)
 }
