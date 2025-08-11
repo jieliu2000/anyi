@@ -621,7 +621,7 @@ func TestRegisterAgentWithEmptyName(t *testing.T) {
 	}
 	err := RegisterAgent(testAgent)
 	assert.Error(t, err)
-	assert.Equal(t, "Agent role cannot be empty", err.Error())
+	assert.Equal(t, "agent role cannot be empty", err.Error())
 }
 
 func TestGetAgentWithEmptyName(t *testing.T) {
