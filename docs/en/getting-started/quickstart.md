@@ -7,7 +7,11 @@ This guide will help you create your first Anyi application in just a few minute
 Before starting, make sure you have:
 
 - [Anyi installed](installation.md)
-- An API key for at least one LLM provider (we'll use OpenAI in this example)
+- Go 1.20 or higher
+- An API key for cloud-based LLM providers (like OpenAI, Anthropic, etc.) if you plan to use them
+- Ollama installed locally if you want to use local models (no API key required)
+
+> **Note**: Anyi supports both cloud-based providers (which require API keys) and local providers like Ollama (which don't require API keys). This guide shows examples for both types.
 
 ## Your First Anyi Application
 
@@ -29,13 +33,15 @@ Add Anyi to your project:
 go get -u github.com/jieliu2000/anyi
 ```
 
-### Step 3: Set Up Environment Variables
+### Step 3: Set Up Environment Variables (Cloud Providers Only)
 
-Set your OpenAI API key:
+If you're using a cloud-based provider like OpenAI, set your API key:
 
 ```bash
 export OPENAI_API_KEY="your-openai-api-key-here"
 ```
+
+> **For Local Models**: If you're using Ollama or other local providers, you don't need to set any API keys. Just make sure the service is running locally.
 
 ### Step 4: Create Your First Chat Application
 
@@ -50,14 +56,32 @@ import (
 	"os"
 
 	"github.com/jieliu2000/anyi"
-	"github.com/jieliu2000/anyi/llm/openai"
+	"github.com/jieliu2000/anyi/llm/openai"  // For cloud providers
+	// "github.com/jieliu2000/anyi/llm/ollama" // For local providers (uncomment if using Ollama)
 	"github.com/jieliu2000/anyi/llm/chat"
+	"github.com/joho/godotenv" // To load environment variables from .env file
 )
 
 func main() {
+	// Load environment variables from .env file (optional)
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found, continuing without it")
+	}
+
 	// 1. Create a client
-	config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
+	// For cloud providers (requires API key):
+	apiKey := os.Getenv("OPENAI_API_KEY")
+	if apiKey == "" {
+		log.Println("No API key found. If you're using a cloud provider, please set the appropriate environment variable.")
+	}
+	
+	config := openai.DefaultConfig(apiKey)
 	client, err := anyi.NewClient("openai", config)
+	
+	// For local providers like Ollama (no API key needed):
+	// config := ollama.DefaultConfig("llama3") // or your preferred local model
+	// client, err := anyi.NewClient("ollama", config)
+	
 	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)
 	}
@@ -88,7 +112,7 @@ You should see a response from the AI explaining quantum computing!
 
 Let's break down the code:
 
-1. **Client Creation**: We created an OpenAI client with default configuration
+1. **Client Creation**: We created an OpenAI client with default configuration. For local providers like Ollama, you would use a different configuration that doesn't require an API key.
 2. **Message Structure**: We created a message array with a user message
 3. **Chat Request**: We sent the messages to the AI and received a response
 4. **Response Handling**: We printed the AI's response
@@ -152,7 +176,7 @@ This workflow:
 
 For more complex applications, you can use configuration files. Create a `config.yaml`:
 
-```yaml
+```
 clients:
   - name: "gpt4"
     type: "openai"
