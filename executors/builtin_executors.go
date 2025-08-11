@@ -14,21 +14,6 @@ import (
 	"github.com/jieliu2000/shello"
 )
 
-type MockExecutor struct {
-	Param1 string
-	Param2 int
-}
-
-func (m *MockExecutor) Run(flowContext flow.FlowContext, Step *flow.Step) (*flow.FlowContext, error) {
-
-	return &flowContext, nil
-}
-
-func (m *MockExecutor) Init() error {
-
-	return nil
-}
-
 // SetContextExecutor is an executor that sets values in the flow context.
 // It can modify the Text field and Memory object in the flow context.
 type SetContextExecutor struct {

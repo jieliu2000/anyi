@@ -3,10 +3,26 @@ package executors
 import (
 	"testing"
 
+	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/registry"
 
 	"github.com/stretchr/testify/assert"
 )
+
+type MockExecutor struct {
+	Param1 string
+	Param2 int
+}
+
+func (m *MockExecutor) Run(flowContext flow.FlowContext, Step *flow.Step) (*flow.FlowContext, error) {
+
+	return &flowContext, nil
+}
+
+func (m *MockExecutor) Init() error {
+
+	return nil
+}
 
 func TestNewExecutorFromConfig(t *testing.T) {
 

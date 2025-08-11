@@ -12,6 +12,7 @@ import (
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/internal/utils"
 	"github.com/jieliu2000/anyi/llm"
+	"github.com/jieliu2000/anyi/registry"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -87,7 +88,7 @@ func NewClientFromConfig(config *llm.ClientConfig) (llm.Client, error) {
 	if config.Default {
 		defaultClient, err := GetDefaultClient()
 		if err == nil || defaultClient != nil {
-			log.Error("Default client is already set: ", GlobalRegistry.DefaultClientName)
+			log.Error("Default client is already set: ", registry.GlobalRegistry.DefaultClientName)
 			log.Error("New default client: ", config.Name)
 		}
 		RegisterNewDefaultClient("", client)

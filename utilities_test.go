@@ -15,12 +15,12 @@ import (
 func TestSimpleChat(t *testing.T) {
 	// Setup - Create test environment
 	// Save original registry to restore after tests
-	origRegistry := GlobalRegistry
-	defer func() { GlobalRegistry = origRegistry }()
+	origRegistry := registry.GlobalRegistry
+	defer func() { registry.GlobalRegistry = origRegistry }()
 
 	t.Run("Success case", func(t *testing.T) {
 		// Setup - Register a mock client that returns a preset response
-		GlobalRegistry = &registry.AnyiRegistry{
+		registry.GlobalRegistry = &registry.AnyiRegistry{
 			Clients:           make(map[string]llm.Client),
 			Flows:             make(map[string]*flow.Flow),
 			Validators:        make(map[string]flow.StepValidator),
@@ -43,7 +43,7 @@ func TestSimpleChat(t *testing.T) {
 
 	t.Run("Empty input", func(t *testing.T) {
 		// Setup
-		GlobalRegistry = &registry.AnyiRegistry{
+		registry.GlobalRegistry = &registry.AnyiRegistry{
 			Clients:           make(map[string]llm.Client),
 			Flows:             make(map[string]*flow.Flow),
 			Validators:        make(map[string]flow.StepValidator),
@@ -65,7 +65,7 @@ func TestSimpleChat(t *testing.T) {
 
 	t.Run("No default client", func(t *testing.T) {
 		// Setup - Create a registry with no default client
-		GlobalRegistry = &registry.AnyiRegistry{
+		registry.GlobalRegistry = &registry.AnyiRegistry{
 			Clients:    make(map[string]llm.Client),
 			Flows:      make(map[string]*flow.Flow),
 			Validators: make(map[string]flow.StepValidator),
@@ -84,7 +84,7 @@ func TestSimpleChat(t *testing.T) {
 
 	t.Run("Client error", func(t *testing.T) {
 		// Setup - Register a mock client that returns an error
-		GlobalRegistry = &registry.AnyiRegistry{
+		registry.GlobalRegistry = &registry.AnyiRegistry{
 			Clients:           make(map[string]llm.Client),
 			Flows:             make(map[string]*flow.Flow),
 			Validators:        make(map[string]flow.StepValidator),

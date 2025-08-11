@@ -45,7 +45,7 @@ func TestNewClientWithName(t *testing.T) {
 
 func TestGetDefaultClient(t *testing.T) {
 	t.Run("No default client", func(t *testing.T) {
-		GlobalRegistry.Clients = make(map[string]llm.Client)
+		registry.GlobalRegistry.Clients = make(map[string]llm.Client)
 		_, err := GetDefaultClient()
 		assert.Error(t, err)
 	})
@@ -58,15 +58,15 @@ func TestGetDefaultClient(t *testing.T) {
 	})
 	t.Run("Set default client", func(t *testing.T) {
 		client := &test.MockClient{}
-		GlobalRegistry.Clients["default"] = client
+		registry.GlobalRegistry.Clients["default"] = client
 		got, err := GetDefaultClient()
 		assert.NoError(t, err)
 		assert.Equal(t, client, got)
 	})
 	t.Run("Only one client", func(t *testing.T) {
 		// Arrange
-		GlobalRegistry.Clients = make(map[string]llm.Client)
-		GlobalRegistry.Clients["test"] = &test.MockClient{}
+		registry.GlobalRegistry.Clients = make(map[string]llm.Client)
+		registry.GlobalRegistry.Clients["test"] = &test.MockClient{}
 
 		// Act
 		client, err := GetDefaultClient()
@@ -77,7 +77,7 @@ func TestGetDefaultClient(t *testing.T) {
 	})
 	t.Run("Concurrent access", func(t *testing.T) {
 		// Setup
-		GlobalRegistry.Clients = make(map[string]llm.Client)
+		registry.GlobalRegistry.Clients = make(map[string]llm.Client)
 		client1 := &test.MockClient{}
 		client2 := &test.MockClient{}
 		RegisterClient("client1", client1)
@@ -106,7 +106,7 @@ func TestRegisterClient(t *testing.T) {
 		name := "test_client"
 		err := RegisterClient(name, client)
 		assert.Nil(t, err)
-		assert.Equal(t, client, GlobalRegistry.Clients[name])
+		assert.Equal(t, client, registry.GlobalRegistry.Clients[name])
 
 		client1, err := GetClient(name)
 		assert.NoError(t, err)
@@ -134,7 +134,7 @@ func TestRegisterClient(t *testing.T) {
 
 	t.Run("ConcurrentRegistration", func(t *testing.T) {
 		// Reset registry for clean test
-		GlobalRegistry.Clients = make(map[string]llm.Client)
+		registry.GlobalRegistry.Clients = make(map[string]llm.Client)
 
 		var wg sync.WaitGroup
 		clients := make([]llm.Client, 100)
@@ -153,7 +153,7 @@ func TestRegisterClient(t *testing.T) {
 		}
 		wg.Wait()
 
-		assert.Equal(t, 100, len(GlobalRegistry.Clients))
+		assert.Equal(t, 100, len(registry.GlobalRegistry.Clients))
 	})
 }
 
@@ -164,7 +164,7 @@ func TestRegisterFlow(t *testing.T) {
 		name := "test_flow"
 		err := RegisterFlow(name, flow)
 		assert.Nil(t, err)
-		assert.Equal(t, flow, GlobalRegistry.Flows[name])
+		assert.Equal(t, flow, registry.GlobalRegistry.Flows[name])
 
 		client1, err := GetFlow(name)
 		assert.NoError(t, err)
@@ -185,7 +185,7 @@ func TestRegisterFlow(t *testing.T) {
 
 	t.Run("ConcurrentRegistration", func(t *testing.T) {
 		// Reset registry for clean test
-		GlobalRegistry.Flows = make(map[string]*flow.Flow)
+		registry.GlobalRegistry.Flows = make(map[string]*flow.Flow)
 
 		var wg sync.WaitGroup
 		flows := make([]*flow.Flow, 100)
@@ -204,7 +204,7 @@ func TestRegisterFlow(t *testing.T) {
 		}
 		wg.Wait()
 
-		assert.Equal(t, 100, len(GlobalRegistry.Flows))
+		assert.Equal(t, 100, len(registry.GlobalRegistry.Flows))
 	})
 }
 
@@ -283,14 +283,14 @@ func TestNewLLMStepExecutorWithFormatter(t *testing.T) {
 	assert.Equal(t, formatter, stepExecutor.TemplateFormatter)
 	assert.Equal(t, systemMessage, stepExecutor.SystemMessage)
 
-	retrievedExecutor := GlobalRegistry.Executors[name]
+	retrievedExecutor := registry.GlobalRegistry.Executors[name]
 	assert.Equal(t, stepExecutor, retrievedExecutor)
 }
 
 func TestGetFlow(t *testing.T) {
 	t.Run("with an existing flow", func(t *testing.T) {
 		flowName := "test_flow"
-		GlobalRegistry.Flows[flowName] = &flow.Flow{
+		registry.GlobalRegistry.Flows[flowName] = &flow.Flow{
 			Name: flowName,
 		}
 		f, err := GetFlow(flowName)
@@ -400,15 +400,15 @@ func TestInit(t *testing.T) {
 	// Execute
 	Init()
 	// Verify
-	assert.NotNil(t, GlobalRegistry.Executors["llm"])
-	assert.NotNil(t, GlobalRegistry.Executors["condition"])
-	assert.NotNil(t, GlobalRegistry.Executors["exec"])
-	assert.NotNil(t, GlobalRegistry.Executors["setContext"])
-	assert.NotNil(t, GlobalRegistry.Executors["setVariables"])
-	assert.NotNil(t, GlobalRegistry.Executors["setVariable"]) // backward compatibility
+	assert.NotNil(t, registry.GlobalRegistry.Executors["llm"])
+	assert.NotNil(t, registry.GlobalRegistry.Executors["condition"])
+	assert.NotNil(t, registry.GlobalRegistry.Executors["exec"])
+	assert.NotNil(t, registry.GlobalRegistry.Executors["setContext"])
+	assert.NotNil(t, registry.GlobalRegistry.Executors["setVariables"])
+	assert.NotNil(t, registry.GlobalRegistry.Executors["setVariable"]) // backward compatibility
 
-	assert.NotNil(t, GlobalRegistry.Validators["json"])
-	assert.NotNil(t, GlobalRegistry.Validators["string"])
+	assert.NotNil(t, registry.GlobalRegistry.Validators["json"])
+	assert.NotNil(t, registry.GlobalRegistry.Validators["string"])
 }
 
 func TestGetExecutor(t *testing.T) {
@@ -501,12 +501,12 @@ func TestGetValidator(t *testing.T) {
 // TestRegisterFormatter tests the RegisterFormatter function
 func TestRegisterFormatter(t *testing.T) {
 	// Save the original registry and restore it after tests
-	origRegistry := GlobalRegistry
-	defer func() { GlobalRegistry = origRegistry }()
+	origRegistry := registry.GlobalRegistry
+	defer func() { registry.GlobalRegistry = origRegistry }()
 
 	t.Run("Success case", func(t *testing.T) {
 		// Setup a fresh registry
-		GlobalRegistry = &registry.AnyiRegistry{
+		registry.GlobalRegistry = &registry.AnyiRegistry{
 			Formatters: make(map[string]chat.PromptFormatter),
 		}
 
@@ -520,12 +520,12 @@ func TestRegisterFormatter(t *testing.T) {
 
 		// Verify
 		assert.NoError(t, err)
-		assert.Equal(t, formatter, GlobalRegistry.Formatters["test-formatter"])
+		assert.Equal(t, formatter, registry.GlobalRegistry.Formatters["test-formatter"])
 	})
 
 	t.Run("Empty name", func(t *testing.T) {
 		// Setup
-		GlobalRegistry = &registry.AnyiRegistry{
+		registry.GlobalRegistry = &registry.AnyiRegistry{
 			Formatters: make(map[string]chat.PromptFormatter),
 		}
 
@@ -544,7 +544,7 @@ func TestRegisterFormatter(t *testing.T) {
 
 	t.Run("Overwriting existing formatter", func(t *testing.T) {
 		// Setup
-		GlobalRegistry = &registry.AnyiRegistry{
+		registry.GlobalRegistry = &registry.AnyiRegistry{
 			Formatters: make(map[string]chat.PromptFormatter),
 		}
 
@@ -561,15 +561,15 @@ func TestRegisterFormatter(t *testing.T) {
 
 		// Verify - should overwrite without error
 		assert.NoError(t, err)
-		assert.Equal(t, formatter2, GlobalRegistry.Formatters["formatter"])
-		assert.NotEqual(t, formatter1, GlobalRegistry.Formatters["formatter"])
+		assert.Equal(t, formatter2, registry.GlobalRegistry.Formatters["formatter"])
+		assert.NotEqual(t, formatter1, registry.GlobalRegistry.Formatters["formatter"])
 	})
 }
 
 // TestRegisterAndGetAgent tests agent registration and retrieval
 func TestRegisterAndGetAgent(t *testing.T) {
 	// Reset the registry for testing
-	GlobalRegistry = &registry.AnyiRegistry{
+	registry.GlobalRegistry = &registry.AnyiRegistry{
 		Clients:    make(map[string]llm.Client),
 		Flows:      make(map[string]*flow.Flow),
 		Validators: make(map[string]flow.StepValidator),
@@ -606,7 +606,7 @@ func TestRegisterAndGetAgent(t *testing.T) {
 
 func TestRegisterAgentWithEmptyName(t *testing.T) {
 	// Reset the registry for testing
-	GlobalRegistry = &registry.AnyiRegistry{
+	registry.GlobalRegistry = &registry.AnyiRegistry{
 		Clients:    make(map[string]llm.Client),
 		Flows:      make(map[string]*flow.Flow),
 		Validators: make(map[string]flow.StepValidator),
@@ -626,7 +626,7 @@ func TestRegisterAgentWithEmptyName(t *testing.T) {
 
 func TestGetAgentWithEmptyName(t *testing.T) {
 	// Reset the registry for testing
-	GlobalRegistry = &registry.AnyiRegistry{
+	registry.GlobalRegistry = &registry.AnyiRegistry{
 		Clients:    make(map[string]llm.Client),
 		Flows:      make(map[string]*flow.Flow),
 		Validators: make(map[string]flow.StepValidator),
@@ -643,7 +643,7 @@ func TestGetAgentWithEmptyName(t *testing.T) {
 
 func TestGetNonExistentAgent(t *testing.T) {
 	// Reset the registry for testing
-	GlobalRegistry = &registry.AnyiRegistry{
+	registry.GlobalRegistry = &registry.AnyiRegistry{
 		Clients:    make(map[string]llm.Client),
 		Flows:      make(map[string]*flow.Flow),
 		Validators: make(map[string]flow.StepValidator),
@@ -660,7 +660,7 @@ func TestGetNonExistentAgent(t *testing.T) {
 
 func TestRegisterDuplicateAgent(t *testing.T) {
 	// Reset the registry for testing
-	GlobalRegistry = &registry.AnyiRegistry{
+	registry.GlobalRegistry = &registry.AnyiRegistry{
 		Clients:    make(map[string]llm.Client),
 		Flows:      make(map[string]*flow.Flow),
 		Validators: make(map[string]flow.StepValidator),
@@ -690,8 +690,8 @@ func TestRegisterDuplicateAgent(t *testing.T) {
 // TestNewClientFromConfigFile tests the NewClientFromConfigFile function
 func TestNewClientFromConfigFile(t *testing.T) {
 	// Save original registry to restore after tests
-	origRegistry := GlobalRegistry
-	defer func() { GlobalRegistry = origRegistry }()
+	origRegistry := registry.GlobalRegistry
+	defer func() { registry.GlobalRegistry = origRegistry }()
 
 	// Create a test config file
 	configContent := `
@@ -711,7 +711,7 @@ config:
 
 	t.Run("Success case with name", func(t *testing.T) {
 		// Setup a fresh registry
-		GlobalRegistry = &registry.AnyiRegistry{
+		registry.GlobalRegistry = &registry.AnyiRegistry{
 			Clients: make(map[string]llm.Client),
 		}
 
@@ -730,7 +730,7 @@ config:
 
 	t.Run("Success case without name", func(t *testing.T) {
 		// Setup a fresh registry
-		GlobalRegistry = &registry.AnyiRegistry{
+		registry.GlobalRegistry = &registry.AnyiRegistry{
 			Clients: make(map[string]llm.Client),
 		}
 
@@ -742,7 +742,7 @@ config:
 		assert.NotNil(t, client)
 
 		// Check that the client wasn't registered
-		assert.Equal(t, 0, len(GlobalRegistry.Clients))
+		assert.Equal(t, 0, len(registry.GlobalRegistry.Clients))
 	})
 
 	t.Run("Invalid config file", func(t *testing.T) {

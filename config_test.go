@@ -13,6 +13,21 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type MockExecutor struct {
+	Param1 string
+	Param2 int
+}
+
+func (m *MockExecutor) Run(flowContext flow.FlowContext, Step *flow.Step) (*flow.FlowContext, error) {
+
+	return &flowContext, nil
+}
+
+func (m *MockExecutor) Init() error {
+
+	return nil
+}
+
 type MockValidator struct {
 }
 
@@ -28,14 +43,14 @@ func (m MockValidator) Validate(stepOutput string, Step *flow.Step) bool {
 
 func TestNewFlowFromConfig_Success(t *testing.T) {
 	// Setup
-	GlobalRegistry = &registry.AnyiRegistry{
+	registry.GlobalRegistry = &registry.AnyiRegistry{
 		Flows:      make(map[string]*flow.Flow),
 		Clients:    make(map[string]llm.Client),
 		Executors:  make(map[string]flow.StepExecutor),
 		Validators: make(map[string]flow.StepValidator),
 	}
 	RegisterClient("test-client", &test.MockClient{})
-	RegisterExecutor("test-executor", &executors.MockExecutor{})
+	RegisterExecutor("test-executor", &MockExecutor{})
 	RegisterValidator("test-validator", &MockValidator{})
 
 	flowConfig := &FlowConfig{
@@ -114,7 +129,7 @@ func TestNewFlowFromConfig_WithInvalidClientName(t *testing.T) {
 func TestNewFlowFromConfig_WithInvalidStepConfig(t *testing.T) {
 	// Setup
 	RegisterClient("test-client", &test.MockClient{})
-	RegisterExecutor("test-executor", &executors.MockExecutor{})
+	RegisterExecutor("test-executor", &MockExecutor{})
 	RegisterValidator("test-validator", &MockValidator{})
 
 	flowConfig := &FlowConfig{
@@ -142,7 +157,7 @@ func TestNewFlowFromConfig_WithInvalidStepConfig(t *testing.T) {
 func TestNewFlowFromConfig_WithEmptyStepExecutor(t *testing.T) {
 	// Setup
 	RegisterClient("test-client", &test.MockClient{})
-	RegisterExecutor("test-executor", &executors.MockExecutor{})
+	RegisterExecutor("test-executor", &MockExecutor{})
 	RegisterValidator("test-validator", &MockValidator{})
 
 	flowConfig := &FlowConfig{
@@ -204,7 +219,7 @@ func TestNewClientFromConfigWithInvalidType(t *testing.T) {
 	assert.Error(t, err)
 }
 func TestConfig(t *testing.T) {
-	RegisterExecutor("executor1", &executors.MockExecutor{})
+	RegisterExecutor("executor1", &MockExecutor{})
 	config := AnyiConfig{
 		Clients: []llm.ClientConfig{
 			{
@@ -278,7 +293,7 @@ func TestConfigWithInvalidExecutor(t *testing.T) {
 }
 
 func TestConfigWithInvalidValidator(t *testing.T) {
-	RegisterExecutor("executor1", &executors.MockExecutor{})
+	RegisterExecutor("executor1", &MockExecutor{})
 	config := AnyiConfig{
 		Clients: []llm.ClientConfig{
 			{
@@ -314,7 +329,7 @@ func TestConfigWithInvalidValidator(t *testing.T) {
 }
 
 func TestConfigWithInvalidClient(t *testing.T) {
-	RegisterExecutor("executor1", &executors.MockExecutor{})
+	RegisterExecutor("executor1", &MockExecutor{})
 	config := AnyiConfig{
 		Clients: []llm.ClientConfig{
 			{
@@ -394,7 +409,7 @@ func TestNewValidatorFromConfig(t *testing.T) {
 // TestConfigFromString tests loading configuration from a string with specified format
 func TestConfigFromString(t *testing.T) {
 	// Setup test
-	RegisterExecutor("string-executor", &executors.MockExecutor{})
+	RegisterExecutor("string-executor", &MockExecutor{})
 
 	t.Run("Success: Load YAML configuration from string", func(t *testing.T) {
 		yamlContent := `
@@ -548,7 +563,7 @@ flows:
 // TestConfigFromFile tests loading configuration from a file
 func TestConfigFromFile(t *testing.T) {
 	// Setup test
-	RegisterExecutor("file-executor", &executors.MockExecutor{})
+	RegisterExecutor("file-executor", &MockExecutor{})
 
 	// Create a temporary test config file
 	yamlContent := `
@@ -620,7 +635,7 @@ flows: []
 
 func TestNewAgentFromConfig_Success(t *testing.T) {
 	// Setup
-	GlobalRegistry = &registry.AnyiRegistry{
+	registry.GlobalRegistry = &registry.AnyiRegistry{
 		Flows:      make(map[string]*flow.Flow),
 		Clients:    make(map[string]llm.Client),
 		Executors:  make(map[string]flow.StepExecutor),
@@ -672,7 +687,7 @@ func TestNewAgentFromConfig_WithNil(t *testing.T) {
 
 func TestNewAgentFromConfig_WithNonExistentFlow(t *testing.T) {
 	// Setup
-	GlobalRegistry = &registry.AnyiRegistry{
+	registry.GlobalRegistry = &registry.AnyiRegistry{
 		Flows:      make(map[string]*flow.Flow),
 		Clients:    make(map[string]llm.Client),
 		Executors:  make(map[string]flow.StepExecutor),
@@ -698,7 +713,7 @@ func TestNewAgentFromConfig_WithNonExistentFlow(t *testing.T) {
 
 func TestNewAgentFromConfig_WithClientName(t *testing.T) {
 	// Setup
-	GlobalRegistry = &registry.AnyiRegistry{
+	registry.GlobalRegistry = &registry.AnyiRegistry{
 		Flows:      make(map[string]*flow.Flow),
 		Clients:    make(map[string]llm.Client),
 		Executors:  make(map[string]flow.StepExecutor),
@@ -747,7 +762,7 @@ func TestNewAgentFromConfig_WithClientName(t *testing.T) {
 
 func TestNewAgentFromConfig_WithNonExistentClient(t *testing.T) {
 	// Setup
-	GlobalRegistry = &registry.AnyiRegistry{
+	registry.GlobalRegistry = &registry.AnyiRegistry{
 		Flows:      make(map[string]*flow.Flow),
 		Clients:    make(map[string]llm.Client),
 		Executors:  make(map[string]flow.StepExecutor),
@@ -779,7 +794,7 @@ func TestNewAgentFromConfig_WithNonExistentClient(t *testing.T) {
 
 func TestConfig_WithAgents(t *testing.T) {
 	// Setup
-	GlobalRegistry = &registry.AnyiRegistry{
+	registry.GlobalRegistry = &registry.AnyiRegistry{
 		Flows:      make(map[string]*flow.Flow),
 		Clients:    make(map[string]llm.Client),
 		Executors:  make(map[string]flow.StepExecutor),
