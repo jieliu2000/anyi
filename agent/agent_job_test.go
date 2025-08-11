@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jieliu2000/anyi/executors"
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/llm/chat"
 	"github.com/jieliu2000/anyi/llm/tools"
@@ -395,6 +396,16 @@ func TestAgent_MultipleJobs(t *testing.T) {
 	agentWithoutClient := &Agent{
 		Role: "test-agent",
 		// Client is nil by default
+		Flows: []*flow.Flow{
+			{
+				Name: "test-flow",
+				Steps: []flow.Step{
+					*flow.NewStep(&executors.DelayExecutor{
+						Milliseconds: 1000 * 15,
+					}, nil, nil),
+				},
+			},
+		},
 	}
 
 	// Create multiple contexts

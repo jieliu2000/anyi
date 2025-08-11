@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 
@@ -443,6 +444,45 @@ func (executor *DeepSeekStyleResponseFilter) Run(flowContext flow.FlowContext, s
 
 	// Default behavior: set the clean content as Text
 	flowContext.Text = resultContent
+	return &flowContext, nil
+}
+
+// DelayExecutor is an executor that delays execution for a specified number of microseconds
+type DelayExecutor struct {
+
+	// Milliseconds is the number of milliseconds to delay (alternative to Microseconds)
+	Milliseconds int `json:"milliseconds" yaml:"milliseconds" mapstructure:"milliseconds"`
+}
+
+// Init initializes the DelayExecutor
+func (executor *DelayExecutor) Init() error {
+	// Validate that either Milliseconds is set
+	if executor.Milliseconds <= 0 {
+		return errors.New("milliseconds must be set")
+	}
+	return nil
+}
+
+// Run delays execution for the specified time
+//
+// Parameters:
+//   - flowContext: The current flow context
+//   - step: The current workflow step
+//
+// Returns:
+//   - The unchanged flow context
+//   - Any error encountered during execution
+func (executor *DelayExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
+	// Calculate the delay duration
+	var delay = time.Millisecond * time.Duration(executor.Milliseconds)
+
+	log.Debugf("Delaying execution for %v", delay)
+
+	// Perform the delay
+	time.Sleep(delay)
+
+	log.Debugf("Delay completed")
+
 	return &flowContext, nil
 }
 

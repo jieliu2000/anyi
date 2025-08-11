@@ -563,6 +563,7 @@ func Init() {
 	RegisterExecutor("exec", &executors.RunCommandExecutor{})
 	RegisterExecutor("setContext", &executors.SetContextExecutor{})
 	RegisterExecutor("setVariables", &executors.SetVariablesExecutor{})
+	RegisterExecutor("delay", &executors.DelayExecutor{})
 	// Register with old name for backward compatibility
 	RegisterExecutor("setVariable", &executors.SetVariablesExecutor{})
 	// Register MCP executor
