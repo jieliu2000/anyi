@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/jieliu2000/anyi/flow"
+	"github.com/jieliu2000/anyi/internal/test"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -12,7 +13,7 @@ func TestAgent_StartJob(t *testing.T) {
 	// Test case 1: Create an agent without flows - should return error
 	agent := &Agent{
 		Role:              "Test Agent",
-		Client:            &mockClient{},
+		Client:            &test.MockClient{},
 		PreferredLanguage: "English",
 		BackStory:         "A test agent",
 		Flows:             []*flow.Flow{},
@@ -47,7 +48,7 @@ func TestAgent_StartJob(t *testing.T) {
 	assert.Equal(t, "agent must have at least one flow to start a job", err.Error())
 
 	// Test case 3: Create an agent with flows but without client - should return error
-	client := &mockClient{}
+	client := &test.MockClient{}
 	mockFlow, err := flow.NewFlow(client, "test-flow")
 	assert.NoError(t, err)
 
@@ -68,7 +69,7 @@ func TestAgent_StartJob(t *testing.T) {
 	// Test case 4: Create an agent with flows and client - should succeed
 	agentWithFlowAndClient := &Agent{
 		Role:              "Test Agent",
-		Client:            &mockClient{},
+		Client:            &test.MockClient{},
 		PreferredLanguage: "English",
 		BackStory:         "A test agent",
 		Flows:             []*flow.Flow{mockFlow},
@@ -86,7 +87,7 @@ func TestAgent_StartJob(t *testing.T) {
 	assert.NotNil(t, job)
 	assert.Equal(t, agentWithFlowAndClient, job.Agent)
 	assert.Equal(t, context, job.Context)
-	
+
 	// Job should be completed since PlanTasks returns an empty slice
 	assert.Equal(t, "completed", job.Status)
 }
@@ -130,7 +131,7 @@ func TestAgentConfig_Structure(t *testing.T) {
 
 func TestAgent_Structure(t *testing.T) {
 	// Test that we can create an Agent
-	client := &mockClient{}
+	client := &test.MockClient{}
 	flows := []*flow.Flow{}
 
 	agent := &Agent{

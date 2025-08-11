@@ -4,27 +4,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jieliu2000/anyi/executors"
 	"github.com/jieliu2000/anyi/flow"
-	"github.com/jieliu2000/anyi/llm/chat"
-	"github.com/jieliu2000/anyi/llm/tools"
+	"github.com/jieliu2000/anyi/internal/test"
 	"github.com/stretchr/testify/assert"
 )
-
-// Mock client implementation for testing
-type mockClient struct{}
-
-func (c *mockClient) Chat(messages []chat.Message, options *chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
-	return &chat.Message{Role: "assistant", Content: "mock response"}, chat.ResponseInfo{}, nil
-}
-
-func (c *mockClient) ChatWithFunctions(messages []chat.Message, functions []tools.FunctionConfig, options *chat.ChatOptions) (*chat.Message, chat.ResponseInfo, error) {
-	return &chat.Message{Role: "assistant", Content: "mock function response"}, chat.ResponseInfo{}, nil
-}
-
-func (c *mockClient) CountTokens(text string) (int, error) {
-	return len(text), nil
-}
 
 func TestAgentJob_Execute(t *testing.T) {
 	// Create a mock agent
@@ -212,7 +195,7 @@ func TestAgent_StartJob_CompleteScenario(t *testing.T) {
 	// Create an agent with client but without flows - should return error
 	agentWithClientNoFlows := &Agent{
 		Role:   "test-agent",
-		Client: &mockClient{},
+		Client: &test.MockClient{},
 	}
 
 	// Try to start a job with client but without flows - should return error
@@ -222,14 +205,14 @@ func TestAgent_StartJob_CompleteScenario(t *testing.T) {
 	assert.Equal(t, "agent must have at least one flow to start a job", err.Error())
 
 	// Create a mock flow
-	client := &mockClient{}
+	client := &test.MockClient{}
 	mockFlow, err := flow.NewFlow(client, "test-flow")
 	assert.NoError(t, err)
 
 	// Create an agent with both client and flows - should succeed
 	agent := &Agent{
 		Role:   "test-agent",
-		Client: &mockClient{},
+		Client: &test.MockClient{},
 		Flows:  []*flow.Flow{mockFlow},
 	}
 
@@ -276,7 +259,7 @@ func TestAgent_StartJob_StopScenario(t *testing.T) {
 	// Create an agent with client but without flows - should return error
 	agentWithClientNoFlows := &Agent{
 		Role:   "test-agent",
-		Client: &mockClient{},
+		Client: &test.MockClient{},
 	}
 
 	// Try to start a job with client but without flows - should return error
@@ -286,14 +269,14 @@ func TestAgent_StartJob_StopScenario(t *testing.T) {
 	assert.Equal(t, "agent must have at least one flow to start a job", err.Error())
 
 	// Create a mock flow
-	client := &mockClient{}
+	client := &test.MockClient{}
 	mockFlow, err := flow.NewFlow(client, "test-flow")
 	assert.NoError(t, err)
 
 	// Create an agent with both client and flows
 	agent := &Agent{
 		Role:   "test-agent",
-		Client: &mockClient{},
+		Client: &test.MockClient{},
 		Flows:  []*flow.Flow{mockFlow},
 	}
 
@@ -350,7 +333,7 @@ func TestAgent_StartJob_ImmediateStop(t *testing.T) {
 	// Create an agent with client but without flows - should return error
 	agentWithClientNoFlows := &Agent{
 		Role:   "test-agent",
-		Client: &mockClient{},
+		Client: &test.MockClient{},
 	}
 
 	// Try to start a job with client but without flows - should return error
@@ -359,14 +342,14 @@ func TestAgent_StartJob_ImmediateStop(t *testing.T) {
 	assert.Equal(t, "agent must have at least one flow to start a job", err.Error())
 
 	// Create a mock flow
-	client := &mockClient{}
+	client := &test.MockClient{}
 	mockFlow, err := flow.NewFlow(client, "test-flow")
 	assert.NoError(t, err)
 
 	// Create an agent with both client and flows
 	agent := &Agent{
 		Role:   "test-agent",
-		Client: &mockClient{},
+		Client: &test.MockClient{},
 		Flows:  []*flow.Flow{mockFlow},
 	}
 
@@ -398,12 +381,8 @@ func TestAgent_MultipleJobs(t *testing.T) {
 		// Client is nil by default
 		Flows: []*flow.Flow{
 			{
-				Name: "test-flow",
-				Steps: []flow.Step{
-					*flow.NewStep(&executors.DelayExecutor{
-						Milliseconds: 1000 * 15,
-					}, nil, nil),
-				},
+				Name:  "test-flow",
+				Steps: []flow.Step{},
 			},
 		},
 	}
@@ -435,7 +414,7 @@ func TestAgent_MultipleJobs(t *testing.T) {
 	// Create an agent with client but without flows - should return error
 	agentWithClientNoFlows := &Agent{
 		Role:   "test-agent",
-		Client: &mockClient{},
+		Client: &test.MockClient{},
 	}
 
 	// Try to start jobs with client but without flows - should return error
@@ -450,14 +429,14 @@ func TestAgent_MultipleJobs(t *testing.T) {
 	assert.Equal(t, "agent must have at least one flow to start a job", err.Error())
 
 	// Create a mock flow
-	client := &mockClient{}
+	client := &test.MockClient{}
 	mockFlow, err := flow.NewFlow(client, "test-flow")
 	assert.NoError(t, err)
 
 	// Create an agent with both client and flows
 	agent := &Agent{
 		Role:   "test-agent",
-		Client: &mockClient{},
+		Client: &test.MockClient{},
 		Flows:  []*flow.Flow{mockFlow},
 	}
 
