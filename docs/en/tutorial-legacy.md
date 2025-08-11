@@ -1198,7 +1198,7 @@ func main() {
 				Steps: []anyi.StepConfig{
 					{
 						Name: "summarize_content",
-						Executor: &anyi.ExecutorConfig{
+						Executor: &executors.ExecutorConfig{
 							Type: "llm",
 							WithConfig: map[string]interface{}{
 								"template":      "Summarize the following content in 3 bullet points:\n\n{{.Text}}",
@@ -1208,7 +1208,7 @@ func main() {
 					},
 					{
 						Name: "translate_summary",
-						Executor: &anyi.ExecutorConfig{
+						Executor: &executors.ExecutorConfig{
 							Type: "llm",
 							WithConfig: map[string]interface{}{
 								"template": "Translate the following summary to French:\n\n{{.Text}}",

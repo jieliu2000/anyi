@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/jieliu2000/anyi/agent"
+	"github.com/jieliu2000/anyi/executors"
 	"github.com/jieliu2000/anyi/registry"
 
 	"github.com/jieliu2000/anyi/flow"
@@ -413,7 +414,7 @@ func TestInit(t *testing.T) {
 func TestGetExecutor(t *testing.T) {
 	t.Run("PointerTypeExecutor", func(t *testing.T) {
 		// Register pointer type executor (requires complete parameters)
-		exec := &LLMExecutor{
+		exec := &executors.LLMExecutor{
 			Template:      "test template", // Template must be set
 			SystemMessage: "test system",
 			OutputJSON:    true,
@@ -424,8 +425,8 @@ func TestGetExecutor(t *testing.T) {
 		// First retrieval
 		got1, err := GetExecutor(name)
 		assert.NoError(t, err)
-		assert.IsType(t, &LLMExecutor{}, got1)
-		assert.Equal(t, "test template", got1.(*LLMExecutor).Template)
+		assert.IsType(t, &executors.LLMExecutor{}, got1)
+		assert.Equal(t, "test template", got1.(*executors.LLMExecutor).Template)
 
 		// Verify that a new instance is returned
 		got2, err := GetExecutor(name)
@@ -436,7 +437,7 @@ func TestGetExecutor(t *testing.T) {
 	t.Run("ValueTypeExecutor", func(t *testing.T) {
 		// Register value type executor (requires complete parameters)
 		name := "value_llm_exec"
-		RegisterExecutor(name, &LLMExecutor{
+		RegisterExecutor(name, &executors.LLMExecutor{
 			TemplateFile:  "test.tmpl", // Using template file
 			SystemMessage: "value system",
 		})
@@ -444,8 +445,8 @@ func TestGetExecutor(t *testing.T) {
 		// Get executor
 		got, err := GetExecutor(name)
 		assert.NoError(t, err)
-		assert.IsType(t, &LLMExecutor{}, got)
-		assert.Equal(t, "value system", got.(*LLMExecutor).SystemMessage)
+		assert.IsType(t, &executors.LLMExecutor{}, got)
+		assert.Equal(t, "value system", got.(*executors.LLMExecutor).SystemMessage)
 	})
 
 	t.Run("NonExistingExecutor", func(t *testing.T) {

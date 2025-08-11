@@ -307,7 +307,7 @@ func main() {
                 Steps: []anyi.StepConfig{
                     {
                         Name: "extract_key_points",
-                        Executor: &anyi.ExecutorConfig{
+                        Executor: &executors.ExecutorConfig{
                             Type: "llm",
                             WithConfig: map[string]interface{}{
                                 "template": "提取以下文档的关键点：\n\n{{.Text}}",
@@ -324,7 +324,7 @@ func main() {
                     },
                     {
                         Name: "generate_summary",
-                        Executor: &anyi.ExecutorConfig{
+                        Executor: &executors.ExecutorConfig{
                             Type: "llm",
                             WithConfig: map[string]interface{}{
                                 "template": "基于以下关键点生成执行摘要：\n\n{{.Text}}",

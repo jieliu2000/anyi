@@ -969,7 +969,7 @@ func TestCustomExecutorInFlow(t *testing.T) {
                 Steps: []anyi.StepConfig{
                     {
                         Name: "calculate",
-                        Executor: &anyi.ExecutorConfig{
+                        Executor: &executors.ExecutorConfig{
                             Type: "test_calculator",
                         },
                     },

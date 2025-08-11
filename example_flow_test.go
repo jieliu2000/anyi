@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/executors"
 	"github.com/jieliu2000/anyi/llm"
 )
 
@@ -26,7 +27,7 @@ func Example_flowWithDynamicConfig() {
 				Steps: []anyi.StepConfig{
 					{
 						Name: "write_story",
-						Executor: &anyi.ExecutorConfig{
+						Executor: &executors.ExecutorConfig{
 							Type: "llm",
 							WithConfig: map[string]interface{}{
 								"template": "Write a sci-fi story about {{.Text}}",
@@ -36,7 +37,7 @@ func Example_flowWithDynamicConfig() {
 
 					{
 						Name: "translate_story",
-						Executor: &anyi.ExecutorConfig{
+						Executor: &executors.ExecutorConfig{
 							Type: "llm",
 							WithConfig: map[string]interface{}{
 								"template": `Translate below text to French without any extra output. The text to be translated: 

@@ -68,7 +68,7 @@ func main() {
                 Steps: []anyi.StepConfig{
                     {
                         Name: "analyze",
-                        Executor: &anyi.ExecutorConfig{
+                        Executor: &executors.ExecutorConfig{
                             Type: "llm",
                             WithConfig: map[string]interface{}{
                                 "template": "分析以下文本的主要观点：\n\n{{.Text}}",
@@ -78,7 +78,7 @@ func main() {
                     },
                     {
                         Name: "summarize",
-                        Executor: &anyi.ExecutorConfig{
+                        Executor: &executors.ExecutorConfig{
                             Type: "llm",
                             WithConfig: map[string]interface{}{
                                 "template": "基于以下分析，生成简洁的摘要：\n\n{{.Text}}",
@@ -294,7 +294,7 @@ func main() {
                 Steps: []anyi.StepConfig{
                     {
                         Name: "extract_data",
-                        Executor: &anyi.ExecutorConfig{
+                        Executor: &executors.ExecutorConfig{
                             Type: "llm",
                             WithConfig: map[string]interface{}{
                                 "template": "从以下文本中提取结构化数据，以JSON格式返回：\n\n{{.Text}}",
@@ -310,7 +310,7 @@ func main() {
                     },
                     {
                         Name: "set_extracted_data",
-                        Executor: &anyi.ExecutorConfig{
+                        Executor: &executors.ExecutorConfig{
                             Type: "set_context",
                             WithConfig: map[string]interface{}{
                                 "key":   "extracted_data",
@@ -320,7 +320,7 @@ func main() {
                     },
                     {
                         Name: "generate_report",
-                        Executor: &anyi.ExecutorConfig{
+                        Executor: &executors.ExecutorConfig{
                             Type: "llm",
                             WithConfig: map[string]interface{}{
                                 "template": "基于以下提取的数据生成报告：\n\n{{.Memory.extracted_data}}",

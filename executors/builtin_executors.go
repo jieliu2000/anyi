@@ -1,4 +1,4 @@
-package anyi
+package executors
 
 import (
 	"errors"
@@ -9,10 +9,25 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/jieliu2000/anyi/flow"
-	"github.com/jieliu2000/anyi/llm"
 	"github.com/jieliu2000/anyi/llm/chat"
+	"github.com/jieliu2000/anyi/registry"
 	"github.com/jieliu2000/shello"
 )
+
+type MockExecutor struct {
+	Param1 string
+	Param2 int
+}
+
+func (m *MockExecutor) Run(flowContext flow.FlowContext, Step *flow.Step) (*flow.FlowContext, error) {
+
+	return &flowContext, nil
+}
+
+func (m *MockExecutor) Init() error {
+
+	return nil
+}
 
 // SetContextExecutor is an executor that sets values in the flow context.
 // It can modify the Text field and Memory object in the flow context.
@@ -143,7 +158,7 @@ func (executor *ConditionalFlowExecutor) Init() error {
 
 	// Validate switch flows
 	for _, value := range executor.Switch {
-		flow, err := GetFlow(value)
+		flow, err := registry.GetFlow(value)
 		if err != nil {
 			return errors.Join(err, errors.New("failed to get flow "+value))
 		}
@@ -154,7 +169,7 @@ func (executor *ConditionalFlowExecutor) Init() error {
 
 	// Validate default flow if provided
 	if executor.Default != "" {
-		flow, err := GetFlow(executor.Default)
+		flow, err := registry.GetFlow(executor.Default)
 		if err != nil {
 			return errors.Join(err, errors.New("failed to get default flow "+executor.Default))
 		}
@@ -199,7 +214,7 @@ func (executor *ConditionalFlowExecutor) Run(flowContext flow.FlowContext, step 
 		}
 	}
 
-	flow, err := GetFlow(flowName)
+	flow, err := registry.GetFlow(flowName)
 	if err != nil {
 		return &flowContext, err
 	}
@@ -386,59 +401,6 @@ func (executor *LLMExecutor) Run(flowContext flow.FlowContext, step *flow.Step) 
 		flowContext.Text = strings.Trim(flowContext.Text, executor.Trim)
 	}
 	return &flowContext, nil
-}
-
-// NewLLMStepWithTemplateFile creates a new workflow step with an LLM executor
-// that uses a template from a file.
-//
-// Parameters:
-//   - templateFilePath: Path to the file containing the prompt template
-//   - systemMessage: Optional system message to include in the conversation
-//   - client: LLM client to use for this step
-//
-// Returns:
-//   - A new workflow step configured with the template and client
-//   - Any error encountered during creation
-func NewLLMStepWithTemplateFile(templateFilePath string, systemMessage string, client llm.Client) (*flow.Step, error) {
-
-	// Create a new formatter with the template
-	formatter, err := chat.NewPromptTemplateFormatterFromFile(templateFilePath)
-	if err != nil {
-		return nil, err
-	}
-	executor := &LLMExecutor{
-		TemplateFormatter: formatter,
-		SystemMessage:     systemMessage,
-	}
-	step := flow.NewStep(executor, nil, client)
-
-	return step, nil
-}
-
-// NewLLMStepWithTemplate creates a new workflow step with an LLM executor
-// that uses an inline template string.
-//
-// Parameters:
-//   - tmplate: String containing the prompt template
-//   - systemMessage: Optional system message to include in the conversation
-//   - client: LLM client to use for this step
-//
-// Returns:
-//   - A new workflow step configured with the template and client
-//   - Any error encountered during creation
-func NewLLMStepWithTemplate(tmplate string, systemMessage string, client llm.Client) (*flow.Step, error) {
-	// Create a new formatter with the template
-	formatter, err := chat.NewPromptTemplateFormatter(tmplate)
-	if err != nil {
-		return nil, err
-	}
-
-	executor := &LLMExecutor{
-		TemplateFormatter: formatter,
-		SystemMessage:     systemMessage,
-	}
-	step := flow.NewStep(executor, nil, client)
-	return step, nil
 }
 
 // DeepSeekStyleResponseFilter is an executor that processes model responses containing <think> tags.

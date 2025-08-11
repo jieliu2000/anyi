@@ -8,6 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/jieliu2000/anyi/agent"
+	"github.com/jieliu2000/anyi/executors"
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/llm"
 	"github.com/jieliu2000/anyi/llm/chat"
@@ -242,26 +243,7 @@ func GetValidator(name string) (flow.StepValidator, error) {
 //   - A new instance of the requested executor
 //   - An error if the executor is not found
 func GetExecutor(name string) (flow.StepExecutor, error) {
-	if name == "" {
-		return nil, errors.New("name cannot be empty")
-	}
-
-	GlobalRegistry.Mu.RLock()
-	defer GlobalRegistry.Mu.RUnlock()
-
-	executor := GlobalRegistry.Executors[name]
-	if executor == nil {
-		return nil, errors.New("no executor found with the given name: " + name)
-	}
-
-	val := reflect.ValueOf(executor)
-	if val.Kind() == reflect.Ptr {
-		elem := val.Elem()
-		newVal := reflect.New(elem.Type())
-		newVal.Elem().Set(elem)
-		return newVal.Interface().(flow.StepExecutor), nil
-	}
-	return executor, nil
+	return registry.GetExecutor(name)
 }
 
 // GetClient retrieves a client from the global registry by name.
@@ -563,19 +545,7 @@ func NewFlow(name string, client llm.Client, steps ...flow.Step) (*flow.Flow, er
 // Returns:
 //   - Any error encountered during registration
 func RegisterExecutor(name string, executor flow.StepExecutor) error {
-	if name == "" {
-		return errors.New("name cannot be empty")
-	}
-
-	GlobalRegistry.Mu.Lock()
-	defer GlobalRegistry.Mu.Unlock()
-
-	if GlobalRegistry.Executors[name] != nil {
-		return fmt.Errorf("executor type with the name %s already exists", name)
-	}
-
-	GlobalRegistry.Executors[name] = executor
-	return nil
+	return registry.RegisterExecutor(name, executor)
 }
 
 // RegisterValidator registers a validator in the global registry.
@@ -588,18 +558,7 @@ func RegisterExecutor(name string, executor flow.StepExecutor) error {
 // Returns:
 //   - Any error encountered during registration
 func RegisterValidator(name string, validator flow.StepValidator) error {
-	if name == "" {
-		return errors.New("name cannot be empty")
-	}
-
-	GlobalRegistry.Mu.Lock()
-	defer GlobalRegistry.Mu.Unlock()
-
-	if GlobalRegistry.Validators[name] != nil {
-		return fmt.Errorf("validator type with the name %s already exists", name)
-	}
-	GlobalRegistry.Validators[name] = validator
-	return nil
+	return registry.RegisterValidator(name, validator)
 }
 
 // NewLLMStepExecutorWithFormatter creates a new LLM step executor with a template formatter.
@@ -613,9 +572,9 @@ func RegisterValidator(name string, validator flow.StepValidator) error {
 //
 // Returns:
 //   - A new LLM executor
-func NewLLMStepExecutorWithFormatter(name string, formatter *chat.PromptyTemplateFormatter, systemMessage string, client llm.Client) *LLMExecutor {
+func NewLLMStepExecutorWithFormatter(name string, formatter *chat.PromptyTemplateFormatter, systemMessage string, client llm.Client) *executors.LLMExecutor {
 
-	stepExecutor := LLMExecutor{
+	stepExecutor := executors.LLMExecutor{
 		TemplateFormatter: formatter,
 		SystemMessage:     systemMessage,
 	}
@@ -639,18 +598,71 @@ func NewLLMStep(tmplate string, systemMessage string, client llm.Client) (*flow.
 	return NewLLMStepWithTemplate(tmplate, systemMessage, client)
 }
 
+// NewLLMStepWithTemplateFile creates a new workflow step with an LLM executor
+// that uses a template from a file.
+//
+// Parameters:
+//   - templateFilePath: Path to the file containing the prompt template
+//   - systemMessage: Optional system message to include in the conversation
+//   - client: LLM client to use for this step
+//
+// Returns:
+//   - A new workflow step configured with the template and client
+//   - Any error encountered during creation
+func NewLLMStepWithTemplateFile(templateFilePath string, systemMessage string, client llm.Client) (*flow.Step, error) {
+
+	// Create a new formatter with the template
+	formatter, err := chat.NewPromptTemplateFormatterFromFile(templateFilePath)
+	if err != nil {
+		return nil, err
+	}
+	executor := &executors.LLMExecutor{
+		TemplateFormatter: formatter,
+		SystemMessage:     systemMessage,
+	}
+	step := flow.NewStep(executor, nil, client)
+
+	return step, nil
+}
+
+// NewLLMStepWithTemplate creates a new workflow step with an LLM executor
+// that uses an inline template string.
+//
+// Parameters:
+//   - tmplate: String containing the prompt template
+//   - systemMessage: Optional system message to include in the conversation
+//   - client: LLM client to use for this step
+//
+// Returns:
+//   - A new workflow step configured with the template and client
+//   - Any error encountered during creation
+func NewLLMStepWithTemplate(tmplate string, systemMessage string, client llm.Client) (*flow.Step, error) {
+	// Create a new formatter with the template
+	formatter, err := chat.NewPromptTemplateFormatter(tmplate)
+	if err != nil {
+		return nil, err
+	}
+
+	executor := &executors.LLMExecutor{
+		TemplateFormatter: formatter,
+		SystemMessage:     systemMessage,
+	}
+	step := flow.NewStep(executor, nil, client)
+	return step, nil
+}
+
 // Init initializes the Anyi framework by registering built-in executors and validators.
 // This should be called before using the framework, but is automatically called by Config.
 func Init() {
 
 	log.Debug("Initializing Anyi...")
-	RegisterExecutor("llm", &LLMExecutor{})
-	RegisterExecutor("condition", &ConditionalFlowExecutor{})
-	RegisterExecutor("exec", &RunCommandExecutor{})
-	RegisterExecutor("setContext", &SetContextExecutor{})
-	RegisterExecutor("setVariables", &SetVariablesExecutor{})
+	RegisterExecutor("llm", &executors.LLMExecutor{})
+	RegisterExecutor("condition", &executors.ConditionalFlowExecutor{})
+	RegisterExecutor("exec", &executors.RunCommandExecutor{})
+	RegisterExecutor("setContext", &executors.SetContextExecutor{})
+	RegisterExecutor("setVariables", &executors.SetVariablesExecutor{})
 	// Register with old name for backward compatibility
-	RegisterExecutor("setVariable", &SetVariablesExecutor{})
+	RegisterExecutor("setVariable", &executors.SetVariablesExecutor{})
 	// Register MCP executor
 	RegisterExecutor("mcp", &MCPExecutor{})
 

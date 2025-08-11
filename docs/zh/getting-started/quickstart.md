@@ -313,7 +313,7 @@ func main() {
                 Steps: []anyi.StepConfig{
                     {
                         Name: "analyze_topic",
-                        Executor: &anyi.ExecutorConfig{
+                        Executor: &executors.ExecutorConfig{
                             Type: "llm",
                             WithConfig: map[string]interface{}{
                                 "template": "分析以下主题并提供3个关键点：{{.Text}}",
@@ -323,7 +323,7 @@ func main() {
                     },
                     {
                         Name: "create_content",
-                        Executor: &anyi.ExecutorConfig{
+                        Executor: &executors.ExecutorConfig{
                             Type: "llm",
                             WithConfig: map[string]interface{}{
                                 "template": "基于以下分析，写一篇200字的介绍文章：\n\n{{.Text}}",

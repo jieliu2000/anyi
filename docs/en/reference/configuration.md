@@ -526,7 +526,7 @@ config := anyi.AnyiConfig{
             Steps: []anyi.StepConfig{
                 {
                     Name: "analyze",
-                    Executor: &anyi.ExecutorConfig{
+                    Executor: &executors.ExecutorConfig{
                         Type: "llm",
                         WithConfig: map[string]interface{}{
                             "template": "Analyze: {{.Text}}",

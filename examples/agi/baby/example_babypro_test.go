@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/executors"
 	"github.com/jieliu2000/anyi/llm"
 	"github.com/jieliu2000/anyi/llm/openai"
 )
@@ -218,7 +219,7 @@ func InitAnyi() {
 				Name: "executorTask",
 				Steps: []anyi.StepConfig{
 					{
-						Executor: &anyi.ExecutorConfig{
+						Executor: &executors.ExecutorConfig{
 							Type: "llm",
 							WithConfig: map[string]interface{}{
 								"template": `Perform one task based on the following objective: {{.Memory.Objective}}
@@ -241,7 +242,7 @@ Response:`,
 								"matchRegex": `(^\s*\-\s.*)|(^notask$)`,
 							},
 						},
-						Executor: &anyi.ExecutorConfig{
+						Executor: &executors.ExecutorConfig{
 							Type: "llm",
 							WithConfig: map[string]interface{}{
 								"template": `You are to use the result from an execution agent to create new tasks with the following objective: {{.Memory.Objective}}.
@@ -279,7 +280,7 @@ Unless your list is empty, do not include any headers before your bullet list or
 								"matchRegex": `(^\s*\-\s.*)|(^notask$)`,
 							},
 						},
-						Executor: &anyi.ExecutorConfig{
+						Executor: &executors.ExecutorConfig{
 							Type: "llm",
 							WithConfig: map[string]interface{}{
 								"template": `You are tasked with prioritizing the following tasks: 

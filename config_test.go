@@ -5,27 +5,13 @@ import (
 	"testing"
 
 	"github.com/jieliu2000/anyi/agent"
+	"github.com/jieliu2000/anyi/executors"
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/internal/test"
 	"github.com/jieliu2000/anyi/llm"
 	"github.com/jieliu2000/anyi/registry"
 	"github.com/stretchr/testify/assert"
 )
-
-type MockExecutor struct {
-	Param1 string
-	Param2 int
-}
-
-func (m *MockExecutor) Run(flowContext flow.FlowContext, Step *flow.Step) (*flow.FlowContext, error) {
-
-	return &flowContext, nil
-}
-
-func (m *MockExecutor) Init() error {
-
-	return nil
-}
 
 type MockValidator struct {
 }
@@ -49,12 +35,12 @@ func TestNewFlowFromConfig_Success(t *testing.T) {
 		Validators: make(map[string]flow.StepValidator),
 	}
 	RegisterClient("test-client", &test.MockClient{})
-	RegisterExecutor("test-executor", &MockExecutor{})
+	RegisterExecutor("test-executor", &executors.MockExecutor{})
 	RegisterValidator("test-validator", &MockValidator{})
 
 	flowConfig := &FlowConfig{
-		ClientName: "test-client",
-		Name:       "test-flow",
+		ClientName:  "test-client",
+		Name:        "test-flow",
 		Description: "This is a test flow description",
 		Variables: map[string]any{
 			"var1": "value1",
@@ -63,7 +49,7 @@ func TestNewFlowFromConfig_Success(t *testing.T) {
 		Steps: []StepConfig{
 			{
 				Name: "name1",
-				Executor: &ExecutorConfig{
+				Executor: &executors.ExecutorConfig{
 					Type: "test-executor",
 				},
 				Validator: &ValidatorConfig{
@@ -108,7 +94,7 @@ func TestNewFlowFromConfig_WithInvalidClientName(t *testing.T) {
 		Name:       "test-flow",
 		Steps: []StepConfig{
 			{
-				Executor: &ExecutorConfig{
+				Executor: &executors.ExecutorConfig{
 					Type: "test-executor",
 				},
 				Validator: &ValidatorConfig{
@@ -128,7 +114,7 @@ func TestNewFlowFromConfig_WithInvalidClientName(t *testing.T) {
 func TestNewFlowFromConfig_WithInvalidStepConfig(t *testing.T) {
 	// Setup
 	RegisterClient("test-client", &test.MockClient{})
-	RegisterExecutor("test-executor", &MockExecutor{})
+	RegisterExecutor("test-executor", &executors.MockExecutor{})
 	RegisterValidator("test-validator", &MockValidator{})
 
 	flowConfig := &FlowConfig{
@@ -136,7 +122,7 @@ func TestNewFlowFromConfig_WithInvalidStepConfig(t *testing.T) {
 		Name:       "test-flow",
 		Steps: []StepConfig{
 			{
-				Executor: &ExecutorConfig{
+				Executor: &executors.ExecutorConfig{
 					Type: "invalid-executor",
 				},
 				Validator: &ValidatorConfig{
@@ -156,7 +142,7 @@ func TestNewFlowFromConfig_WithInvalidStepConfig(t *testing.T) {
 func TestNewFlowFromConfig_WithEmptyStepExecutor(t *testing.T) {
 	// Setup
 	RegisterClient("test-client", &test.MockClient{})
-	RegisterExecutor("test-executor", &MockExecutor{})
+	RegisterExecutor("test-executor", &executors.MockExecutor{})
 	RegisterValidator("test-validator", &MockValidator{})
 
 	flowConfig := &FlowConfig{
@@ -177,45 +163,6 @@ func TestNewFlowFromConfig_WithEmptyStepExecutor(t *testing.T) {
 	// Verify
 	assert.Error(t, err)
 	assert.Nil(t, flowInstance)
-}
-
-func TestNewExecutorFromConfig(t *testing.T) {
-
-	t.Run("Invalid type", func(t *testing.T) {
-
-		executorConfig := &ExecutorConfig{
-			Type: "invalid-executor",
-		}
-
-		executor, err := NewExecutorFromConfig(executorConfig)
-
-		assert.Error(t, err)
-		assert.Nil(t, executor)
-	})
-
-	t.Run("Success path with param", func(t *testing.T) {
-
-		executor1 := &MockExecutor{}
-		RegisterExecutor("valid-executor", executor1)
-
-		executorConfig := &ExecutorConfig{
-			Type: "valid-executor",
-			WithConfig: map[string]interface{}{
-				"param1": "value1",
-				"param2": 10,
-			},
-		}
-
-		result, err := NewExecutorFromConfig(executorConfig)
-		executor := result.(*MockExecutor)
-
-		assert.NoError(t, err)
-		assert.NotNil(t, executor)
-
-		assert.Equal(t, "value1", executor.Param1)
-		assert.Equal(t, 10, executor.Param2)
-
-	})
 }
 
 func TestNewClientFromConfigWithEmptyName(t *testing.T) {
@@ -257,7 +204,7 @@ func TestNewClientFromConfigWithInvalidType(t *testing.T) {
 	assert.Error(t, err)
 }
 func TestConfig(t *testing.T) {
-	RegisterExecutor("executor1", &MockExecutor{})
+	RegisterExecutor("executor1", &executors.MockExecutor{})
 	config := AnyiConfig{
 		Clients: []llm.ClientConfig{
 			{
@@ -278,7 +225,7 @@ func TestConfig(t *testing.T) {
 				},
 				Steps: []StepConfig{
 					{
-						Executor: &ExecutorConfig{
+						Executor: &executors.ExecutorConfig{
 							Type: "executor1",
 						},
 						ClientName:    "client1",
@@ -315,7 +262,7 @@ func TestConfigWithInvalidExecutor(t *testing.T) {
 				Name: "flow1",
 				Steps: []StepConfig{
 					{
-						Executor: &ExecutorConfig{
+						Executor: &executors.ExecutorConfig{
 							Type: "invalid-executor",
 						},
 						ClientName:    "client1",
@@ -331,7 +278,7 @@ func TestConfigWithInvalidExecutor(t *testing.T) {
 }
 
 func TestConfigWithInvalidValidator(t *testing.T) {
-	RegisterExecutor("executor1", &MockExecutor{})
+	RegisterExecutor("executor1", &executors.MockExecutor{})
 	config := AnyiConfig{
 		Clients: []llm.ClientConfig{
 			{
@@ -348,7 +295,7 @@ func TestConfigWithInvalidValidator(t *testing.T) {
 				Name: "flow1",
 				Steps: []StepConfig{
 					{
-						Executor: &ExecutorConfig{
+						Executor: &executors.ExecutorConfig{
 							Type: "executor1",
 						},
 						Validator: &ValidatorConfig{
@@ -367,7 +314,7 @@ func TestConfigWithInvalidValidator(t *testing.T) {
 }
 
 func TestConfigWithInvalidClient(t *testing.T) {
-	RegisterExecutor("executor1", &MockExecutor{})
+	RegisterExecutor("executor1", &executors.MockExecutor{})
 	config := AnyiConfig{
 		Clients: []llm.ClientConfig{
 			{
@@ -384,7 +331,7 @@ func TestConfigWithInvalidClient(t *testing.T) {
 				Name: "flow1",
 				Steps: []StepConfig{
 					{
-						Executor: &ExecutorConfig{
+						Executor: &executors.ExecutorConfig{
 							Type: "executor1",
 						},
 						ClientName:    "no-client",
@@ -447,7 +394,7 @@ func TestNewValidatorFromConfig(t *testing.T) {
 // TestConfigFromString tests loading configuration from a string with specified format
 func TestConfigFromString(t *testing.T) {
 	// Setup test
-	RegisterExecutor("string-executor", &MockExecutor{})
+	RegisterExecutor("string-executor", &executors.MockExecutor{})
 
 	t.Run("Success: Load YAML configuration from string", func(t *testing.T) {
 		yamlContent := `
@@ -601,7 +548,7 @@ flows:
 // TestConfigFromFile tests loading configuration from a file
 func TestConfigFromFile(t *testing.T) {
 	// Setup test
-	RegisterExecutor("file-executor", &MockExecutor{})
+	RegisterExecutor("file-executor", &executors.MockExecutor{})
 
 	// Create a temporary test config file
 	yamlContent := `

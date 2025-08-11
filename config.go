@@ -8,6 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/jieliu2000/anyi/agent"
+	"github.com/jieliu2000/anyi/executors"
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/internal/utils"
 	"github.com/jieliu2000/anyi/llm"
@@ -26,13 +27,6 @@ type AnyiConfig struct {
 // ValidatorConfig defines the configuration structure for validators.
 // Validators are used to validate the output of workflow steps.
 type ValidatorConfig struct {
-	Type       string                 `mapstructure:"type" json:"type" yaml:"type"`
-	WithConfig map[string]interface{} `mapstructure:"withconfig" json:"withconfig" yaml:"withconfig"`
-}
-
-// ExecutorConfig defines the configuration structure for executors.
-// Executors are responsible for executing workflow steps.
-type ExecutorConfig struct {
 	Type       string                 `mapstructure:"type" json:"type" yaml:"type"`
 	WithConfig map[string]interface{} `mapstructure:"withconfig" json:"withconfig" yaml:"withconfig"`
 }
@@ -66,8 +60,8 @@ type StepConfig struct {
 
 	Validator *ValidatorConfig `mapstructure:"validator" json:"validator" yaml:"validator"`
 	// This is a required field. The executor name which will be used to execute the step.
-	Executor *ExecutorConfig `mapstructure:"executor" json:"executor" yaml:"executor"`
-	Name     string          `mapstructure:"name" json:"name" yaml:"name"`
+	Executor *executors.ExecutorConfig `mapstructure:"executor" json:"executor" yaml:"executor"`
+	Name     string                    `mapstructure:"name" json:"name" yaml:"name"`
 }
 
 // NewClientFromConfig creates a new LLM client from a client configuration.
@@ -127,7 +121,7 @@ func NewStepFromConfig(stepConfig *StepConfig) (*flow.Step, error) {
 	}
 	var executor flow.StepExecutor
 	if stepConfig.Executor != nil {
-		executor, err = NewExecutorFromConfig(stepConfig.Executor)
+		executor, err = executors.NewExecutorFromConfig(stepConfig.Executor)
 		if err != nil {
 			return nil, err
 		}
@@ -258,41 +252,6 @@ func NewAgentFromConfig(config *agent.AgentConfig) (*agent.Agent, error) {
 	}
 
 	return agentObj, nil
-}
-
-// NewExecutorFromConfig creates a new executor from an executor configuration.
-// It instantiates the appropriate executor type based on the configuration,
-// decodes the configuration parameters, and initializes the executor.
-//
-// Parameters:
-//   - executorConfig: Executor configuration containing type and parameters
-//
-// Returns:
-//   - A new step executor
-//   - Any error encountered during executor creation
-func NewExecutorFromConfig(executorConfig *ExecutorConfig) (flow.StepExecutor, error) {
-	if executorConfig == nil {
-		return nil, errors.New("executor config is nil")
-	}
-
-	if executorConfig.Type == "" {
-		return nil, errors.New("executor type is not set")
-	}
-
-	metaExecutor, err := GetExecutor(executorConfig.Type)
-	if err != nil {
-		return nil, err
-	}
-
-	executor := metaExecutor
-
-	if executor == nil {
-		return nil, fmt.Errorf("executor type %s is not found", executorConfig.Type)
-	}
-
-	mapstructure.Decode(executorConfig.WithConfig, executor)
-	executor.Init()
-	return executor, nil
 }
 
 // NewValidatorFromConfig creates a new validator from a validator configuration.

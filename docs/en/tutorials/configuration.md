@@ -541,7 +541,7 @@ func createDynamicConfig() *anyi.AnyiConfig {
 		Steps: []anyi.StepConfig{
 			{
 				Name: "process_input",
-				Executor: &anyi.ExecutorConfig{
+				Executor: &executors.ExecutorConfig{
 					Type: "llm",
 					WithConfig: map[string]interface{}{
 						"template":      "Process: {{.Text}}",
