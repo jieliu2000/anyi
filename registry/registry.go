@@ -139,3 +139,195 @@ func RegisterValidator(name string, validator flow.StepValidator) error {
 	GlobalRegistry.Validators[name] = validator
 	return nil
 }
+
+// RegisterFlow registers a flow in the global registry.
+// Each flow must have a unique name.
+//
+// Parameters:
+//   - name: Name to register the flow under
+//   - flow: Workflow to register
+//
+// Returns:
+//   - Any error encountered during registration
+func RegisterFlow(name string, flow *flow.Flow) error {
+	if name == "" {
+		return errors.New("name cannot be empty")
+	}
+
+	GlobalRegistry.Mu.Lock()
+	defer GlobalRegistry.Mu.Unlock()
+
+	if _, exists := GlobalRegistry.Flows[name]; exists {
+		return fmt.Errorf("flow with name %q already exists", name)
+	}
+
+	GlobalRegistry.Flows[name] = flow
+	return nil
+}
+
+// RegisterClient registers a client in the global registry.
+// Each client must have a unique name.
+//
+// Parameters:
+//   - name: Name to register the client under
+//   - client: LLM client to register
+//
+// Returns:
+//   - Any error encountered during registration
+func RegisterClient(name string, client llm.Client) error {
+	if client == nil {
+		return errors.New("client cannot be empty")
+	}
+	if name == "" {
+		return errors.New("name cannot be empty")
+	}
+
+	GlobalRegistry.Mu.Lock()
+	defer GlobalRegistry.Mu.Unlock()
+
+	if _, exists := GlobalRegistry.Clients[name]; exists {
+		return fmt.Errorf("client with name %q already exists", name)
+	}
+
+	GlobalRegistry.Clients[name] = client
+	return nil
+}
+
+// GetValidator retrieves a validator from the global registry by name.
+// It returns a new instance of the validator with the same configuration.
+//
+// Parameters:
+//   - name: Name of the validator to retrieve
+//
+// Returns:
+//   - A new instance of the requested validator
+//   - An error if the validator is not found
+func GetValidator(name string) (flow.StepValidator, error) {
+	if name == "" {
+		return nil, errors.New("name cannot be empty")
+	}
+
+	GlobalRegistry.Mu.RLock()
+	defer GlobalRegistry.Mu.RUnlock()
+
+	validatorType := GlobalRegistry.Validators[name]
+	if validatorType == nil {
+		return nil, errors.New("no validator found with the given name: " + name)
+	}
+
+	val := reflect.ValueOf(validatorType)
+	if val.Kind() == reflect.Ptr {
+		elem := val.Elem()
+		newVal := reflect.New(elem.Type())
+		newVal.Elem().Set(elem)
+		return newVal.Interface().(flow.StepValidator), nil
+	}
+
+	return validatorType, nil
+}
+
+// GetClient retrieves a client from the global registry by name.
+//
+// Parameters:
+//   - name: Name of the client to retrieve
+//
+// Returns:
+//   - The requested LLM client
+//   - An error if the client is not found
+func GetClient(name string) (llm.Client, error) {
+	if name == "" {
+		return nil, errors.New("name cannot be empty")
+	}
+
+	GlobalRegistry.Mu.RLock()
+	defer GlobalRegistry.Mu.RUnlock()
+
+	client, ok := GlobalRegistry.Clients[name]
+	if !ok {
+		return nil, errors.New("no client found with the given name: " + name)
+	}
+	return client, nil
+}
+
+// RegisterAgent registers an agent in the global registry.
+// Each agent must have a unique name.
+//
+// Parameters:
+//   - name: Name to register the agent under
+//   - agent: Agent to register
+//
+// Returns:
+//   - Any error encountered during registration
+func RegisterAgent(name string, agent *agent.Agent) error {
+	if name == "" {
+		return errors.New("name cannot be empty")
+	}
+
+	GlobalRegistry.Mu.Lock()
+	defer GlobalRegistry.Mu.Unlock()
+
+	if _, exists := GlobalRegistry.Agents[name]; exists {
+		return fmt.Errorf("agent with name %q already exists", name)
+	}
+
+	GlobalRegistry.Agents[name] = agent
+	return nil
+}
+
+// GetAgent retrieves an agent from the global registry by name.
+//
+// Parameters:
+//   - name: Name of the agent to retrieve
+//
+// Returns:
+//   - The requested agent
+//   - An error if the agent is not found
+func GetAgent(name string) (*agent.Agent, error) {
+	if name == "" {
+		return nil, errors.New("name cannot be empty")
+	}
+
+	GlobalRegistry.Mu.RLock()
+	defer GlobalRegistry.Mu.RUnlock()
+
+	a, ok := GlobalRegistry.Agents[name]
+	if !ok {
+		return nil, errors.New("no agent found with the given name: " + name)
+	}
+	return a, nil
+}
+
+// GetFormatter retrieves a formatter from the global registry by name.
+//
+// Parameters:
+//   - name: Name of the formatter to retrieve
+//
+// Returns:
+//   - The requested prompt formatter, or nil if not found
+func GetFormatter(name string) chat.PromptFormatter {
+	GlobalRegistry.Mu.RLock()
+	defer GlobalRegistry.Mu.RUnlock()
+
+	return GlobalRegistry.Formatters[name]
+}
+
+// RegisterFormatter registers a formatter in the global registry.
+// Each formatter must have a unique name.
+//
+// Parameters:
+//   - name: Name to register the formatter under
+//   - formatter: Prompt formatter to register
+//
+// Returns:
+//   - Any error encountered during registration
+func RegisterFormatter(name string, formatter chat.PromptFormatter) error {
+	if name == "" {
+		return errors.New("name cannot be empty")
+	}
+
+	GlobalRegistry.Mu.Lock()
+	defer GlobalRegistry.Mu.Unlock()
+
+	GlobalRegistry.Formatters[name] = formatter
+	return nil
+}

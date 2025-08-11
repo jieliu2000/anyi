@@ -3,7 +3,6 @@ package anyi
 import (
 	"errors"
 	"fmt"
-	"reflect"
 
 	log "github.com/sirupsen/logrus"
 
@@ -69,18 +68,21 @@ func GetDefaultClient() (llm.Client, error) {
 	registry.GlobalRegistry.Mu.RLock()
 	defer registry.GlobalRegistry.Mu.RUnlock()
 
+	// First try: use the explicitly set default client name
 	if registry.GlobalRegistry.DefaultClientName != "" {
 		if client, ok := registry.GlobalRegistry.Clients[registry.GlobalRegistry.DefaultClientName]; ok {
 			return client, nil
 		}
 	}
 
+	// Second try: if there's only one client, use it
 	if len(registry.GlobalRegistry.Clients) == 1 {
 		for _, client := range registry.GlobalRegistry.Clients {
 			return client, nil
 		}
 	}
 
+	// Third try: use the "default" named client if it exists
 	if client, ok := registry.GlobalRegistry.Clients["default"]; ok {
 		return client, nil
 	}
@@ -132,19 +134,7 @@ func NewClient(name string, model llm.ModelConfig) (llm.Client, error) {
 // Returns:
 //   - Any error encountered during registration
 func RegisterFlow(name string, flow *flow.Flow) error {
-	if name == "" {
-		return errors.New("name cannot be empty")
-	}
-
-	registry.GlobalRegistry.Mu.Lock()
-	defer registry.GlobalRegistry.Mu.Unlock()
-
-	if _, exists := registry.GlobalRegistry.Flows[name]; exists {
-		return fmt.Errorf("flow with name %q already exists", name)
-	}
-
-	registry.GlobalRegistry.Flows[name] = flow
-	return nil
+	return registry.RegisterFlow(name, flow)
 }
 
 // GetFlow retrieves a flow from the global registry by name.
@@ -156,18 +146,7 @@ func RegisterFlow(name string, flow *flow.Flow) error {
 //   - The requested workflow
 //   - An error if the flow is not found
 func GetFlow(name string) (*flow.Flow, error) {
-	if name == "" {
-		return nil, errors.New("name cannot be empty")
-	}
-
-	registry.GlobalRegistry.Mu.RLock()
-	defer registry.GlobalRegistry.Mu.RUnlock()
-
-	f, ok := registry.GlobalRegistry.Flows[name]
-	if !ok {
-		return nil, errors.New("no flow found with the given name: " + name)
-	}
-	return f, nil
+	return registry.GetFlow(name)
 }
 
 // RegisterClient registers a client in the global registry.
@@ -180,22 +159,7 @@ func GetFlow(name string) (*flow.Flow, error) {
 // Returns:
 //   - Any error encountered during registration
 func RegisterClient(name string, client llm.Client) error {
-	if client == nil {
-		return errors.New("client cannot be empty")
-	}
-	if name == "" {
-		return errors.New("name cannot be empty")
-	}
-
-	registry.GlobalRegistry.Mu.Lock()
-	defer registry.GlobalRegistry.Mu.Unlock()
-
-	if _, exists := registry.GlobalRegistry.Clients[name]; exists {
-		return fmt.Errorf("client with name %q already exists", name)
-	}
-
-	registry.GlobalRegistry.Clients[name] = client
-	return nil
+	return registry.RegisterClient(name, client)
 }
 
 // GetValidator retrieves a validator from the global registry by name.
@@ -208,27 +172,7 @@ func RegisterClient(name string, client llm.Client) error {
 //   - A new instance of the requested validator
 //   - An error if the validator is not found
 func GetValidator(name string) (flow.StepValidator, error) {
-	if name == "" {
-		return nil, errors.New("name cannot be empty")
-	}
-
-	registry.GlobalRegistry.Mu.RLock()
-	defer registry.GlobalRegistry.Mu.RUnlock()
-
-	validatorType := registry.GlobalRegistry.Validators[name]
-	if validatorType == nil {
-		return nil, errors.New("no validator found with the given name: " + name)
-	}
-
-	val := reflect.ValueOf(validatorType)
-	if val.Kind() == reflect.Ptr {
-		elem := val.Elem()
-		newVal := reflect.New(elem.Type())
-		newVal.Elem().Set(elem)
-		return newVal.Interface().(flow.StepValidator), nil
-	}
-
-	return validatorType, nil
+	return registry.GetValidator(name)
 }
 
 // GetExecutor retrieves an executor from the global registry by name.
@@ -253,18 +197,7 @@ func GetExecutor(name string) (flow.StepExecutor, error) {
 //   - The requested LLM client
 //   - An error if the client is not found
 func GetClient(name string) (llm.Client, error) {
-	if name == "" {
-		return nil, errors.New("name cannot be empty")
-	}
-
-	registry.GlobalRegistry.Mu.RLock()
-	defer registry.GlobalRegistry.Mu.RUnlock()
-
-	client, ok := registry.GlobalRegistry.Clients[name]
-	if !ok {
-		return nil, errors.New("no client found with the given name: " + name)
-	}
-	return client, nil
+	return registry.GetClient(name)
 }
 
 // RegisterAgent registers an agent in the global registry.
@@ -277,19 +210,7 @@ func GetClient(name string) (llm.Client, error) {
 // Returns:
 //   - Any error encountered during registration
 func RegisterAgent(name string, agent *agent.Agent) error {
-	if name == "" {
-		return errors.New("name cannot be empty")
-	}
-
-	registry.GlobalRegistry.Mu.Lock()
-	defer registry.GlobalRegistry.Mu.Unlock()
-
-	if _, exists := registry.GlobalRegistry.Agents[name]; exists {
-		return fmt.Errorf("agent with name %q already exists", name)
-	}
-
-	registry.GlobalRegistry.Agents[name] = agent
-	return nil
+	return registry.RegisterAgent(name, agent)
 }
 
 // GetAgent retrieves an agent from the global registry by name.
@@ -301,18 +222,7 @@ func RegisterAgent(name string, agent *agent.Agent) error {
 //   - The requested agent
 //   - An error if the agent is not found
 func GetAgent(name string) (*agent.Agent, error) {
-	if name == "" {
-		return nil, errors.New("name cannot be empty")
-	}
-
-	registry.GlobalRegistry.Mu.RLock()
-	defer registry.GlobalRegistry.Mu.RUnlock()
-
-	a, ok := registry.GlobalRegistry.Agents[name]
-	if !ok {
-		return nil, errors.New("no agent found with the given name: " + name)
-	}
-	return a, nil
+	return registry.GetAgent(name)
 }
 
 // NewClientFromConfigFile creates a new client from a configuration file and optionally registers it.
@@ -429,10 +339,7 @@ func NewFlowContextWithVariables(text string, memory flow.ShortTermMemory, varia
 // Returns:
 //   - The requested prompt formatter, or nil if not found
 func GetFormatter(name string) chat.PromptFormatter {
-	registry.GlobalRegistry.Mu.RLock()
-	defer registry.GlobalRegistry.Mu.RUnlock()
-
-	return registry.GlobalRegistry.Formatters[name]
+	return registry.GetFormatter(name)
 }
 
 // RegisterFormatter registers a formatter in the global registry.
@@ -445,15 +352,7 @@ func GetFormatter(name string) chat.PromptFormatter {
 // Returns:
 //   - Any error encountered during registration
 func RegisterFormatter(name string, formatter chat.PromptFormatter) error {
-	if name == "" {
-		return errors.New("name cannot be empty")
-	}
-
-	registry.GlobalRegistry.Mu.Lock()
-	defer registry.GlobalRegistry.Mu.Unlock()
-
-	registry.GlobalRegistry.Formatters[name] = formatter
-	return nil
+	return registry.RegisterFormatter(name, formatter)
 }
 
 // NewPromptTemplateFormatterFromFile creates a new template formatter from a file and registers it.
@@ -543,7 +442,11 @@ func NewFlow(name string, client llm.Client, steps ...flow.Step) (*flow.Flow, er
 // Returns:
 //   - Any error encountered during registration
 func RegisterExecutor(name string, executor flow.StepExecutor) error {
-	return registry.RegisterExecutor(name, executor)
+	registry.GlobalRegistry.Mu.Lock()
+	defer registry.GlobalRegistry.Mu.Unlock()
+
+	registry.GlobalRegistry.Executors[name] = executor
+	return nil
 }
 
 // RegisterValidator registers a validator in the global registry.
