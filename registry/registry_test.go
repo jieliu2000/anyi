@@ -201,7 +201,7 @@ func TestRegisterAndGetAgent(t *testing.T) {
 	agentInstance := &agent.Agent{Role: "test-agent"}
 
 	// Test registering an agent
-	err := RegisterAgent("test-agent", agentInstance)
+	err := RegisterAgent(agentInstance)
 	assert.NoError(t, err)
 
 	// Test getting an agent
@@ -220,9 +220,9 @@ func TestRegisterAndGetAgent(t *testing.T) {
 	assert.Equal(t, "name cannot be empty", err.Error())
 
 	// Test registering an agent with existing name
-	err = RegisterAgent("test-agent", agentInstance)
+	err = RegisterAgent(agentInstance)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "agent with name \"test-agent\" already exists")
+	assert.Contains(t, err.Error(), "agent with role \"test-agent\" already exists")
 }
 
 func TestDefaultClientName(t *testing.T) {

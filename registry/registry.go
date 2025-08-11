@@ -253,24 +253,26 @@ func GetClient(name string) (llm.Client, error) {
 // Each agent must have a unique name.
 //
 // Parameters:
-//   - role: Role to register the agent under
 //   - agent: Agent to register
 //
 // Returns:
 //   - Any error encountered during registration
-func RegisterAgent(role string, agent *agent.Agent) error {
-	if role == "" {
-		return errors.New("name cannot be empty")
+func RegisterAgent(a *agent.Agent) error {
+	if a == nil {
+		return errors.New("agent cannot be nil")
+	}
+	if a.Role == "" {
+		return errors.New("agent role cannot be empty")
 	}
 
 	GlobalRegistry.Mu.Lock()
 	defer GlobalRegistry.Mu.Unlock()
 
-	if _, exists := GlobalRegistry.Agents[role]; exists {
-		return fmt.Errorf("agent with name %q already exists", role)
+	if _, exists := GlobalRegistry.Agents[a.Role]; exists {
+		return fmt.Errorf("agent with role %q already exists", a.Role)
 	}
 
-	GlobalRegistry.Agents[role] = agent
+	GlobalRegistry.Agents[a.Role] = a
 	return nil
 }
 

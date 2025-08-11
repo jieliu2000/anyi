@@ -226,7 +226,7 @@ func NewAgentFromConfig(config *agent.AgentConfig) (*agent.Agent, error) {
 	for i, flowName := range config.Flows {
 		flowObj, err := GetFlow(flowName)
 		if err != nil {
-			return nil, fmt.Errorf("flow %q not found for agent %q", flowName, config.Name)
+			return nil, fmt.Errorf("flow %q not found for agent %q", flowName, config.Role)
 		}
 		flowObjects[i] = flowObj
 	}
@@ -242,13 +242,13 @@ func NewAgentFromConfig(config *agent.AgentConfig) (*agent.Agent, error) {
 	if config.ClientName != "" {
 		client, err := GetClient(config.ClientName)
 		if err != nil {
-			return nil, fmt.Errorf("client %q not found for agent %q", config.ClientName, config.Name)
+			return nil, fmt.Errorf("client %q not found for agent %q", config.ClientName, config.Role)
 		}
 		agentObj.Client = client
 	}
 
 	// Register Agent to the global registry
-	if err := RegisterAgent(config.Name, agentObj); err != nil {
+	if err := RegisterAgent(agentObj); err != nil {
 		return nil, err
 	}
 

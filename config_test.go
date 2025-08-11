@@ -650,7 +650,6 @@ func TestNewAgentFromConfig_Success(t *testing.T) {
 
 	// Create agent config
 	agentConfig := &agent.AgentConfig{
-		Name:              "test-agent",
 		Role:              "Test Role",
 		PreferredLanguage: "English",
 		BackStory:         "Test backstory",
@@ -670,7 +669,7 @@ func TestNewAgentFromConfig_Success(t *testing.T) {
 	assert.Equal(t, mockFlow, agentInstance.Flows[0])
 
 	// Verify agent was registered
-	registeredAgent, err := GetAgent("test-agent")
+	registeredAgent, err := GetAgent("Test Role")
 	assert.NoError(t, err)
 	assert.Equal(t, agentInstance, registeredAgent)
 }
@@ -697,7 +696,6 @@ func TestNewAgentFromConfig_WithNonExistentFlow(t *testing.T) {
 
 	// Create agent config with non-existent flow
 	agentConfig := &agent.AgentConfig{
-		Name:  "test-agent",
 		Role:  "Test Role",
 		Flows: []string{"non-existent-flow"},
 	}
@@ -708,7 +706,7 @@ func TestNewAgentFromConfig_WithNonExistentFlow(t *testing.T) {
 	// Verify
 	assert.Error(t, err)
 	assert.Nil(t, agentInstance)
-	assert.Contains(t, err.Error(), "flow \"non-existent-flow\" not found for agent \"test-agent\"")
+	assert.Contains(t, err.Error(), "flow \"non-existent-flow\" not found for agent \"Test Role\"")
 }
 
 func TestNewAgentFromConfig_WithClientName(t *testing.T) {
@@ -733,7 +731,6 @@ func TestNewAgentFromConfig_WithClientName(t *testing.T) {
 
 	// Create agent config with client name
 	agentConfig := &agent.AgentConfig{
-		Name:              "test-agent",
 		Role:              "Test Role",
 		PreferredLanguage: "English",
 		BackStory:         "Test backstory",
@@ -755,7 +752,7 @@ func TestNewAgentFromConfig_WithClientName(t *testing.T) {
 	assert.Equal(t, mockFlow, agentInstance.Flows[0])
 
 	// Verify agent was registered
-	registeredAgent, err := GetAgent("test-agent")
+	registeredAgent, err := GetAgent("Test Role")
 	assert.NoError(t, err)
 	assert.Equal(t, agentInstance, registeredAgent)
 }
@@ -777,7 +774,6 @@ func TestNewAgentFromConfig_WithNonExistentClient(t *testing.T) {
 
 	// Create agent config with non-existent client
 	agentConfig := &agent.AgentConfig{
-		Name:       "test-agent",
 		Role:       "Test Role",
 		ClientName: "non-existent-client",
 		Flows:      []string{"test-flow"},
@@ -789,7 +785,7 @@ func TestNewAgentFromConfig_WithNonExistentClient(t *testing.T) {
 	// Verify
 	assert.Error(t, err)
 	assert.Nil(t, agentInstance)
-	assert.Contains(t, err.Error(), "client \"non-existent-client\" not found for agent \"test-agent\"")
+	assert.Contains(t, err.Error(), "client \"non-existent-client\" not found for agent \"Test Role\"")
 }
 
 func TestConfig_WithAgents(t *testing.T) {
@@ -811,7 +807,6 @@ func TestConfig_WithAgents(t *testing.T) {
 	config := &AnyiConfig{
 		Agents: []agent.AgentConfig{
 			{
-				Name:  "test-agent",
 				Role:  "Test Role",
 				Flows: []string{"test-flow"},
 			},
@@ -825,7 +820,7 @@ func TestConfig_WithAgents(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Verify agent was created and registered
-	agentInstance, err := GetAgent("test-agent")
+	agentInstance, err := GetAgent("Test Role")
 	assert.NoError(t, err)
 	assert.NotNil(t, agentInstance)
 	assert.Equal(t, "Test Role", agentInstance.Role)

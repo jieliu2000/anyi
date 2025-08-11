@@ -209,8 +209,8 @@ func GetClient(name string) (llm.Client, error) {
 //
 // Returns:
 //   - Any error encountered during registration
-func RegisterAgent(name string, agent *agent.Agent) error {
-	return registry.RegisterAgent(name, agent)
+func RegisterAgent(agent *agent.Agent) error {
+	return registry.RegisterAgent(agent)
 }
 
 // GetAgent retrieves an agent from the global registry by name.

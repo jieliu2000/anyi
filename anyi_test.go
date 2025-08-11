@@ -592,11 +592,11 @@ func TestRegisterAndGetAgent(t *testing.T) {
 	}
 
 	// Register the agent
-	err := RegisterAgent("test-agent", testAgent)
+	err := RegisterAgent(testAgent)
 	assert.NoError(t, err)
 
 	// Retrieve the agent
-	retrievedAgent, err := GetAgent("test-agent")
+	retrievedAgent, err := GetAgent("Test Role")
 	assert.NoError(t, err)
 	assert.Equal(t, testAgent, retrievedAgent)
 	assert.Equal(t, "Test Role", retrievedAgent.Role)
@@ -617,11 +617,11 @@ func TestRegisterAgentWithEmptyName(t *testing.T) {
 
 	// Try to register an agent with an empty name
 	testAgent := &agent.Agent{
-		Role: "Test Role",
+		Role: "",
 	}
-	err := RegisterAgent("", testAgent)
+	err := RegisterAgent(testAgent)
 	assert.Error(t, err)
-	assert.Equal(t, "name cannot be empty", err.Error())
+	assert.Equal(t, "Agent role cannot be empty", err.Error())
 }
 
 func TestGetAgentWithEmptyName(t *testing.T) {
@@ -677,14 +677,14 @@ func TestRegisterDuplicateAgent(t *testing.T) {
 	}
 
 	// Register the agent
-	err := RegisterAgent("test-agent", testAgent)
+	err := RegisterAgent(testAgent)
 	assert.NoError(t, err)
 
 	// Try to register another agent with the same name
-	duplicateAgent := &agent.Agent{Role: "Duplicate Role"}
-	err = RegisterAgent("test-agent", duplicateAgent)
+	duplicateAgent := &agent.Agent{Role: "Test Role"}
+	err = RegisterAgent(duplicateAgent)
 	assert.Error(t, err)
-	assert.Equal(t, "agent with name \"test-agent\" already exists", err.Error())
+	assert.Equal(t, "agent with role \"Test Role\" already exists", err.Error())
 }
 
 // TestNewClientFromConfigFile tests the NewClientFromConfigFile function

@@ -40,7 +40,6 @@ type AgentContext struct {
 // AgentConfig defines the configuration structure for agents.
 // Agents are autonomous entities that can plan and execute workflows.
 type AgentConfig struct {
-	Name              string   `mapstructure:"name" json:"name" yaml:"name"`
 	Role              string   `mapstructure:"role" json:"role" yaml:"role"`
 	PreferredLanguage string   `mapstructure:"preferredLanguage" json:"preferredLanguage" yaml:"preferredLanguage"`
 	BackStory         string   `mapstructure:"backStory" json:"backStory" yaml:"backStory"`
