@@ -68,7 +68,7 @@ executor:
 
 ```go
 // 程序化使用
-executor := &anyi.LLMExecutor{
+executor := &executors.LLMExecutor{
     Template: "用 3 个要点总结这个文本：\n\n{{.Text}}",
     SystemMessage: "你是一个专业的总结专家。",
     Temperature: 0.3,
@@ -115,7 +115,7 @@ executor:
 
 ```go
 // 使用结构化数据初始化工作流
-executor := &anyi.SetContextExecutor{
+executor := &executors.SetContextExecutor{
     Memory: map[string]interface{}{
         "task": "content_analysis",
         "requirements": []string{"准确性", "简洁性", "清晰性"},

@@ -68,7 +68,7 @@ Built-in template functions:
 
 ```go
 // Programmatic usage
-executor := &anyi.LLMExecutor{
+executor := &executors.LLMExecutor{
     Template: "Summarize this text in 3 bullet points:\n\n{{.Text}}",
     SystemMessage: "You are a professional summarizer.",
     Temperature: 0.3,
@@ -115,7 +115,7 @@ executor:
 
 ```go
 // Initialize workflow with structured data
-executor := &anyi.SetContextExecutor{
+executor := &executors.SetContextExecutor{
     Memory: map[string]interface{}{
         "task": "content_analysis",
         "requirements": []string{"accuracy", "brevity", "clarity"},
