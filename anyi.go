@@ -7,6 +7,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/jieliu2000/anyi/agent"
+	"github.com/jieliu2000/anyi/agent/agentflows"
 	"github.com/jieliu2000/anyi/executors"
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/llm"
@@ -571,7 +572,7 @@ func Init() {
 	RegisterValidator("json", &JsonValidator{})
 
 	// Initialize agent flows
-	agent.InitAgentBuiltinFlows()
+	agentflows.InitAgentBuiltinFlows()
 
 	log.Debug("Anyi initialized successfully.")
 }

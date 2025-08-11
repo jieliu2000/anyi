@@ -2,7 +2,7 @@ package agent
 
 import (
 	"errors"
-	
+
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/llm"
 )
@@ -56,7 +56,11 @@ func (a *Agent) StartJob(context *AgentContext) (*AgentJob, error) {
 	if len(a.Flows) == 0 {
 		return nil, errors.New("agent must have at least one flow to start a job")
 	}
-	
+
+	if a.Client == nil {
+		return nil, errors.New("agent must have a valid client to start a job")
+	}
+
 	job := &AgentJob{
 		Agent:    a,
 		Context:  context,

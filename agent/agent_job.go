@@ -17,7 +17,7 @@ type AgentJob struct {
 
 	// FlowExecutionPlan is the planned flows to execute
 	FlowExecutionPlan []*flow.Flow
-	
+
 	// stopChan is used to signal the job to stop execution
 	stopChan chan struct{}
 }
@@ -40,7 +40,7 @@ func (job *AgentJob) Execute() {
 		default:
 			// Continue execution
 		}
-		
+
 		// Execute each task in the plan
 		job.RunTask(task)
 	}
@@ -61,10 +61,10 @@ func (job *AgentJob) PlanTasks() []string {
 func (job *AgentJob) Resume() error {
 	// When resuming, we replan based on the existing context
 	job.Status = "running"
-	
+
 	// Re-initialize stop channel for resumed execution
 	job.stopChan = make(chan struct{})
-	
+
 	go job.Execute()
 	return nil
 }
