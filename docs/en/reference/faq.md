@@ -347,7 +347,7 @@ func (e *LoggingExecutor) Run(ctx flow.FlowContext, step *flow.Step) (*flow.Flow
 
 ### Q: Can I create custom executors?
 
-**A:** Yes! Implement the `Executor` interface:
+**A:** Yes! Implement the `StepExecutor` interface:
 
 ```go
 type CustomExecutor struct {

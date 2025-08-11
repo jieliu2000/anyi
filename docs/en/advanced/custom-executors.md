@@ -14,11 +14,12 @@ Custom executors allow you to:
 
 ## Executor Interface
 
-All executors must implement the `Executor` interface:
+All executors must implement the `StepExecutor` interface:
 
 ```go
-type Executor interface {
-    Execute(context *FlowContext) (*FlowContext, error)
+type StepExecutor interface {
+    Init() error
+    Run(flowContext FlowContext, Step *Step) (*FlowContext, error)
 }
 ```
 
@@ -48,16 +49,20 @@ import (
     "strings"
     "regexp"
 
-    "github.com/jieliu2000/anyi"
+    "github.com/jieliu2000/anyi/flow"
 )
 
 type MathCalculatorExecutor struct {
     Precision int // Number of decimal places
 }
 
-func (e *MathCalculatorExecutor) Execute(context *anyi.FlowContext) (*anyi.FlowContext, error) {
+func (e *MathCalculatorExecutor) Init() error {
+    return nil
+}
+
+func (e *MathCalculatorExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
     // Extract mathematical expressions from the text
-    expression := strings.TrimSpace(context.Text)
+    expression := strings.TrimSpace(flowContext.Text)
 
     // Simple calculator logic (you could use a proper expression parser)
     result, err := e.evaluateExpression(expression)
@@ -69,11 +74,11 @@ func (e *MathCalculatorExecutor) Execute(context *anyi.FlowContext) (*anyi.FlowC
     resultText := fmt.Sprintf("%."+strconv.Itoa(e.Precision)+"f", result)
 
     // Create new context with the result
-    newContext := &anyi.FlowContext{
+    newContext := &flow.FlowContext{
         Text:   resultText,
-        Memory: context.Memory,
-        Think:  context.Think,
-        Images: context.Images,
+        Memory: flowContext.Memory,
+        Think:  flowContext.Think,
+        Images: flowContext.Images,
     }
 
     return newContext, nil
@@ -124,13 +129,18 @@ func main() {
         Precision: 2,
     }
 
+    // Initialize the executor
+    if err := calculator.Init(); err != nil {
+        log.Fatalf("Failed to initialize executor: %v", err)
+    }
+
     // Create a flow context with a math expression
-    context := &anyi.FlowContext{
+    context := flow.FlowContext{
         Text: "15.5 + 24.3",
     }
 
     // Execute the calculation
-    result, err := calculator.Execute(context)
+    result, err := calculator.Run(context, nil)
     if err != nil {
         log.Fatalf("Execution failed: %v", err)
     }
@@ -154,7 +164,7 @@ import (
     "net/http"
     "time"
 
-    "github.com/jieliu2000/anyi"
+    "github.com/jieliu2000/anyi/flow"
 )
 
 type HTTPAPIExecutor struct {
@@ -164,11 +174,15 @@ type HTTPAPIExecutor struct {
     Timeout time.Duration
 }
 
-func (e *HTTPAPIExecutor) Execute(context *anyi.FlowContext) (*anyi.FlowContext, error) {
+func (e *HTTPAPIExecutor) Init() error {
+    return nil
+}
+
+func (e *HTTPAPIExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
     // Prepare request body
     requestBody := map[string]interface{}{
-        "text":   context.Text,
-        "memory": context.Memory,
+        "text":   flowContext.Text,
+        "memory": flowContext.Memory,
     }
 
     jsonBody, err := json.Marshal(requestBody)
@@ -222,11 +236,11 @@ func (e *HTTPAPIExecutor) Execute(context *anyi.FlowContext) (*anyi.FlowContext,
     }
 
     // Create new context with response data
-    newContext := &anyi.FlowContext{
+    newContext := &flow.FlowContext{
         Text:   response.Text,
         Memory: response.Memory,
-        Think:  context.Think,
-        Images: context.Images,
+        Think:  flowContext.Think,
+        Images: flowContext.Images,
     }
 
     return newContext, nil
@@ -243,6 +257,11 @@ func main() {
         Timeout: 30 * time.Second,
     }
 
+    // Initialize the executor
+    if err := executor.Init(); err != nil {
+        log.Fatalf("Failed to initialize executor: %v", err)
+    }
+
     // Use in a workflow...
 }
 ```
@@ -257,7 +276,7 @@ import (
     "encoding/json"
     "fmt"
 
-    "github.com/jieliu2000/anyi"
+    "github.com/jieliu2000/anyi/flow"
     _ "github.com/lib/pq" // PostgreSQL driver
 )
 
@@ -266,9 +285,13 @@ type DatabaseQueryExecutor struct {
     Query string
 }
 
-func (e *DatabaseQueryExecutor) Execute(context *anyi.FlowContext) (*anyi.FlowContext, error) {
+func (e *DatabaseQueryExecutor) Init() error {
+    return nil
+}
+
+func (e *DatabaseQueryExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
     // Execute query with context text as parameter
-    rows, err := e.DB.Query(e.Query, context.Text)
+    rows, err := e.DB.Query(e.Query, flowContext.Text)
     if err != nil {
         return nil, fmt.Errorf("query execution failed: %v", err)
     }
@@ -314,17 +337,17 @@ func (e *DatabaseQueryExecutor) Execute(context *anyi.FlowContext) (*anyi.FlowCo
     }
 
     // Convert results to JSON string
-    resultJSON, err := json.MarshalIndent(results, "", "  ")
+    resultJSON, err := json.Marshal(results)
     if err != nil {
         return nil, fmt.Errorf("failed to marshal results: %v", err)
     }
 
-    // Create new context with results
-    newContext := &anyi.FlowContext{
+    // Create new context
+    newContext := &flow.FlowContext{
         Text:   string(resultJSON),
-        Memory: results, // Store structured data in memory
-        Think:  context.Think,
-        Images: context.Images,
+        Memory: flowContext.Memory,
+        Think:  flowContext.Think,
+        Images: flowContext.Images,
     }
 
     return newContext, nil
@@ -333,7 +356,7 @@ func (e *DatabaseQueryExecutor) Execute(context *anyi.FlowContext) (*anyi.FlowCo
 // Usage example
 func main() {
     // Connect to database
-    db, err := sql.Open("postgres", "postgresql://user:password@localhost/dbname?sslmode=disable")
+    db, err := sql.Open("postgres", "user=username dbname=mydb sslmode=disable")
     if err != nil {
         log.Fatal(err)
     }
@@ -342,7 +365,173 @@ func main() {
     // Create executor
     executor := &DatabaseQueryExecutor{
         DB:    db,
-        Query: "SELECT name, description FROM products WHERE name ILIKE '%' || $1 || '%' LIMIT 10",
+        Query: "SELECT * FROM products WHERE name ILIKE '%' || $1 || '%'",
+    }
+
+    // Initialize the executor
+    if err := executor.Init(); err != nil {
+        log.Fatalf("Failed to initialize executor: %v", err)
+    }
+
+    // Use in a workflow...
+}
+```
+
+### File Processor Executor
+
+```go
+package main
+
+import (
+    "fmt"
+    "io/ioutil"
+    "os"
+    "path/filepath"
+    "strings"
+
+    "github.com/jieliu2000/anyi/flow"
+)
+
+type FileProcessorExecutor struct {
+    InputDir  string
+    OutputDir string
+    Operation string // "read", "write", "list", "delete"
+}
+
+func (e *FileProcessorExecutor) Init() error {
+    return nil
+}
+
+func (e *FileProcessorExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
+    switch e.Operation {
+    case "read":
+        return e.readFile(flowContext)
+    case "write":
+        return e.writeFile(flowContext)
+    case "list":
+        return e.listFiles(flowContext)
+    case "delete":
+        return e.deleteFile(flowContext)
+    default:
+        return nil, fmt.Errorf("unsupported operation: %s", e.Operation)
+    }
+}
+
+func (e *FileProcessorExecutor) readFile(flowContext flow.FlowContext) (*flow.FlowContext, error) {
+    filename := strings.TrimSpace(flowContext.Text)
+    filepath := filepath.Join(e.InputDir, filename)
+
+    // Safety check: prevent path traversal attacks
+    if !strings.HasPrefix(filepath, e.InputDir) {
+        return nil, fmt.Errorf("invalid file path: %s", filename)
+    }
+
+    content, err := ioutil.ReadFile(filepath)
+    if err != nil {
+        return nil, fmt.Errorf("failed to read file: %v", err)
+    }
+
+    newContext := &flow.FlowContext{
+        Text:   string(content),
+        Memory: flowContext.Memory,
+        Think:  flowContext.Think,
+        Images: flowContext.Images,
+    }
+
+    return newContext, nil
+}
+
+func (e *FileProcessorExecutor) writeFile(flowContext flow.FlowContext) (*flow.FlowContext, error) {
+    // Get filename from memory
+    filename, ok := flowContext.Memory.(map[string]interface{})["filename"].(string)
+    if !ok {
+        return nil, fmt.Errorf("filename not found in memory")
+    }
+
+    filepath := filepath.Join(e.OutputDir, filename)
+
+    // Safety check
+    if !strings.HasPrefix(filepath, e.OutputDir) {
+        return nil, fmt.Errorf("invalid file path: %s", filename)
+    }
+
+    // Ensure output directory exists
+    if err := os.MkdirAll(e.OutputDir, 0755); err != nil {
+        return nil, fmt.Errorf("failed to create output directory: %v", err)
+    }
+
+    // Write file
+    if err := ioutil.WriteFile(filepath, []byte(flowContext.Text), 0644); err != nil {
+        return nil, fmt.Errorf("failed to write file: %v", err)
+    }
+
+    newContext := &flow.FlowContext{
+        Text:   fmt.Sprintf("File written: %s", filepath),
+        Memory: flowContext.Memory,
+        Think:  flowContext.Think,
+        Images: flowContext.Images,
+    }
+
+    return newContext, nil
+}
+
+func (e *FileProcessorExecutor) listFiles(flowContext flow.FlowContext) (*flow.FlowContext, error) {
+    files, err := ioutil.ReadDir(e.InputDir)
+    if err != nil {
+        return nil, fmt.Errorf("failed to list files: %v", err)
+    }
+
+    var fileList []string
+    for _, file := range files {
+        if !file.IsDir() {
+            fileList = append(fileList, file.Name())
+        }
+    }
+
+    newContext := &flow.FlowContext{
+        Text:   strings.Join(fileList, "\n"),
+        Memory: flowContext.Memory,
+        Think:  flowContext.Think,
+        Images: flowContext.Images,
+    }
+
+    return newContext, nil
+}
+
+func (e *FileProcessorExecutor) deleteFile(flowContext flow.FlowContext) (*flow.FlowContext, error) {
+    filename := strings.TrimSpace(flowContext.Text)
+    filepath := filepath.Join(e.InputDir, filename)
+
+    // Safety check
+    if !strings.HasPrefix(filepath, e.InputDir) {
+        return nil, fmt.Errorf("invalid file path: %s", filename)
+    }
+
+    if err := os.Remove(filepath); err != nil {
+        return nil, fmt.Errorf("failed to delete file: %v", err)
+    }
+
+    newContext := &flow.FlowContext{
+        Text:   fmt.Sprintf("File deleted: %s", filename),
+        Memory: flowContext.Memory,
+        Think:  flowContext.Think,
+        Images: flowContext.Images,
+    }
+
+    return newContext, nil
+}
+
+// Usage example
+func main() {
+    executor := &FileProcessorExecutor{
+        InputDir:  "/input",
+        OutputDir: "/output",
+        Operation: "read",
+    }
+
+    // Initialize the executor
+    if err := executor.Init(); err != nil {
+        log.Fatalf("Failed to initialize executor: %v", err)
     }
 
     // Use in a workflow...
@@ -353,9 +542,111 @@ func main() {
 
 ### Using Configuration Maps
 
-```go
+``go
 type ConfigurableFileProcessorExecutor struct {
     config map[string]interface{}
+}
+
+// EmailExecutor implements StepExecutor for sending emails
+type EmailExecutor struct {
+    SMTPHost     string
+    SMTPPort     int
+    Username     string
+    Password     string
+    FromAddress  string
+    ToAddresses  []string
+    Subject      string
+    BodyTemplate string
+}
+
+func (e *EmailExecutor) Init() error {
+    return nil
+}
+
+func (e *EmailExecutor) Configure(config map[string]interface{}) error {
+    if host, ok := config["smtpHost"].(string); ok {
+        e.SMTPHost = host
+    }
+
+    if port, ok := config["smtpPort"].(float64); ok {
+        e.SMTPPort = int(port)
+    }
+
+    if username, ok := config["username"].(string); ok {
+        e.Username = username
+    }
+
+    if password, ok := config["password"].(string); ok {
+        e.Password = password
+    }
+
+    if from, ok := config["fromAddress"].(string); ok {
+        e.FromAddress = from
+    }
+
+    if to, ok := config["toAddresses"].([]interface{}); ok {
+        for _, addr := range to {
+            if addrStr, ok := addr.(string); ok {
+                e.ToAddresses = append(e.ToAddresses, addrStr)
+            }
+        }
+    }
+
+    if subject, ok := config["subject"].(string); ok {
+        e.Subject = subject
+    }
+
+    if template, ok := config["bodyTemplate"].(string); ok {
+        e.BodyTemplate = template
+    }
+
+    return nil
+}
+
+func (e *EmailExecutor) Validate() error {
+    if e.SMTPHost == "" {
+        return fmt.Errorf("SMTP host cannot be empty")
+    }
+
+    if e.SMTPPort == 0 {
+        return fmt.Errorf("SMTP port cannot be empty")
+    }
+
+    if e.FromAddress == "" {
+        return fmt.Errorf("from address cannot be empty")
+    }
+
+    if len(e.ToAddresses) == 0 {
+        return fmt.Errorf("to addresses cannot be empty")
+    }
+
+    return nil
+}
+
+func (e *EmailExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
+    // Render email template
+    body := strings.ReplaceAll(e.BodyTemplate, "{{.Text}}", flowContext.Text)
+
+    // Send email (using net/smtp or third-party library)
+    err := e.sendEmail(e.Subject, body)
+    if err != nil {
+        return nil, fmt.Errorf("failed to send email: %v", err)
+    }
+
+    newContext := &flow.FlowContext{
+        Text:   fmt.Sprintf("Email sent to %d recipients", len(e.ToAddresses)),
+        Memory: flowContext.Memory,
+        Think:  flowContext.Think,
+        Images: flowContext.Images,
+    }
+
+    return newContext, nil
+}
+
+func (e *EmailExecutor) sendEmail(subject, body string) error {
+    // Implement email sending logic
+    // This is a simplified example
+    return nil
 }
 
 func NewConfigurableFileProcessorExecutor(config map[string]interface{}) *ConfigurableFileProcessorExecutor {
@@ -416,7 +707,7 @@ func (e *ConfigurableFileProcessorExecutor) processFiles(inputDir, outputDir, pa
 
 ### Using in Configuration Files
 
-```yaml
+```
 flows:
   - name: "file_processing_flow"
     steps:
@@ -490,52 +781,115 @@ func init() {
 }
 ```
 
-## Error Handling in Custom Executors
+## Error Handling and Retries
 
-### Comprehensive Error Handling
+### Retryable Executor Wrapper
 
 ```go
-type RobustExecutor struct {
-    maxRetries int
-    retryDelay time.Duration
+type RetryableExecutor struct {
+    executor    StepExecutor
+    maxRetries  int
+    backoffBase time.Duration
 }
 
-func (e *RobustExecutor) Execute(context *anyi.FlowContext) (*anyi.FlowContext, error) {
+func NewRetryableExecutor(executor StepExecutor, maxRetries int, backoffBase time.Duration) *RetryableExecutor {
+    return &RetryableExecutor{
+        executor:    executor,
+        maxRetries:  maxRetries,
+        backoffBase: backoffBase,
+    }
+}
+
+func (re *RetryableExecutor) Init() error {
+    return nil
+}
+
+func (re *RetryableExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
     var lastErr error
 
-    for attempt := 0; attempt <= e.maxRetries; attempt++ {
-        result, err := e.attemptExecution(context)
+    for attempt := 0; attempt <= re.maxRetries; attempt++ {
+        result, err := re.executor.Run(flowContext, step)
         if err == nil {
             return result, nil
         }
 
         lastErr = err
 
-        // Check if error is retryable
-        if !e.isRetryableError(err) {
-            return nil, fmt.Errorf("non-retryable error: %v", err)
+        // If this is the last attempt, don't wait
+        if attempt == re.maxRetries {
+            break
         }
 
-        // Wait before retry (except on last attempt)
-        if attempt < e.maxRetries {
-            time.Sleep(e.retryDelay * time.Duration(attempt+1)) // exponential backoff
+        // Exponential backoff
+        backoff := re.backoffBase * time.Duration(1<<attempt)
+        log.Printf("Execution failed (attempt %d/%d): %v, retrying after %v",
+            attempt+1, re.maxRetries+1, err, backoff)
+        time.Sleep(backoff)
+    }
+
+    return nil, fmt.Errorf("failed after %d attempts: %v", re.maxRetries+1, lastErr)
+}
+```
+
+### Circuit Breaker Pattern
+
+```go
+type CircuitBreakerExecutor struct {
+    executor      StepExecutor
+    failureCount  int
+    maxFailures   int
+    resetTimeout  time.Duration
+    lastFailTime  time.Time
+    state         CircuitState
+    mutex         sync.RWMutex
+}
+
+type CircuitState int
+
+const (
+    Closed CircuitState = iota
+    Open
+    HalfOpen
+)
+
+func (cbe *CircuitBreakerExecutor) Init() error {
+    return nil
+}
+
+func (cbe *CircuitBreakerExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
+    cbe.mutex.Lock()
+    defer cbe.mutex.Unlock()
+
+    // Check circuit breaker state
+    if cbe.state == Open {
+        if time.Since(cbe.lastFailTime) > cbe.resetTimeout {
+            cbe.state = HalfOpen
+        } else {
+            return nil, fmt.Errorf("circuit breaker is open, service unavailable")
         }
     }
 
-    return nil, fmt.Errorf("execution failed after %d attempts: %v", e.maxRetries+1, lastErr)
-}
+    // Execute
+    result, err := cbe.executor.Run(flowContext, step)
 
-func (e *RobustExecutor) attemptExecution(context *anyi.FlowContext) (*anyi.FlowContext, error) {
-    // Your actual execution logic here
-    return nil, nil
-}
+    if err != nil {
+        cbe.failureCount++
+        cbe.lastFailTime = time.Now()
 
-func (e *RobustExecutor) isRetryableError(err error) bool {
-    // Define which errors are retryable
-    errStr := err.Error()
-    return strings.Contains(errStr, "timeout") ||
-           strings.Contains(errStr, "connection") ||
-           strings.Contains(errStr, "temporary")
+        if cbe.failureCount >= cbe.maxFailures {
+            cbe.state = Open
+        }
+
+        return nil, err
+    }
+
+    // Successful execution
+    if cbe.state == HalfOpen {
+        cbe.state = Closed
+    }
+    cbe.failureCount = 0
+
+    return result, nil
 }
 ```
 
@@ -548,63 +902,66 @@ package main
 
 import (
     "testing"
-    "github.com/jieliu2000/anyi"
+
+    "github.com/jieliu2000/anyi/flow"
+    "github.com/stretchr/testify/assert"
+    "github.com/stretchr/testify/require"
 )
 
 func TestMathCalculatorExecutor(t *testing.T) {
-    executor := &MathCalculatorExecutor{
-        Precision: 2,
-    }
-
     tests := []struct {
-        name     string
-        input    string
-        expected string
-        hasError bool
+        name      string
+        input     string
+        precision int
+        expected  string
+        hasError  bool
     }{
         {
-            name:     "addition",
-            input:    "10 + 5",
-            expected: "15.00",
-            hasError: false,
+            name:      "addition",
+            input:     "10 + 5",
+            precision: 2,
+            expected:  "15.00",
+            hasError:  false,
         },
         {
-            name:     "division by zero",
-            input:    "10 / 0",
-            expected: "",
-            hasError: true,
+            name:      "division by zero",
+            input:     "10 / 0",
+            precision: 2,
+            expected:  "",
+            hasError:  true,
         },
         {
-            name:     "invalid expression",
-            input:    "not a math expression",
-            expected: "",
-            hasError: true,
+            name:      "invalid expression",
+            input:     "not a math expression",
+            precision: 2,
+            expected:  "",
+            hasError:  true,
         },
     }
 
     for _, tt := range tests {
         t.Run(tt.name, func(t *testing.T) {
-            context := &anyi.FlowContext{
+            executor := &MathCalculatorExecutor{
+                Precision: tt.precision,
+            }
+
+            // Initialize the executor
+            err := executor.Init()
+            require.NoError(t, err)
+
+            context := flow.FlowContext{
                 Text: tt.input,
             }
 
-            result, err := executor.Execute(context)
+            result, err := executor.Run(context, nil)
 
             if tt.hasError {
-                if err == nil {
-                    t.Errorf("expected error, but got none")
-                }
+                assert.Error(t, err)
                 return
             }
 
-            if err != nil {
-                t.Errorf("unexpected error: %v", err)
-                return
-            }
-
-            if result.Text != tt.expected {
-                t.Errorf("expected %s, got %s", tt.expected, result.Text)
-            }
+            require.NoError(t, err)
+            assert.Equal(t, tt.expected, result.Text)
         })
     }
 }
@@ -615,8 +972,12 @@ func TestMathCalculatorExecutor(t *testing.T) {
 ```go
 func TestCustomExecutorInFlow(t *testing.T) {
     // Register custom executor
-    anyi.RegisterExecutorFactory("test_calculator", func(config map[string]interface{}) (anyi.Executor, error) {
-        return &MathCalculatorExecutor{Precision: 2}, nil
+    anyi.RegisterExecutorFactory("test_calculator", func(config map[string]interface{}) (flow.StepExecutor, error) {
+        executor := &MathCalculatorExecutor{Precision: 2}
+        if err := executor.Init(); err != nil {
+            return nil, err
+        }
+        return executor, nil
     })
 
     // Configure flow with custom executor
@@ -642,12 +1003,12 @@ func TestCustomExecutorInFlow(t *testing.T) {
     }
 
     // Get and run flow
-    flow, err := anyi.GetFlow("test_flow")
+    flowInstance, err := anyi.GetFlow("test_flow")
     if err != nil {
         t.Fatalf("Failed to get flow: %v", err)
     }
 
-    result, err := flow.RunWithInput("25 + 15")
+    result, err := flowInstance.RunWithInput("25 + 15")
     if err != nil {
         t.Fatalf("Flow execution failed: %v", err)
     }
@@ -658,28 +1019,107 @@ func TestCustomExecutorInFlow(t *testing.T) {
 }
 ```
 
-## Best Practices
+## Performance Optimization
 
-### Design Principles
+### Connection Pooling
 
-1. **Single Responsibility**: Each executor should have one clear purpose
-2. **Configurable**: Make executors configurable through the config map
-3. **Error Handling**: Implement comprehensive error handling and recovery
-4. **Testing**: Write thorough unit and integration tests
-5. **Documentation**: Document configuration options and behavior
+```go
+type PooledHTTPExecutor struct {
+    client *http.Client
+    pool   sync.Pool
+}
 
-### Performance Considerations
+func NewPooledHTTPExecutor() *PooledHTTPExecutor {
+    transport := &http.Transport{
+        MaxIdleConns:        100,
+        MaxIdleConnsPerHost: 10,
+        IdleConnTimeout:     90 * time.Second,
+    }
 
-1. **Resource Management**: Properly manage connections, files, and other resources
-2. **Timeouts**: Always implement timeouts for external operations
-3. **Memory Usage**: Be mindful of memory usage, especially with large data sets
-4. **Concurrency**: Design for concurrent execution when appropriate
+    return &PooledHTTPExecutor{
+        client: &http.Client{
+            Transport: transport,
+            Timeout:   30 * time.Second,
+        },
+        pool: sync.Pool{
+            New: func() interface{} {
+                return &bytes.Buffer{}
+            },
+        },
+    }
+}
 
-### Security Considerations
+func (e *PooledHTTPExecutor) Init() error {
+    return nil
+}
 
-1. **Input Validation**: Always validate inputs before processing
-2. **Sanitization**: Sanitize data before using in external systems
-3. **Secrets Management**: Use environment variables for sensitive configuration
-4. **Permissions**: Run with minimal required permissions
+func (e *PooledHTTPExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
+    // Get buffer from pool
+    buf := e.pool.Get().(*bytes.Buffer)
+    defer e.pool.Put(buf)
+    buf.Reset()
 
-Custom executors provide powerful extensibility to the Anyi framework. By following these patterns and best practices, you can create robust, reusable components that integrate seamlessly with your AI workflows.
+    // Use buffer for JSON encoding
+    if err := json.NewEncoder(buf).Encode(flowContext); err != nil {
+        return nil, err
+    }
+
+    // Execute HTTP request...
+    // ...
+
+    return &flowContext, nil
+}
+```
+
+### Caching
+
+```go
+type CachedExecutor struct {
+    executor StepExecutor
+    cache    map[string]*flow.FlowContext
+    mutex    sync.RWMutex
+    ttl      time.Duration
+}
+
+func (ce *CachedExecutor) Init() error {
+    return nil
+}
+
+func (ce *CachedExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
+    // Generate cache key
+    key := ce.generateCacheKey(flowContext)
+
+    // Check cache
+    ce.mutex.RLock()
+    if cached, exists := ce.cache[key]; exists {
+        ce.mutex.RUnlock()
+        return cached, nil
+    }
+    ce.mutex.RUnlock()
+
+    // Execute and cache result
+    result, err := ce.executor.Run(flowContext, step)
+    if err != nil {
+        return nil, err
+    }
+
+    ce.mutex.Lock()
+    ce.cache[key] = result
+    ce.mutex.Unlock()
+
+    // Set TTL cleanup
+    time.AfterFunc(ce.ttl, func() {
+        ce.mutex.Lock()
+        delete(ce.cache, key)
+        ce.mutex.Unlock()
+    })
+
+    return result, nil
+}
+
+func (ce *CachedExecutor) generateCacheKey(flowContext flow.FlowContext) string {
+    // Simplified cache key generation
+    return fmt.Sprintf("%x", sha256.Sum256([]byte(flowContext.Text)))
+}
+```
+
