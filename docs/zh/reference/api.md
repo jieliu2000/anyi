@@ -297,11 +297,12 @@ type Step struct {
 
 ## 执行器接口
 
-### Executor 接口
+### StepExecutor 接口
 
 ```go
-type Executor interface {
-    Execute(ctx *FlowContext, client Client) (*FlowContext, error)
+type StepExecutor interface {
+    Init() error
+    Run(flowContext FlowContext, Step *Step) (*FlowContext, error)
 }
 ```
 

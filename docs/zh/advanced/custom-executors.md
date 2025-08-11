@@ -14,11 +14,12 @@
 
 ## 执行器接口
 
-所有执行器必须实现 `Executor` 接口：
+所有执行器必须实现 `StepExecutor` 接口：
 
 ```go
-type Executor interface {
-    Execute(context *FlowContext) (*FlowContext, error)
+type StepExecutor interface {
+    Init() error
+    Run(flowContext FlowContext, Step *Step) (*FlowContext, error)
 }
 ```
 
@@ -39,7 +40,7 @@ type FlowContext struct {
 
 ### 示例：数学计算器执行器
 
-```go
+``go
 package main
 
 import (
@@ -48,16 +49,20 @@ import (
     "strings"
     "regexp"
 
-    "github.com/jieliu2000/anyi"
+    "github.com/jieliu2000/anyi/flow"
 )
 
 type MathCalculatorExecutor struct {
     Precision int // 小数位数
 }
 
-func (e *MathCalculatorExecutor) Execute(context *anyi.FlowContext) (*anyi.FlowContext, error) {
+func (e *MathCalculatorExecutor) Init() error {
+    return nil
+}
+
+func (e *MathCalculatorExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
     // 从文本中提取数学表达式
-    expression := strings.TrimSpace(context.Text)
+    expression := strings.TrimSpace(flowContext.Text)
 
     // 简单计算器逻辑（您可以使用适当的表达式解析器）
     result, err := e.evaluateExpression(expression)
@@ -69,11 +74,11 @@ func (e *MathCalculatorExecutor) Execute(context *anyi.FlowContext) (*anyi.FlowC
     resultText := fmt.Sprintf("%."+strconv.Itoa(e.Precision)+"f", result)
 
     // 创建包含结果的新上下文
-    newContext := &anyi.FlowContext{
+    newContext := &flow.FlowContext{
         Text:   resultText,
-        Memory: context.Memory,
-        Think:  context.Think,
-        Images: context.Images,
+        Memory: flowContext.Memory,
+        Think:  flowContext.Think,
+        Images: flowContext.Images,
     }
 
     return newContext, nil
@@ -124,13 +129,18 @@ func main() {
         Precision: 2,
     }
 
+    // 初始化执行器
+    if err := calculator.Init(); err != nil {
+        log.Fatalf("初始化执行器失败：%v", err)
+    }
+
     // 创建包含数学表达式的流程上下文
-    context := &anyi.FlowContext{
+    context := flow.FlowContext{
         Text: "15.5 + 24.3",
     }
 
     // 执行计算
-    result, err := calculator.Execute(context)
+    result, err := calculator.Run(context, nil)
     if err != nil {
         log.Fatalf("执行失败：%v", err)
     }
@@ -143,7 +153,7 @@ func main() {
 
 ### HTTP API 执行器
 
-```go
+``go
 package main
 
 import (
@@ -154,7 +164,7 @@ import (
     "net/http"
     "time"
 
-    "github.com/jieliu2000/anyi"
+    "github.com/jieliu2000/anyi/flow"
 )
 
 type HTTPAPIExecutor struct {
@@ -164,11 +174,15 @@ type HTTPAPIExecutor struct {
     Timeout time.Duration
 }
 
-func (e *HTTPAPIExecutor) Execute(context *anyi.FlowContext) (*anyi.FlowContext, error) {
+func (e *HTTPAPIExecutor) Init() error {
+    return nil
+}
+
+func (e *HTTPAPIExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
     // 准备请求体
     requestBody := map[string]interface{}{
-        "text":   context.Text,
-        "memory": context.Memory,
+        "text":   flowContext.Text,
+        "memory": flowContext.Memory,
     }
 
     jsonBody, err := json.Marshal(requestBody)
@@ -222,11 +236,11 @@ func (e *HTTPAPIExecutor) Execute(context *anyi.FlowContext) (*anyi.FlowContext,
     }
 
     // 创建包含响应数据的新上下文
-    newContext := &anyi.FlowContext{
+    newContext := &flow.FlowContext{
         Text:   response.Text,
         Memory: response.Memory,
-        Think:  context.Think,
-        Images: context.Images,
+        Think:  flowContext.Think,
+        Images: flowContext.Images,
     }
 
     return newContext, nil
@@ -243,13 +257,18 @@ func main() {
         Timeout: 30 * time.Second,
     }
 
+    // 初始化执行器
+    if err := executor.Init(); err != nil {
+        log.Fatalf("初始化执行器失败：%v", err)
+    }
+
     // 在工作流中使用...
 }
 ```
 
 ### 数据库查询执行器
 
-```go
+``go
 package main
 
 import (
@@ -258,7 +277,7 @@ import (
     "fmt"
 
     _ "github.com/lib/pq" // PostgreSQL 驱动
-    "github.com/jieliu2000/anyi"
+    "github.com/jieliu2000/anyi/flow"
 )
 
 type DatabaseQueryExecutor struct {
@@ -266,9 +285,13 @@ type DatabaseQueryExecutor struct {
     Query string
 }
 
-func (e *DatabaseQueryExecutor) Execute(context *anyi.FlowContext) (*anyi.FlowContext, error) {
+func (e *DatabaseQueryExecutor) Init() error {
+    return nil
+}
+
+func (e *DatabaseQueryExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
     // 执行查询（使用上下文中的文本作为参数）
-    rows, err := e.DB.Query(e.Query, context.Text)
+    rows, err := e.DB.Query(e.Query, flowContext.Text)
     if err != nil {
         return nil, fmt.Errorf("数据库查询失败：%v", err)
     }
@@ -310,11 +333,11 @@ func (e *DatabaseQueryExecutor) Execute(context *anyi.FlowContext) (*anyi.FlowCo
     }
 
     // 创建新上下文
-    newContext := &anyi.FlowContext{
+    newContext := &flow.FlowContext{
         Text:   string(resultJSON),
-        Memory: context.Memory,
-        Think:  context.Think,
-        Images: context.Images,
+        Memory: flowContext.Memory,
+        Think:  flowContext.Think,
+        Images: flowContext.Images,
     }
 
     return newContext, nil
@@ -335,13 +358,18 @@ func main() {
         Query: "SELECT * FROM products WHERE name ILIKE '%' || $1 || '%'",
     }
 
+    // 初始化执行器
+    if err := executor.Init(); err != nil {
+        log.Fatalf("初始化执行器失败：%v", err)
+    }
+
     // 在工作流中使用...
 }
 ```
 
 ### 文件处理执行器
 
-```go
+``go
 package main
 
 import (
@@ -351,7 +379,7 @@ import (
     "path/filepath"
     "strings"
 
-    "github.com/jieliu2000/anyi"
+    "github.com/jieliu2000/anyi/flow"
 )
 
 type FileProcessorExecutor struct {
@@ -360,23 +388,27 @@ type FileProcessorExecutor struct {
     Operation string // "read", "write", "list", "delete"
 }
 
-func (e *FileProcessorExecutor) Execute(context *anyi.FlowContext) (*anyi.FlowContext, error) {
+func (e *FileProcessorExecutor) Init() error {
+    return nil
+}
+
+func (e *FileProcessorExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
     switch e.Operation {
     case "read":
-        return e.readFile(context)
+        return e.readFile(flowContext)
     case "write":
-        return e.writeFile(context)
+        return e.writeFile(flowContext)
     case "list":
-        return e.listFiles(context)
+        return e.listFiles(flowContext)
     case "delete":
-        return e.deleteFile(context)
+        return e.deleteFile(flowContext)
     default:
         return nil, fmt.Errorf("不支持的操作：%s", e.Operation)
     }
 }
 
-func (e *FileProcessorExecutor) readFile(context *anyi.FlowContext) (*anyi.FlowContext, error) {
-    filename := strings.TrimSpace(context.Text)
+func (e *FileProcessorExecutor) readFile(flowContext flow.FlowContext) (*flow.FlowContext, error) {
+    filename := strings.TrimSpace(flowContext.Text)
     filepath := filepath.Join(e.InputDir, filename)
 
     // 安全检查：防止路径遍历攻击
@@ -389,19 +421,19 @@ func (e *FileProcessorExecutor) readFile(context *anyi.FlowContext) (*anyi.FlowC
         return nil, fmt.Errorf("读取文件失败：%v", err)
     }
 
-    newContext := &anyi.FlowContext{
+    newContext := &flow.FlowContext{
         Text:   string(content),
-        Memory: context.Memory,
-        Think:  context.Think,
-        Images: context.Images,
+        Memory: flowContext.Memory,
+        Think:  flowContext.Think,
+        Images: flowContext.Images,
     }
 
     return newContext, nil
 }
 
-func (e *FileProcessorExecutor) writeFile(context *anyi.FlowContext) (*anyi.FlowContext, error) {
+func (e *FileProcessorExecutor) writeFile(flowContext flow.FlowContext) (*flow.FlowContext, error) {
     // 从内存中获取文件名
-    filename, ok := context.Memory.(map[string]interface{})["filename"].(string)
+    filename, ok := flowContext.Memory.(map[string]interface{})["filename"].(string)
     if !ok {
         return nil, fmt.Errorf("内存中未找到文件名")
     }
@@ -419,21 +451,21 @@ func (e *FileProcessorExecutor) writeFile(context *anyi.FlowContext) (*anyi.Flow
     }
 
     // 写入文件
-    if err := ioutil.WriteFile(filepath, []byte(context.Text), 0644); err != nil {
+    if err := ioutil.WriteFile(filepath, []byte(flowContext.Text), 0644); err != nil {
         return nil, fmt.Errorf("写入文件失败：%v", err)
     }
 
-    newContext := &anyi.FlowContext{
+    newContext := &flow.FlowContext{
         Text:   fmt.Sprintf("文件已写入：%s", filepath),
-        Memory: context.Memory,
-        Think:  context.Think,
-        Images: context.Images,
+        Memory: flowContext.Memory,
+        Think:  flowContext.Think,
+        Images: flowContext.Images,
     }
 
     return newContext, nil
 }
 
-func (e *FileProcessorExecutor) listFiles(context *anyi.FlowContext) (*anyi.FlowContext, error) {
+func (e *FileProcessorExecutor) listFiles(flowContext flow.FlowContext) (*flow.FlowContext, error) {
     files, err := ioutil.ReadDir(e.InputDir)
     if err != nil {
         return nil, fmt.Errorf("列出文件失败：%v", err)
@@ -446,18 +478,18 @@ func (e *FileProcessorExecutor) listFiles(context *anyi.FlowContext) (*anyi.Flow
         }
     }
 
-    newContext := &anyi.FlowContext{
+    newContext := &flow.FlowContext{
         Text:   strings.Join(fileList, "\n"),
-        Memory: context.Memory,
-        Think:  context.Think,
-        Images: context.Images,
+        Memory: flowContext.Memory,
+        Think:  flowContext.Think,
+        Images: flowContext.Images,
     }
 
     return newContext, nil
 }
 
-func (e *FileProcessorExecutor) deleteFile(context *anyi.FlowContext) (*anyi.FlowContext, error) {
-    filename := strings.TrimSpace(context.Text)
+func (e *FileProcessorExecutor) deleteFile(flowContext flow.FlowContext) (*flow.FlowContext, error) {
+    filename := strings.TrimSpace(flowContext.Text)
     filepath := filepath.Join(e.InputDir, filename)
 
     // 安全检查
@@ -469,14 +501,30 @@ func (e *FileProcessorExecutor) deleteFile(context *anyi.FlowContext) (*anyi.Flo
         return nil, fmt.Errorf("删除文件失败：%v", err)
     }
 
-    newContext := &anyi.FlowContext{
+    newContext := &flow.FlowContext{
         Text:   fmt.Sprintf("文件已删除：%s", filename),
-        Memory: context.Memory,
-        Think:  context.Think,
-        Images: context.Images,
+        Memory: flowContext.Memory,
+        Think:  flowContext.Think,
+        Images: flowContext.Images,
     }
 
     return newContext, nil
+}
+
+// 使用示例
+func main() {
+    executor := &FileProcessorExecutor{
+        InputDir:  "/input",
+        OutputDir: "/output",
+        Operation: "read",
+    }
+
+    // 初始化执行器
+    if err := executor.Init(); err != nil {
+        log.Fatalf("初始化执行器失败：%v", err)
+    }
+
+    // 在工作流中使用...
 }
 ```
 
@@ -484,9 +532,9 @@ func (e *FileProcessorExecutor) deleteFile(context *anyi.FlowContext) (*anyi.Flo
 
 ### 可配置执行器接口
 
-```go
+``go
 type ConfigurableExecutor interface {
-    Executor
+    StepExecutor
     Configure(config map[string]interface{}) error
     Validate() error
 }
@@ -500,6 +548,10 @@ type EmailExecutor struct {
     ToAddresses  []string
     Subject      string
     BodyTemplate string
+}
+
+func (e *EmailExecutor) Init() error {
+    return nil
 }
 
 func (e *EmailExecutor) Configure(config map[string]interface{}) error {
@@ -562,9 +614,9 @@ func (e *EmailExecutor) Validate() error {
     return nil
 }
 
-func (e *EmailExecutor) Execute(context *anyi.FlowContext) (*anyi.FlowContext, error) {
+func (e *EmailExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
     // 渲染邮件模板
-    body := strings.ReplaceAll(e.BodyTemplate, "{{.Text}}", context.Text)
+    body := strings.ReplaceAll(e.BodyTemplate, "{{.Text}}", flowContext.Text)
 
     // 发送邮件（使用 net/smtp 或第三方库）
     err := e.sendEmail(e.Subject, body)
@@ -572,11 +624,11 @@ func (e *EmailExecutor) Execute(context *anyi.FlowContext) (*anyi.FlowContext, e
         return nil, fmt.Errorf("发送邮件失败：%v", err)
     }
 
-    newContext := &anyi.FlowContext{
+    newContext := &flow.FlowContext{
         Text:   fmt.Sprintf("邮件已发送给 %d 个收件人", len(e.ToAddresses)),
-        Memory: context.Memory,
-        Think:  context.Think,
-        Images: context.Images,
+        Memory: flowContext.Memory,
+        Think:  flowContext.Think,
+        Images: flowContext.Images,
     }
 
     return newContext, nil
@@ -593,7 +645,7 @@ func (e *EmailExecutor) sendEmail(subject, body string) error {
 
 ### 执行器工厂
 
-```go
+``go
 type ExecutorFactory func(config map[string]interface{}) (Executor, error)
 
 var executorRegistry = make(map[string]ExecutorFactory)
@@ -673,7 +725,7 @@ func init() {
 
 ### 在配置文件中使用自定义执行器
 
-```yaml
+```
 # config.yaml
 flows:
   - name: "数据处理流程"
@@ -714,14 +766,14 @@ flows:
 
 ### 带重试的执行器包装器
 
-```go
+``go
 type RetryableExecutor struct {
-    executor    Executor
+    executor    StepExecutor
     maxRetries  int
     backoffBase time.Duration
 }
 
-func NewRetryableExecutor(executor Executor, maxRetries int, backoffBase time.Duration) *RetryableExecutor {
+func NewRetryableExecutor(executor StepExecutor, maxRetries int, backoffBase time.Duration) *RetryableExecutor {
     return &RetryableExecutor{
         executor:    executor,
         maxRetries:  maxRetries,
@@ -729,11 +781,15 @@ func NewRetryableExecutor(executor Executor, maxRetries int, backoffBase time.Du
     }
 }
 
-func (re *RetryableExecutor) Execute(context *anyi.FlowContext) (*anyi.FlowContext, error) {
+func (re *RetryableExecutor) Init() error {
+    return nil
+}
+
+func (re *RetryableExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
     var lastErr error
 
     for attempt := 0; attempt <= re.maxRetries; attempt++ {
-        result, err := re.executor.Execute(context)
+        result, err := re.executor.Run(flowContext, step)
         if err == nil {
             return result, nil
         }
@@ -758,9 +814,9 @@ func (re *RetryableExecutor) Execute(context *anyi.FlowContext) (*anyi.FlowConte
 
 ### 断路器模式
 
-```go
+``go
 type CircuitBreakerExecutor struct {
-    executor      Executor
+    executor      StepExecutor
     failureCount  int
     maxFailures   int
     resetTimeout  time.Duration
@@ -777,7 +833,11 @@ const (
     HalfOpen
 )
 
-func (cbe *CircuitBreakerExecutor) Execute(context *anyi.FlowContext) (*anyi.FlowContext, error) {
+func (cbe *CircuitBreakerExecutor) Init() error {
+    return nil
+}
+
+func (cbe *CircuitBreakerExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
     cbe.mutex.Lock()
     defer cbe.mutex.Unlock()
 
@@ -791,7 +851,7 @@ func (cbe *CircuitBreakerExecutor) Execute(context *anyi.FlowContext) (*anyi.Flo
     }
 
     // 执行
-    result, err := cbe.executor.Execute(context)
+    result, err := cbe.executor.Run(flowContext, step)
 
     if err != nil {
         cbe.failureCount++
@@ -818,13 +878,13 @@ func (cbe *CircuitBreakerExecutor) Execute(context *anyi.FlowContext) (*anyi.Flo
 
 ### 单元测试
 
-```go
+``go
 package main
 
 import (
     "testing"
 
-    "github.com/jieliu2000/anyi"
+    "github.com/jieliu2000/anyi/flow"
     "github.com/stretchr/testify/assert"
     "github.com/stretchr/testify/require"
 )
@@ -835,35 +895,28 @@ func TestMathCalculatorExecutor(t *testing.T) {
         input     string
         precision int
         expected  string
-        shouldErr bool
+        hasError  bool
     }{
         {
-            name:      "简单加法",
+            name:      "加法",
             input:     "10 + 5",
             precision: 2,
             expected:  "15.00",
-            shouldErr: false,
-        },
-        {
-            name:      "除法",
-            input:     "10 / 3",
-            precision: 3,
-            expected:  "3.333",
-            shouldErr: false,
+            hasError:  false,
         },
         {
             name:      "除零错误",
             input:     "10 / 0",
             precision: 2,
             expected:  "",
-            shouldErr: true,
+            hasError:  true,
         },
         {
             name:      "无效表达式",
-            input:     "invalid",
+            input:     "not a math expression",
             precision: 2,
             expected:  "",
-            shouldErr: true,
+            hasError:  true,
         },
     }
 
@@ -873,18 +926,23 @@ func TestMathCalculatorExecutor(t *testing.T) {
                 Precision: tt.precision,
             }
 
-            context := &anyi.FlowContext{
+            // 初始化执行器
+            err := executor.Init()
+            require.NoError(t, err)
+
+            context := flow.FlowContext{
                 Text: tt.input,
             }
 
-            result, err := executor.Execute(context)
+            result, err := executor.Run(context, nil)
 
-            if tt.shouldErr {
+            if tt.hasError {
                 assert.Error(t, err)
-            } else {
-                require.NoError(t, err)
-                assert.Equal(t, tt.expected, result.Text)
+                return
             }
+
+            require.NoError(t, err)
+            assert.Equal(t, tt.expected, result.Text)
         })
     }
 }
@@ -892,45 +950,53 @@ func TestMathCalculatorExecutor(t *testing.T) {
 
 ### 集成测试
 
-```go
-func TestHTTPAPIExecutorIntegration(t *testing.T) {
-    // 启动测试 HTTP 服务器
-    server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        var request struct {
-            Text   string      `json:"text"`
-            Memory interface{} `json:"memory"`
+``go
+func TestCustomExecutorInFlow(t *testing.T) {
+    // 注册自定义执行器
+    anyi.RegisterExecutorFactory("test_calculator", func(config map[string]interface{}) (flow.StepExecutor, error) {
+        executor := &MathCalculatorExecutor{Precision: 2}
+        if err := executor.Init(); err != nil {
+            return nil, err
         }
+        return executor, nil
+    })
 
-        err := json.NewDecoder(r.Body).Decode(&request)
-        require.NoError(t, err)
-
-        response := map[string]interface{}{
-            "text":   "已处理：" + request.Text,
-            "memory": request.Memory,
-        }
-
-        w.Header().Set("Content-Type", "application/json")
-        json.NewEncoder(w).Encode(response)
-    }))
-    defer server.Close()
-
-    executor := &HTTPAPIExecutor{
-        URL:     server.URL,
-        Method:  "POST",
-        Headers: map[string]string{},
-        Timeout: 5 * time.Second,
-    }
-
-    context := &anyi.FlowContext{
-        Text: "测试输入",
-        Memory: map[string]interface{}{
-            "key": "value",
+    // 配置包含自定义执行器的工作流
+    config := anyi.AnyiConfig{
+        Flows: []anyi.FlowConfig{
+            {
+                Name: "test_flow",
+                Steps: []anyi.StepConfig{
+                    {
+                        Name: "calculate",
+                        Executor: &anyi.ExecutorConfig{
+                            Type: "test_calculator",
+                        },
+                    },
+                },
+            },
         },
     }
 
-    result, err := executor.Execute(context)
-    require.NoError(t, err)
-    assert.Equal(t, "已处理：测试输入", result.Text)
+    err := anyi.Config(&config)
+    if err != nil {
+        t.Fatalf("配置失败: %v", err)
+    }
+
+    // 获取并运行工作流
+    flowInstance, err := anyi.GetFlow("test_flow")
+    if err != nil {
+        t.Fatalf("获取工作流失败: %v", err)
+    }
+
+    result, err := flowInstance.RunWithInput("25 + 15")
+    if err != nil {
+        t.Fatalf("工作流执行失败: %v", err)
+    }
+
+    if result.Text != "40.00" {
+        t.Errorf("期望 40.00, 实际 %s", result.Text)
+    }
 }
 ```
 
@@ -938,7 +1004,7 @@ func TestHTTPAPIExecutorIntegration(t *testing.T) {
 
 ### 连接池
 
-```go
+``go
 type PooledHTTPExecutor struct {
     client *http.Client
     pool   sync.Pool
@@ -964,37 +1030,45 @@ func NewPooledHTTPExecutor() *PooledHTTPExecutor {
     }
 }
 
-func (e *PooledHTTPExecutor) Execute(context *anyi.FlowContext) (*anyi.FlowContext, error) {
+func (e *PooledHTTPExecutor) Init() error {
+    return nil
+}
+
+func (e *PooledHTTPExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
     // 从池中获取缓冲区
     buf := e.pool.Get().(*bytes.Buffer)
     defer e.pool.Put(buf)
     buf.Reset()
 
     // 使用缓冲区进行 JSON 编码
-    if err := json.NewEncoder(buf).Encode(context); err != nil {
+    if err := json.NewEncoder(buf).Encode(flowContext); err != nil {
         return nil, err
     }
 
     // 执行 HTTP 请求...
     // ...
 
-    return nil, nil
+    return &flowContext, nil
 }
 ```
 
 ### 缓存
 
-```go
+``go
 type CachedExecutor struct {
-    executor Executor
-    cache    map[string]*anyi.FlowContext
+    executor StepExecutor
+    cache    map[string]*flow.FlowContext
     mutex    sync.RWMutex
     ttl      time.Duration
 }
 
-func (ce *CachedExecutor) Execute(context *anyi.FlowContext) (*anyi.FlowContext, error) {
+func (ce *CachedExecutor) Init() error {
+    return nil
+}
+
+func (ce *CachedExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*flow.FlowContext, error) {
     // 生成缓存键
-    key := ce.generateCacheKey(context)
+    key := ce.generateCacheKey(flowContext)
 
     // 检查缓存
     ce.mutex.RLock()
@@ -1005,7 +1079,7 @@ func (ce *CachedExecutor) Execute(context *anyi.FlowContext) (*anyi.FlowContext,
     ce.mutex.RUnlock()
 
     // 执行并缓存结果
-    result, err := ce.executor.Execute(context)
+    result, err := ce.executor.Run(flowContext, step)
     if err != nil {
         return nil, err
     }
@@ -1024,9 +1098,9 @@ func (ce *CachedExecutor) Execute(context *anyi.FlowContext) (*anyi.FlowContext,
     return result, nil
 }
 
-func (ce *CachedExecutor) generateCacheKey(context *anyi.FlowContext) string {
+func (ce *CachedExecutor) generateCacheKey(flowContext flow.FlowContext) string {
     // 简化的缓存键生成
-    return fmt.Sprintf("%x", sha256.Sum256([]byte(context.Text)))
+    return fmt.Sprintf("%x", sha256.Sum256([]byte(flowContext.Text)))
 }
 ```
 
