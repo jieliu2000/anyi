@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"errors"
+	
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/llm"
 )
@@ -49,7 +51,12 @@ type AgentConfig struct {
 
 // StartJob starts a new job for the agent with the given context
 // It returns an AgentJob reference immediately while the job runs asynchronously
-func (a *Agent) StartJob(context *AgentContext) *AgentJob {
+func (a *Agent) StartJob(context *AgentContext) (*AgentJob, error) {
+	// Check if agent has at least one flow
+	if len(a.Flows) == 0 {
+		return nil, errors.New("agent must have at least one flow to start a job")
+	}
+	
 	job := &AgentJob{
 		Agent:    a,
 		Context:  context,
@@ -60,5 +67,5 @@ func (a *Agent) StartJob(context *AgentContext) *AgentJob {
 	// Run the job asynchronously
 	go job.Execute()
 
-	return job
+	return job, nil
 }

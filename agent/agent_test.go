@@ -2,91 +2,113 @@ package agent
 
 import (
 	"testing"
+	"time"
+
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAgentCreation(t *testing.T) {
-	// Create a mock flow
-	mockFlow := &flow.Flow{
-		Name: "test-flow",
-	}
-
-	// Create an agent with the mock flow
+func TestAgent_StartJob(t *testing.T) {
+	// Create an agent without flows - should return error
 	agent := &Agent{
-		Role:              "Test Role",
+		Role:              "Test Agent",
+		Client:            &mockClient{},
 		PreferredLanguage: "English",
-		BackStory:         "Test backstory",
-		Flows:             []*flow.Flow{mockFlow},
+		BackStory:         "A test agent",
+		Flows:             []*flow.Flow{},
 	}
 
-	// Verify the agent was created correctly
-	assert.Equal(t, "Test Role", agent.Role)
-	assert.Equal(t, "English", agent.PreferredLanguage)
-	assert.Equal(t, "Test backstory", agent.BackStory)
-	assert.Len(t, agent.Flows, 1)
-	assert.Equal(t, mockFlow, agent.Flows[0])
-}
-
-func TestAgentContextCreation(t *testing.T) {
-	// Create an agent context
+	// Create a context
 	context := &AgentContext{
-		Goal: "Test goal",
-		ShortTermMemory: map[string]interface{}{
-			"key1": "value1",
-			"key2": 123,
-		},
-		ExecuteLog: []string{
-			"log entry 1",
-			"log entry 2",
-		},
+		Goal:            "Test the StartJob function",
+		ShortTermMemory: make(map[string]interface{}),
+		ExecuteLog:      []string{},
 	}
 
-	// Verify the context was created correctly
-	assert.Equal(t, "Test goal", context.Goal)
-	assert.Len(t, context.ShortTermMemory, 2)
-	assert.Equal(t, "value1", context.ShortTermMemory["key1"])
-	assert.Equal(t, 123, context.ShortTermMemory["key2"])
-	assert.Len(t, context.ExecuteLog, 2)
-	assert.Equal(t, "log entry 1", context.ExecuteLog[0])
-	assert.Equal(t, "log entry 2", context.ExecuteLog[1])
-}
+	// Try to start a job without flows - should return error
+	job, err := agent.StartJob(context)
+	assert.Error(t, err)
+	assert.Nil(t, job)
+	assert.Equal(t, "agent must have at least one flow to start a job", err.Error())
 
-func TestAgentJobCreation(t *testing.T) {
 	// Create a mock flow
-	mockFlow := &flow.Flow{
-		Name: "test-flow",
-	}
+	client := &mockClient{}
+	mockFlow, err := flow.NewFlow(client, "test-flow")
+	assert.NoError(t, err)
 
-	// Create an agent
-	agent := &Agent{
-		Role:              "Test Role",
-		PreferredLanguage: "English",
-		BackStory:         "Test backstory",
-		Flows:             []*flow.Flow{mockFlow},
-	}
+	// Update agent with flows
+	agent.Flows = []*flow.Flow{mockFlow}
 
-	// Create an agent context
-	context := &AgentContext{
-		Goal: "Test goal",
-		ShortTermMemory: map[string]interface{}{
-			"key": "value",
-		},
-		ExecuteLog: []string{},
-	}
+	// Start a job with flows - should succeed
+	job, err = agent.StartJob(context)
+	assert.NoError(t, err)
+	assert.NotNil(t, job)
 
-	// Create an agent job
-	job := &AgentJob{
-		Agent:   agent,
-		Context: context,
-		Status:  "running",
-		FlowExecutionPlan: []*flow.Flow{mockFlow},
-	}
+	// Give some time for the goroutine to execute
+	time.Sleep(10 * time.Millisecond)
 
-	// Verify the job was created correctly
+	// Check that we got a job back
+	assert.NotNil(t, job)
 	assert.Equal(t, agent, job.Agent)
 	assert.Equal(t, context, job.Context)
-	assert.Equal(t, "running", job.Status)
-	assert.Len(t, job.FlowExecutionPlan, 1)
-	assert.Equal(t, mockFlow, job.FlowExecutionPlan[0])
+
+	// Job should be completed since PlanTasks returns an empty slice
+	assert.Equal(t, "completed", job.Status)
+}
+
+func TestAgentContext_Structure(t *testing.T) {
+	// Test that we can create an AgentContext
+	context := &AgentContext{
+		Goal:            "Test goal",
+		ShortTermMemory: make(map[string]interface{}),
+		ExecuteLog:      []string{},
+	}
+
+	assert.Equal(t, "Test goal", context.Goal)
+	assert.Empty(t, context.ShortTermMemory)
+	assert.Empty(t, context.ExecuteLog)
+
+	// Test that we can add items to the context
+	context.ShortTermMemory["key"] = "value"
+	context.ExecuteLog = append(context.ExecuteLog, "log entry")
+
+	assert.Equal(t, "value", context.ShortTermMemory["key"])
+	assert.Contains(t, context.ExecuteLog, "log entry")
+}
+
+func TestAgentConfig_Structure(t *testing.T) {
+	// Test that we can create an AgentConfig
+	config := &AgentConfig{
+		Role:              "Test Agent",
+		PreferredLanguage: "English",
+		BackStory:         "A test agent",
+		ClientName:        "test-client",
+		Flows:             []string{"flow1", "flow2"},
+	}
+
+	assert.Equal(t, "Test Agent", config.Role)
+	assert.Equal(t, "English", config.PreferredLanguage)
+	assert.Equal(t, "A test agent", config.BackStory)
+	assert.Equal(t, "test-client", config.ClientName)
+	assert.Equal(t, []string{"flow1", "flow2"}, config.Flows)
+}
+
+func TestAgent_Structure(t *testing.T) {
+	// Test that we can create an Agent
+	client := &mockClient{}
+	flows := []*flow.Flow{}
+
+	agent := &Agent{
+		Role:              "Test Agent",
+		Client:            client,
+		PreferredLanguage: "English",
+		BackStory:         "A test agent",
+		Flows:             flows,
+	}
+
+	assert.Equal(t, "Test Agent", agent.Role)
+	assert.Equal(t, client, agent.Client)
+	assert.Equal(t, "English", agent.PreferredLanguage)
+	assert.Equal(t, "A test agent", agent.BackStory)
+	assert.Equal(t, flows, agent.Flows)
 }
