@@ -11,7 +11,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/jieliu2000/anyi/agent"
+	"github.com/jieliu2000/anyi/agent/agentmodel"
 	"github.com/jieliu2000/anyi/executors"
 	"github.com/jieliu2000/anyi/registry"
 
@@ -575,7 +575,7 @@ func TestRegisterAndGetAgent(t *testing.T) {
 		Validators: make(map[string]flow.StepValidator),
 		Executors:  make(map[string]flow.StepExecutor),
 		Formatters: make(map[string]chat.PromptFormatter),
-		Agents:     make(map[string]*agent.Agent),
+		Agents:     make(map[string]*agentmodel.Agent),
 	}
 
 	// Create a mock flow
@@ -584,7 +584,7 @@ func TestRegisterAndGetAgent(t *testing.T) {
 	}
 
 	// Create an agent
-	testAgent := &agent.Agent{
+	testAgent := &agentmodel.Agent{
 		Role:              "Test Role",
 		PreferredLanguage: "English",
 		BackStory:         "Test backstory",
@@ -612,11 +612,11 @@ func TestRegisterAgentWithEmptyName(t *testing.T) {
 		Validators: make(map[string]flow.StepValidator),
 		Executors:  make(map[string]flow.StepExecutor),
 		Formatters: make(map[string]chat.PromptFormatter),
-		Agents:     make(map[string]*agent.Agent),
+		Agents:     make(map[string]*agentmodel.Agent),
 	}
 
 	// Try to register an agent with an empty name
-	testAgent := &agent.Agent{
+	testAgent := &agentmodel.Agent{
 		Role: "",
 	}
 	err := RegisterAgent(testAgent)
@@ -632,7 +632,7 @@ func TestGetAgentWithEmptyName(t *testing.T) {
 		Validators: make(map[string]flow.StepValidator),
 		Executors:  make(map[string]flow.StepExecutor),
 		Formatters: make(map[string]chat.PromptFormatter),
-		Agents:     make(map[string]*agent.Agent),
+		Agents:     make(map[string]*agentmodel.Agent),
 	}
 
 	// Try to get an agent with an empty name
@@ -649,7 +649,7 @@ func TestGetNonExistentAgent(t *testing.T) {
 		Validators: make(map[string]flow.StepValidator),
 		Executors:  make(map[string]flow.StepExecutor),
 		Formatters: make(map[string]chat.PromptFormatter),
-		Agents:     make(map[string]*agent.Agent),
+		Agents:     make(map[string]*agentmodel.Agent),
 	}
 
 	// Try to get an agent that doesn't exist
@@ -666,12 +666,12 @@ func TestRegisterDuplicateAgent(t *testing.T) {
 		Validators: make(map[string]flow.StepValidator),
 		Executors:  make(map[string]flow.StepExecutor),
 		Formatters: make(map[string]chat.PromptFormatter),
-		Agents:     make(map[string]*agent.Agent),
+		Agents:     make(map[string]*agentmodel.Agent),
 	}
 
 	// Create an agent
 	mockFlow := &flow.Flow{Name: "test-flow"}
-	testAgent := &agent.Agent{
+	testAgent := &agentmodel.Agent{
 		Role:  "Test Role",
 		Flows: []*flow.Flow{mockFlow},
 	}
@@ -681,7 +681,7 @@ func TestRegisterDuplicateAgent(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Try to register another agent with the same name
-	duplicateAgent := &agent.Agent{Role: "Test Role"}
+	duplicateAgent := &agentmodel.Agent{Role: "Test Role"}
 	err = RegisterAgent(duplicateAgent)
 	assert.Error(t, err)
 	assert.Equal(t, "agent with role \"Test Role\" already exists", err.Error())

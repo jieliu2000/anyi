@@ -1,8 +1,6 @@
-package agent
+package agentmodel
 
 import (
-	"errors"
-
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/llm"
 )
@@ -39,6 +37,24 @@ type AgentContext struct {
 	ExecuteLog []string `json:"executeLog" yaml:"executeLog" mapstructure:"executeLog"`
 }
 
+// AgentJob represents an asynchronous job that an agent executes
+type AgentJob struct {
+	// Agent is the agent that executes the job
+	Agent *Agent
+
+	// Context is the context for the job execution
+	Context *AgentContext
+
+	// Status indicates the current status of the job
+	Status string // "running", "paused", "completed", "failed"
+
+	// FlowExecutionPlan is the planned flows to execute
+	FlowExecutionPlan []*flow.Flow
+
+	// stopChan is used to signal the job to stop execution
+	stopChan chan struct{}
+}
+
 // AgentConfig defines the configuration structure for agents.
 // Agents are autonomous entities that can plan and execute workflows.
 type AgentConfig struct {
@@ -47,29 +63,4 @@ type AgentConfig struct {
 	BackStory         string   `mapstructure:"backStory" json:"backStory" yaml:"backStory"`
 	ClientName        string   `mapstructure:"clientName" json:"clientName" yaml:"clientName"`
 	Flows             []string `mapstructure:"flows" json:"flows" yaml:"flows"`
-}
-
-// StartJob starts a new job for the agent with the given context
-// It returns an AgentJob reference immediately while the job runs asynchronously
-func (a *Agent) StartJob(context *AgentContext) (*AgentJob, error) {
-	// Check if agent has at least one flow
-	if len(a.Flows) == 0 {
-		return nil, errors.New("agent must have at least one flow to start a job")
-	}
-
-	if a.Client == nil {
-		return nil, errors.New("agent must have a valid client to start a job")
-	}
-
-	job := &AgentJob{
-		Agent:    a,
-		Context:  context,
-		Status:   "running",
-		stopChan: make(chan struct{}),
-	}
-
-	// Run the job asynchronously
-	go job.Execute()
-
-	return job, nil
 }

@@ -3,7 +3,7 @@ package registry
 import (
 	"testing"
 
-	"github.com/jieliu2000/anyi/agent"
+	"github.com/jieliu2000/anyi/agent/agentmodel"
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/internal/test"
 	"github.com/jieliu2000/anyi/llm"
@@ -195,10 +195,10 @@ func TestRegisterAndGetFormatter(t *testing.T) {
 func TestRegisterAndGetAgent(t *testing.T) {
 	// Reset registry for clean test
 	GlobalRegistry.Mu.Lock()
-	GlobalRegistry.Agents = make(map[string]*agent.Agent)
+	GlobalRegistry.Agents = make(map[string]*agentmodel.Agent)
 	GlobalRegistry.Mu.Unlock()
 
-	agentInstance := &agent.Agent{Role: "test-agent"}
+	agentInstance := &agentmodel.Agent{Role: "test-agent"}
 
 	// Test registering an agent
 	err := RegisterAgent(agentInstance)

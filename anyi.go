@@ -7,6 +7,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/jieliu2000/anyi/agent"
+	"github.com/jieliu2000/anyi/agent/agentmodel"
 	"github.com/jieliu2000/anyi/executors"
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/llm"
@@ -209,7 +210,7 @@ func GetClient(name string) (llm.Client, error) {
 //
 // Returns:
 //   - Any error encountered during registration
-func RegisterAgent(agent *agent.Agent) error {
+func RegisterAgent(agent *agentmodel.Agent) error {
 	return registry.RegisterAgent(agent)
 }
 
@@ -221,7 +222,7 @@ func RegisterAgent(agent *agent.Agent) error {
 // Returns:
 //   - The requested agent
 //   - An error if the agent is not found
-func GetAgent(name string) (*agent.Agent, error) {
+func GetAgent(name string) (*agentmodel.Agent, error) {
 	return registry.GetAgent(name)
 }
 

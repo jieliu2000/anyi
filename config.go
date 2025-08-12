@@ -7,7 +7,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/jieliu2000/anyi/agent"
+	"github.com/jieliu2000/anyi/agent/agentmodel"
 	"github.com/jieliu2000/anyi/executors"
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/internal/utils"
@@ -22,7 +22,7 @@ type AnyiConfig struct {
 	Clients    []llm.ClientConfig
 	Flows      []FlowConfig
 	Formatters []FormatterConfig
-	Agents     []agent.AgentConfig
+	Agents     []agentmodel.AgentConfig
 }
 
 // ValidatorConfig defines the configuration structure for validators.
@@ -216,7 +216,7 @@ func NewFlowFromConfig(flowConfig *FlowConfig) (*flow.Flow, error) {
 // Returns:
 //   - A new agent instance
 //   - Any error encountered during agent creation
-func NewAgentFromConfig(config *agent.AgentConfig) (*agent.Agent, error) {
+func NewAgentFromConfig(config *agentmodel.AgentConfig) (*agentmodel.Agent, error) {
 	if config == nil {
 		return nil, errors.New("agent config is nil")
 	}
@@ -231,7 +231,7 @@ func NewAgentFromConfig(config *agent.AgentConfig) (*agent.Agent, error) {
 		flowObjects[i] = flowObj
 	}
 
-	agentObj := &agent.Agent{
+	agentObj := &agentmodel.Agent{
 		Role:              config.Role,
 		PreferredLanguage: config.PreferredLanguage,
 		BackStory:         config.BackStory,

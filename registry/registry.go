@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/jieliu2000/anyi/agent"
+	"github.com/jieliu2000/anyi/agent/agentmodel"
 	"github.com/jieliu2000/anyi/executors"
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/llm"
@@ -23,7 +23,7 @@ type AnyiRegistry struct {
 	Validators        map[string]flow.StepValidator
 	Executors         map[string]flow.StepExecutor
 	Formatters        map[string]chat.PromptFormatter
-	Agents            map[string]*agent.Agent // Add agent registry
+	Agents            map[string]*agentmodel.Agent // Add agent registry
 	DefaultClientName string
 }
 
@@ -35,7 +35,7 @@ var GlobalRegistry *AnyiRegistry = &AnyiRegistry{
 	Validators: make(map[string]flow.StepValidator),
 	Executors:  make(map[string]flow.StepExecutor),
 	Formatters: make(map[string]chat.PromptFormatter),
-	Agents:     make(map[string]*agent.Agent), // Initialize agent registry
+	Agents:     make(map[string]*agentmodel.Agent), // Initialize agent registry
 }
 
 // GetFlow retrieves a flow from the global registry by name.
@@ -259,7 +259,7 @@ func GetClient(name string) (llm.Client, error) {
 //
 // Returns:
 //   - Any error encountered during registration
-func RegisterAgent(a *agent.Agent) error {
+func RegisterAgent(a *agentmodel.Agent) error {
 	if a == nil {
 		return errors.New("agent cannot be nil")
 	}
@@ -286,7 +286,7 @@ func RegisterAgent(a *agent.Agent) error {
 // Returns:
 //   - The requested agent
 //   - An error if the agent is not found
-func GetAgent(role string) (*agent.Agent, error) {
+func GetAgent(role string) (*agentmodel.Agent, error) {
 	if role == "" {
 		return nil, errors.New("name cannot be empty")
 	}

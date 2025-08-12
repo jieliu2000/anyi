@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jieliu2000/anyi/agent/agentmodel"
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/internal/test"
 	"github.com/stretchr/testify/assert"
@@ -11,22 +12,22 @@ import (
 
 func TestAgentJob_Execute(t *testing.T) {
 	// Create a mock agent
-	agent := &Agent{
+	agent := &agentmodel.Agent{
 		Role: "test-agent",
 	}
 
 	// Create a mock context
-	context := &AgentContext{}
+	context := &agentmodel.AgentContext{}
 
 	// Create a job
-	job := &AgentJob{
+	job := &agentmodel.AgentJob{
 		Agent:   agent,
 		Context: context,
 		Status:  "pending",
 	}
 
 	// Execute the job
-	job.Execute()
+	ExecuteJob(job)
 
 	// Check that the job completed
 	assert.Equal(t, "completed", job.Status)
@@ -34,22 +35,22 @@ func TestAgentJob_Execute(t *testing.T) {
 
 func TestAgentJob_Stop(t *testing.T) {
 	// Create a mock agent
-	agent := &Agent{
+	agent := &agentmodel.Agent{
 		Role: "test-agent",
 	}
 
 	// Create a mock context
-	context := &AgentContext{}
+	context := &agentmodel.AgentContext{}
 
 	// Create a job
-	job := &AgentJob{
+	job := &agentmodel.AgentJob{
 		Agent:   agent,
 		Context: context,
 		Status:  "running",
 	}
 
 	// Stop the job
-	err := job.Stop()
+	err := StopJob(job)
 	assert.NoError(t, err)
 
 	// Check that the job is paused
@@ -58,22 +59,22 @@ func TestAgentJob_Stop(t *testing.T) {
 
 func TestAgentJob_Resume(t *testing.T) {
 	// Create a mock agent
-	agent := &Agent{
+	agent := &agentmodel.Agent{
 		Role: "test-agent",
 	}
 
 	// Create a mock context
-	context := &AgentContext{}
+	context := &agentmodel.AgentContext{}
 
 	// Create a job
-	job := &AgentJob{
+	job := &agentmodel.AgentJob{
 		Agent:   agent,
 		Context: context,
 		Status:  "paused",
 	}
 
 	// Resume the job
-	err := job.Resume()
+	err := ResumeJob(job)
 	assert.NoError(t, err)
 
 	// Check that the job is running
@@ -85,15 +86,15 @@ func TestAgentJob_Resume(t *testing.T) {
 
 func TestAgentJob_StopDuringExecution(t *testing.T) {
 	// Create a mock agent
-	agent := &Agent{
+	agent := &agentmodel.Agent{
 		Role: "test-agent",
 	}
 
 	// Create a mock context
-	context := &AgentContext{}
+	context := &agentmodel.AgentContext{}
 
 	// Create a job with a long-running task plan
-	job := &AgentJob{
+	job := &agentmodel.AgentJob{
 		Agent:   agent,
 		Context: context,
 		Status:  "running",
@@ -101,14 +102,14 @@ func TestAgentJob_StopDuringExecution(t *testing.T) {
 
 	// Start execution in a goroutine
 	go func() {
-		job.Execute()
+		ExecuteJob(job)
 	}()
 
 	// Give some time for execution to start
 	time.Sleep(5 * time.Millisecond)
 
 	// Stop the job
-	err := job.Stop()
+	err := StopJob(job)
 	assert.NoError(t, err)
 
 	// Check that the job is paused
@@ -117,22 +118,22 @@ func TestAgentJob_StopDuringExecution(t *testing.T) {
 
 func TestAgentJob_PlanTasks(t *testing.T) {
 	// Create a mock agent
-	agent := &Agent{
+	agent := &agentmodel.Agent{
 		Role: "test-agent",
 	}
 
 	// Create a mock context
-	context := &AgentContext{}
+	context := &agentmodel.AgentContext{}
 
 	// Create a job
-	job := &AgentJob{
+	job := &agentmodel.AgentJob{
 		Agent:   agent,
 		Context: context,
 		Status:  "pending",
 	}
 
 	// Plan tasks
-	tasks := job.PlanTasks()
+	tasks := PlanJobTasks(job)
 
 	// Currently PlanTasks returns an empty slice, so we check for that
 	assert.Empty(t, tasks)
@@ -140,22 +141,22 @@ func TestAgentJob_PlanTasks(t *testing.T) {
 
 func TestAgentJob_RunTask(t *testing.T) {
 	// Create a mock agent
-	agent := &Agent{
+	agent := &agentmodel.Agent{
 		Role: "test-agent",
 	}
 
 	// Create a mock context
-	context := &AgentContext{}
+	context := &agentmodel.AgentContext{}
 
 	// Create a job
-	job := &AgentJob{
+	job := &agentmodel.AgentJob{
 		Agent:   agent,
 		Context: context,
 		Status:  "running",
 	}
 
 	// Run a task (this is a placeholder implementation)
-	job.RunTask("test-task")
+	RunJobTask(job, "test-task")
 
 	// Currently RunTask does nothing, so we just verify it doesn't panic
 	assert.True(t, true)
@@ -163,7 +164,7 @@ func TestAgentJob_RunTask(t *testing.T) {
 
 func TestAgent_StartJob_CompleteScenario(t *testing.T) {
 	// Create an agent without client - should return error
-	agentWithoutClient := &Agent{
+	agentWithoutClient := &agentmodel.Agent{
 		Role: "test-agent",
 		// Client is nil by default
 		Flows: []*flow.Flow{
@@ -174,32 +175,32 @@ func TestAgent_StartJob_CompleteScenario(t *testing.T) {
 	}
 
 	// Create a context with a goal
-	context := &AgentContext{
+	context := &agentmodel.AgentContext{
 		Goal:            "Test complete scenario",
 		ShortTermMemory: make(map[string]interface{}),
 		ExecuteLog:      []string{},
 	}
 
 	// Try to start a job without client - should return error
-	job, err := agentWithoutClient.StartJob(context)
+	job, err := StartAgentJob(agentWithoutClient, context)
 	assert.Error(t, err)
 	assert.Nil(t, job)
 	assert.Equal(t, "agent must have a valid client to start a job", err.Error())
 
 	// Try to start a job without flows - should return error
-	job, err = agentWithoutClient.StartJob(context)
+	job, err = StartAgentJob(agentWithoutClient, context)
 	assert.Error(t, err)
 	assert.Nil(t, job)
 	assert.Equal(t, "agent must have a valid client to start a job", err.Error())
 
 	// Create an agent with client but without flows - should return error
-	agentWithClientNoFlows := &Agent{
+	agentWithClientNoFlows := &agentmodel.Agent{
 		Role:   "test-agent",
 		Client: &test.MockClient{},
 	}
 
 	// Try to start a job with client but without flows - should return error
-	job, err = agentWithClientNoFlows.StartJob(context)
+	job, err = StartAgentJob(agentWithClientNoFlows, context)
 	assert.Error(t, err)
 	assert.Nil(t, job)
 	assert.Equal(t, "agent must have at least one flow to start a job", err.Error())
@@ -210,14 +211,14 @@ func TestAgent_StartJob_CompleteScenario(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create an agent with both client and flows - should succeed
-	agent := &Agent{
+	agent := &agentmodel.Agent{
 		Role:   "test-agent",
 		Client: &test.MockClient{},
 		Flows:  []*flow.Flow{mockFlow},
 	}
 
 	// Start a job using the agent's StartJob method
-	job, err = agent.StartJob(context)
+	job, err = StartAgentJob(agent, context)
 	assert.NoError(t, err)
 	assert.NotNil(t, job)
 	assert.Equal(t, agent, job.Agent)
@@ -233,7 +234,7 @@ func TestAgent_StartJob_CompleteScenario(t *testing.T) {
 
 func TestAgent_StartJob_StopScenario(t *testing.T) {
 	// Create an agent without client - should return error
-	agentWithoutClient := &Agent{
+	agentWithoutClient := &agentmodel.Agent{
 		Role: "test-agent",
 		// Client is nil by default
 		Flows: []*flow.Flow{
@@ -244,26 +245,26 @@ func TestAgent_StartJob_StopScenario(t *testing.T) {
 	}
 
 	// Create a context
-	context := &AgentContext{
+	context := &agentmodel.AgentContext{
 		Goal:            "Test stop scenario",
 		ShortTermMemory: make(map[string]interface{}),
 		ExecuteLog:      []string{},
 	}
 
 	// Try to start a job without client - should return error
-	job, err := agentWithoutClient.StartJob(context)
+	job, err := StartAgentJob(agentWithoutClient, context)
 	assert.Error(t, err)
 	assert.Nil(t, job)
 	assert.Equal(t, "agent must have a valid client to start a job", err.Error())
 
 	// Create an agent with client but without flows - should return error
-	agentWithClientNoFlows := &Agent{
+	agentWithClientNoFlows := &agentmodel.Agent{
 		Role:   "test-agent",
 		Client: &test.MockClient{},
 	}
 
 	// Try to start a job with client but without flows - should return error
-	job, err = agentWithClientNoFlows.StartJob(context)
+	job, err = StartAgentJob(agentWithClientNoFlows, context)
 	assert.Error(t, err)
 	assert.Nil(t, job)
 	assert.Equal(t, "agent must have at least one flow to start a job", err.Error())
@@ -274,14 +275,14 @@ func TestAgent_StartJob_StopScenario(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create an agent with both client and flows
-	agent := &Agent{
+	agent := &agentmodel.Agent{
 		Role:   "test-agent",
 		Client: &test.MockClient{},
 		Flows:  []*flow.Flow{mockFlow},
 	}
 
 	// Start a job
-	job, err = agent.StartJob(context)
+	job, err = StartAgentJob(agent, context)
 	assert.NoError(t, err)
 	assert.NotNil(t, job)
 	assert.Equal(t, "running", job.Status)
@@ -290,12 +291,12 @@ func TestAgent_StartJob_StopScenario(t *testing.T) {
 	time.Sleep(1 * time.Millisecond)
 
 	// Stop the job
-	err = job.Stop()
+	err = StopJob(job)
 	assert.NoError(t, err)
 	assert.Equal(t, "paused", job.Status)
 
 	// Try to resume the job
-	err = job.Resume()
+	err = ResumeJob(job)
 	assert.NoError(t, err)
 	assert.Equal(t, "running", job.Status)
 
@@ -308,7 +309,7 @@ func TestAgent_StartJob_StopScenario(t *testing.T) {
 
 func TestAgent_StartJob_ImmediateStop(t *testing.T) {
 	// Create an agent without client - should return error
-	agentWithoutClient := &Agent{
+	agentWithoutClient := &agentmodel.Agent{
 		Role: "test-agent",
 		// Client is nil by default
 		Flows: []*flow.Flow{
@@ -319,25 +320,25 @@ func TestAgent_StartJob_ImmediateStop(t *testing.T) {
 	}
 
 	// Create a context
-	context := &AgentContext{
+	context := &agentmodel.AgentContext{
 		Goal:            "Test immediate stop",
 		ShortTermMemory: make(map[string]interface{}),
 		ExecuteLog:      []string{},
 	}
 
 	// Try to start a job without client - should return error
-	_, err := agentWithoutClient.StartJob(context)
+	_, err := StartAgentJob(agentWithoutClient, context)
 	assert.Error(t, err)
 	assert.Equal(t, "agent must have a valid client to start a job", err.Error())
 
 	// Create an agent with client but without flows - should return error
-	agentWithClientNoFlows := &Agent{
+	agentWithClientNoFlows := &agentmodel.Agent{
 		Role:   "test-agent",
 		Client: &test.MockClient{},
 	}
 
 	// Try to start a job with client but without flows - should return error
-	_, err = agentWithClientNoFlows.StartJob(context)
+	_, err = StartAgentJob(agentWithClientNoFlows, context)
 	assert.Error(t, err)
 	assert.Equal(t, "agent must have at least one flow to start a job", err.Error())
 
@@ -347,25 +348,25 @@ func TestAgent_StartJob_ImmediateStop(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create an agent with both client and flows
-	agent := &Agent{
+	agent := &agentmodel.Agent{
 		Role:   "test-agent",
 		Client: &test.MockClient{},
 		Flows:  []*flow.Flow{mockFlow},
 	}
 
 	// Start a job
-	job, err := agent.StartJob(context)
+	job, err := StartAgentJob(agent, context)
 	assert.NoError(t, err)
 	assert.NotNil(t, job)
 	assert.Equal(t, "running", job.Status)
 
 	// Immediately stop the job
-	err = job.Stop()
+	err = StopJob(job)
 	assert.NoError(t, err)
 	assert.Equal(t, "paused", job.Status)
 
 	// Verify that stop channel is properly closed by trying to resume
-	err = job.Resume()
+	err = ResumeJob(job)
 	assert.NoError(t, err)
 	assert.Equal(t, "running", job.Status)
 
@@ -374,9 +375,91 @@ func TestAgent_StartJob_ImmediateStop(t *testing.T) {
 	assert.Equal(t, "completed", job.Status)
 }
 
+func TestAgent_StartJob(t *testing.T) {
+	// Test case 1: Create an agent without flows - should return error
+	agent := &agentmodel.Agent{
+		Role:              "Test Agent",
+		Client:            &test.MockClient{},
+		PreferredLanguage: "English",
+		BackStory:         "A test agent",
+		Flows:             []*flow.Flow{},
+	}
+
+	// Create a context
+	context := &agentmodel.AgentContext{
+		Goal:            "Test the StartJob function",
+		ShortTermMemory: make(map[string]interface{}),
+		ExecuteLog:      []string{},
+	}
+
+	// Try to start a job without flows - should return error
+	job, err := StartAgentJob(agent, context)
+	assert.Error(t, err)
+	assert.Nil(t, job)
+	assert.Equal(t, "agent must have at least one flow to start a job", err.Error())
+
+	// Test case 2: Create an agent without client - should return error
+	agentWithoutClient := &agentmodel.Agent{
+		Role:              "Test Agent",
+		Client:            nil,
+		PreferredLanguage: "English",
+		BackStory:         "A test agent",
+		Flows:             []*flow.Flow{},
+	}
+
+	// Try to start a job without client - should return error
+	job, err = StartAgentJob(agentWithoutClient, context)
+	assert.Error(t, err)
+	assert.Nil(t, job)
+	assert.Equal(t, "agent must have at least one flow to start a job", err.Error())
+
+	// Test case 3: Create an agent with flows but without client - should return error
+	client := &test.MockClient{}
+	mockFlow, err := flow.NewFlow(client, "test-flow")
+	assert.NoError(t, err)
+
+	agentWithFlowNoClient := &agentmodel.Agent{
+		Role:              "Test Agent",
+		Client:            nil,
+		PreferredLanguage: "English",
+		BackStory:         "A test agent",
+		Flows:             []*flow.Flow{mockFlow},
+	}
+
+	// Try to start a job with flows but without client - should return error
+	job, err = StartAgentJob(agentWithFlowNoClient, context)
+	assert.Error(t, err)
+	assert.Nil(t, job)
+	assert.Equal(t, "agent must have a valid client to start a job", err.Error())
+
+	// Test case 4: Create an agent with flows and client - should succeed
+	agentWithFlowAndClient := &agentmodel.Agent{
+		Role:              "Test Agent",
+		Client:            &test.MockClient{},
+		PreferredLanguage: "English",
+		BackStory:         "A test agent",
+		Flows:             []*flow.Flow{mockFlow},
+	}
+
+	// Start a job with flows and client - should succeed
+	job, err = StartAgentJob(agentWithFlowAndClient, context)
+	assert.NoError(t, err)
+	assert.NotNil(t, job)
+
+	// Give some time for the goroutine to execute
+	time.Sleep(10 * time.Millisecond)
+
+	// Check that we got a job back
+	assert.NotNil(t, job)
+	assert.Equal(t, agentWithFlowAndClient, job.Agent)
+	assert.Equal(t, context, job.Context)
+
+	// Job should be completed since PlanTasks returns an empty slice
+	assert.Equal(t, "completed", job.Status)
+}
 func TestAgent_MultipleJobs(t *testing.T) {
 	// Create an agent without client - should return error
-	agentWithoutClient := &Agent{
+	agentWithoutClient := &agentmodel.Agent{
 		Role: "test-agent",
 		// Client is nil by default
 		Flows: []*flow.Flow{
@@ -388,42 +471,42 @@ func TestAgent_MultipleJobs(t *testing.T) {
 	}
 
 	// Create multiple contexts
-	context1 := &AgentContext{
+	context1 := &agentmodel.AgentContext{
 		Goal:            "Test job 1",
 		ShortTermMemory: make(map[string]interface{}),
 		ExecuteLog:      []string{},
 	}
 
-	context2 := &AgentContext{
+	context2 := &agentmodel.AgentContext{
 		Goal:            "Test job 2",
 		ShortTermMemory: make(map[string]interface{}),
 		ExecuteLog:      []string{},
 	}
 
 	// Try to start jobs without client - should return error
-	job1, err := agentWithoutClient.StartJob(context1)
+	job1, err := StartAgentJob(agentWithoutClient, context1)
 	assert.Error(t, err)
 	assert.Nil(t, job1)
 	assert.Equal(t, "agent must have a valid client to start a job", err.Error())
 
-	job2, err := agentWithoutClient.StartJob(context2)
+	job2, err := StartAgentJob(agentWithoutClient, context2)
 	assert.Error(t, err)
 	assert.Nil(t, job2)
 	assert.Equal(t, "agent must have a valid client to start a job", err.Error())
 
 	// Create an agent with client but without flows - should return error
-	agentWithClientNoFlows := &Agent{
+	agentWithClientNoFlows := &agentmodel.Agent{
 		Role:   "test-agent",
 		Client: &test.MockClient{},
 	}
 
 	// Try to start jobs with client but without flows - should return error
-	job1, err = agentWithClientNoFlows.StartJob(context1)
+	job1, err = StartAgentJob(agentWithClientNoFlows, context1)
 	assert.Error(t, err)
 	assert.Nil(t, job1)
 	assert.Equal(t, "agent must have at least one flow to start a job", err.Error())
 
-	job2, err = agentWithClientNoFlows.StartJob(context2)
+	job2, err = StartAgentJob(agentWithClientNoFlows, context2)
 	assert.Error(t, err)
 	assert.Nil(t, job2)
 	assert.Equal(t, "agent must have at least one flow to start a job", err.Error())
@@ -434,18 +517,18 @@ func TestAgent_MultipleJobs(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create an agent with both client and flows
-	agent := &Agent{
+	agent := &agentmodel.Agent{
 		Role:   "test-agent",
 		Client: &test.MockClient{},
 		Flows:  []*flow.Flow{mockFlow},
 	}
 
 	// Start multiple jobs
-	job1, err = agent.StartJob(context1)
+	job1, err = StartAgentJob(agent, context1)
 	assert.NoError(t, err)
 	assert.NotNil(t, job1)
 
-	job2, err = agent.StartJob(context2)
+	job2, err = StartAgentJob(agent, context2)
 	assert.NoError(t, err)
 	assert.NotNil(t, job2)
 
