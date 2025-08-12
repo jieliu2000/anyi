@@ -1,4 +1,4 @@
-package agentflows
+package agent
 
 import (
 	"encoding/json"

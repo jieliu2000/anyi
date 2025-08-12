@@ -7,7 +7,6 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/jieliu2000/anyi/agent"
-	"github.com/jieliu2000/anyi/agentflows"
 	"github.com/jieliu2000/anyi/executors"
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/llm"
@@ -559,7 +558,7 @@ func Init() {
 
 	log.Debug("Initializing Anyi...")
 	RegisterExecutor("llm", &executors.LLMExecutor{})
-	RegisterExecutor("condition", &executors.ConditionalFlowExecutor{})
+	RegisterExecutor("condition", &registry.ConditionalFlowExecutor{})
 	RegisterExecutor("exec", &executors.RunCommandExecutor{})
 	RegisterExecutor("setContext", &executors.SetContextExecutor{})
 	RegisterExecutor("setVariables", &executors.SetVariablesExecutor{})
@@ -573,7 +572,7 @@ func Init() {
 	RegisterValidator("json", &JsonValidator{})
 
 	// Initialize agent flows
-	agentflows.InitAgentBuiltinFlows()
+	agent.InitAgentBuiltinFlows()
 
 	log.Debug("Anyi initialized successfully.")
 }

@@ -122,7 +122,7 @@ func NewStepFromConfig(stepConfig *StepConfig) (*flow.Step, error) {
 	}
 	var executor flow.StepExecutor
 	if stepConfig.Executor != nil {
-		executor, err = executors.NewExecutorFromConfig(stepConfig.Executor)
+		executor, err = registry.NewExecutorFromConfig(stepConfig.Executor)
 		if err != nil {
 			return nil, err
 		}

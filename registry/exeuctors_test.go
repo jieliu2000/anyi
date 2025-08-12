@@ -1,10 +1,10 @@
-package executors
+package registry
 
 import (
 	"testing"
 
+	"github.com/jieliu2000/anyi/executors"
 	"github.com/jieliu2000/anyi/flow"
-	"github.com/jieliu2000/anyi/registry"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -28,7 +28,7 @@ func TestNewExecutorFromConfig(t *testing.T) {
 
 	t.Run("Invalid type", func(t *testing.T) {
 
-		executorConfig := &ExecutorConfig{
+		executorConfig := &executors.ExecutorConfig{
 			Type: "invalid-executor",
 		}
 
@@ -41,9 +41,9 @@ func TestNewExecutorFromConfig(t *testing.T) {
 	t.Run("Success path with param", func(t *testing.T) {
 
 		executor1 := &MockExecutor{}
-		registry.RegisterExecutor("valid-executor", executor1)
+		RegisterExecutor("valid-executor", executor1)
 
-		executorConfig := &ExecutorConfig{
+		executorConfig := &executors.ExecutorConfig{
 			Type: "valid-executor",
 			WithConfig: map[string]interface{}{
 				"param1": "value1",
