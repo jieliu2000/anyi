@@ -6,21 +6,6 @@ import (
 	"github.com/jieliu2000/anyi/llm"
 )
 
-// AgentPlanningData represents the data structure passed to the planning template
-type AgentPlanningData struct {
-	Role              string     `json:"role"`
-	BackStory         string     `json:"backStory"`
-	PreferredLanguage string     `json:"preferredLanguage"`
-	Goal              string     `json:"goal"`
-	AvailableFlows    []FlowInfo `json:"availableFlows"`
-}
-
-// FlowInfo represents information about available flows for planning
-type FlowInfo struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-}
-
 // AgentPlanningFlow is a built-in flow that plans the execution steps for an agent's goal
 var AgentPlanningFlow *flow.Flow
 

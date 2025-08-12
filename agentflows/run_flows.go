@@ -1,10 +1,11 @@
 package agentflows
 
 import (
+	"github.com/jieliu2000/anyi/agentflows/model"
 	"github.com/jieliu2000/anyi/flow"
 )
 
-func RunPlanningFlow(planningData AgentPlanningData) (string, error) {
+func RunPlanningFlow(planningData model.AgentPlanningData) (string, error) {
 
 	context := &flow.FlowContext{}
 	context.Memory = planningData

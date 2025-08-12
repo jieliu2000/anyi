@@ -4,17 +4,18 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/jieliu2000/anyi/agentflows/model"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAgentPlanningData(t *testing.T) {
-	// Test AgentPlanningData structure
-	planningData := &AgentPlanningData{
+	// Test model.AgentPlanningData structure
+	planningData := &model.AgentPlanningData{
 		Role:              "Senior Data Scientist",
 		BackStory:         "An experienced data scientist with expertise in machine learning and data analysis",
 		PreferredLanguage: "English",
 		Goal:              "Analyze customer data and provide insights",
-		AvailableFlows: []FlowInfo{
+		AvailableFlows: []model.FlowInfo{
 			{Name: "DataAnalysisFlow", Description: "Analyzes data and generates reports"},
 			{Name: "ModelTrainingFlow", Description: "Trains machine learning models"},
 		},
@@ -26,14 +27,14 @@ func TestAgentPlanningData(t *testing.T) {
 }
 
 func TestFlowInfo(t *testing.T) {
-	// Test FlowInfo structure
-	flowInfo := FlowInfo{
+	// Test model.FlowInfo structure
+	testFlowInfo := model.FlowInfo{
 		Name:        "TestFlow",
 		Description: "A test flow for unit testing",
 	}
 
-	assert.Equal(t, "TestFlow", flowInfo.Name)
-	assert.Equal(t, "A test flow for unit testing", flowInfo.Description)
+	assert.Equal(t, "TestFlow", testFlowInfo.Name)
+	assert.Equal(t, "A test flow for unit testing", testFlowInfo.Description)
 }
 
 func TestCreateAgentPlanningFlow(t *testing.T) {
@@ -49,12 +50,12 @@ func TestCreateAgentPlanningFlow(t *testing.T) {
 
 func TestAgentPlanningDataJSONSerialization(t *testing.T) {
 	// Test JSON serialization/deserialization
-	planningData := &AgentPlanningData{
+	planningData := &model.AgentPlanningData{
 		Role:              "Product Manager",
 		BackStory:         "Expert in product strategy and roadmap planning",
 		PreferredLanguage: "English",
 		Goal:              "Create a product roadmap for Q4",
-		AvailableFlows: []FlowInfo{
+		AvailableFlows: []model.FlowInfo{
 			{Name: "MarketResearchFlow", Description: "Conducts market research"},
 			{Name: "StrategyPlanningFlow", Description: "Creates strategic plans"},
 		},
@@ -66,7 +67,7 @@ func TestAgentPlanningDataJSONSerialization(t *testing.T) {
 	assert.NotEmpty(t, jsonData)
 
 	// Deserialize from JSON
-	var deserializedData AgentPlanningData
+	var deserializedData model.AgentPlanningData
 	err = json.Unmarshal(jsonData, &deserializedData)
 	assert.NoError(t, err)
 	assert.Equal(t, planningData.Role, deserializedData.Role)
