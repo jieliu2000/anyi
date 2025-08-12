@@ -1,11 +1,9 @@
 package agentflows
 
 import (
-	"github.com/jieliu2000/anyi/agent"
 	"github.com/jieliu2000/anyi/executors"
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/llm"
-	"github.com/jieliu2000/anyi/registry"
 )
 
 // AgentPlanningData represents the data structure passed to the planning template
@@ -39,8 +37,6 @@ func InitAgentBuiltinFlows() {
 		Description: "This flow checks if the agent's goal has been achieved and decides next steps",
 	}
 
-	registry.RegisterFlow("Anyi_AgentPlanningFlow", AgentPlanningFlow)
-	registry.RegisterFlow("Anyi_AgentReflectionFlow", AgentReflectionFlow)
 }
 
 // createAgentPlanningFlow creates and returns the agent planning flow
@@ -101,30 +97,6 @@ Please provide only the JSON array, no additional text.`
 	}
 
 	return planningFlow
-}
-
-// PrepareAgentPlanningContext prepares the flow context with AgentPlanningData for the planning flow
-func PrepareAgentPlanningContext(agentInstance *agent.Agent, goal string) *flow.FlowContext {
-	// Extract available flows information
-	availableFlows := make([]FlowInfo, 0, len(agentInstance.Flows))
-	for _, f := range agentInstance.Flows {
-		availableFlows = append(availableFlows, FlowInfo{
-			Name:        f.Name,
-			Description: f.Description,
-		})
-	}
-
-	// Create the planning data
-	planningData := &AgentPlanningData{
-		Role:              agentInstance.Role,
-		BackStory:         agentInstance.BackStory,
-		PreferredLanguage: agentInstance.PreferredLanguage,
-		Goal:              goal,
-		AvailableFlows:    availableFlows,
-	}
-
-	// Create flow context with the planning data in memory
-	return flow.NewFlowContext("", planningData)
 }
 
 // CreateAgentPlanningFlowWithClient creates an agent planning flow with a specific LLM client

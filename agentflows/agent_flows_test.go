@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/jieliu2000/anyi/agent"
-	"github.com/jieliu2000/anyi/flow"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,45 +34,6 @@ func TestFlowInfo(t *testing.T) {
 
 	assert.Equal(t, "TestFlow", flowInfo.Name)
 	assert.Equal(t, "A test flow for unit testing", flowInfo.Description)
-}
-
-func TestPrepareAgentPlanningContext(t *testing.T) {
-	// Create a test agent
-	testAgent := &agent.Agent{
-		Role:              "Software Engineer",
-		BackStory:         "A skilled developer with 5 years of experience",
-		PreferredLanguage: "Chinese",
-		Flows: []*flow.Flow{
-			{
-				Name:        "CodeReviewFlow",
-				Description: "Reviews code and provides feedback",
-			},
-			{
-				Name:        "BugFixFlow",
-				Description: "Identifies and fixes bugs in code",
-			},
-		},
-	}
-
-	goal := "Fix the authentication bug in the user login system"
-
-	// Test the context preparation
-	context := PrepareAgentPlanningContext(testAgent, goal)
-
-	// Verify the context
-	assert.NotNil(t, context)
-	assert.NotNil(t, context.Memory)
-
-	// Verify the planning data
-	planningData, ok := context.Memory.(*AgentPlanningData)
-	assert.True(t, ok, "Memory should contain AgentPlanningData")
-	assert.Equal(t, "Software Engineer", planningData.Role)
-	assert.Equal(t, "A skilled developer with 5 years of experience", planningData.BackStory)
-	assert.Equal(t, "Chinese", planningData.PreferredLanguage)
-	assert.Equal(t, goal, planningData.Goal)
-	assert.Len(t, planningData.AvailableFlows, 2)
-	assert.Equal(t, "CodeReviewFlow", planningData.AvailableFlows[0].Name)
-	assert.Equal(t, "BugFixFlow", planningData.AvailableFlows[1].Name)
 }
 
 func TestCreateAgentPlanningFlow(t *testing.T) {
