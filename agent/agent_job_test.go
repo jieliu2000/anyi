@@ -1,12 +1,15 @@
 package agent
 
 import (
+	"os"
 	"testing"
 	"time"
 
 	"github.com/jieliu2000/anyi/agent/agentmodel"
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/internal/test"
+	"github.com/jieliu2000/anyi/llm/zhipu"
+	"github.com/jieliu2000/anyi/registry"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -117,9 +120,23 @@ func TestAgentJob_StopDuringExecution(t *testing.T) {
 }
 
 func TestAgentJob_PlanTasks(t *testing.T) {
+
+	config := zhipu.NewConfig(os.Getenv("ZHIPU_API_KEY"), "glm-4.5-flash", "https://open.bigmodel.cn/api/paas/v4/")
+	client, err := zhipu.NewClient(config)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, client)
+	if err != nil {
+		t.Fatalf("Failed to create client: %v", err)
+	}
+
+	llmFlow, _ := registry.GetFlow("llm")
 	// Create a mock agent
 	agent := &agentmodel.Agent{
 		Role: "test-agent",
+		Flows: []*flow.Flow{
+			llmFlow,
+		},
 	}
 
 	// Create a mock context

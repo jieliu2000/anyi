@@ -6,6 +6,7 @@ import (
 
 	"github.com/jieliu2000/anyi/agent/agentmodel"
 	"github.com/jieliu2000/anyi/agentflows/model"
+	"github.com/jieliu2000/anyi/registry"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -54,22 +55,29 @@ func ExecuteJob(job *agentmodel.AgentJob) {
 	job.Status = "completed"
 }
 
-func RunJobTask(job *agentmodel.AgentJob, task string) {
-	// task参数是JSON格式的规划步骤，需要解析它
+func RunJobTask(job *agentmodel.AgentJob, task string) error {
+	// task parameter is a JSON formatted planning step that needs to be parsed
 	var stepResult PlanningStepResult
-	err := json.Unmarshal([]byte(task), &stepResult)
+	_, err := registry.GetFlow("task")
+
+	if err != nil {
+		log.Errorf("Failed to get flow: %v", err)
+		return err
+	}
+	err = json.Unmarshal([]byte(task), &stepResult)
 	if err != nil {
 		log.Errorf("Failed to unmarshal task: %v", err)
-		return
+		return err
 	}
 
-	// 根据stepResult.FlowName查找对应的flow并执行
-	// 这里暂时只记录日志，实际执行逻辑可以后续补充
+	// Find the corresponding flow based on stepResult.FlowName and execute it
+	// Here we only log for now, actual execution logic can be added later
 	log.Infof("Running task: %s - %s", stepResult.FlowName, stepResult.Description)
+	return nil
 }
 
 func PlanJobTasks(job *agentmodel.AgentJob) []string {
-	// 将job以及job相关Agent中的数据转化为AgentPlanningData结构
+	// Convert data from job and its associated Agent to AgentPlanningData structure
 	planningData := model.AgentPlanningData{
 		Role:              job.Agent.Role,
 		BackStory:         job.Agent.BackStory,
@@ -77,7 +85,7 @@ func PlanJobTasks(job *agentmodel.AgentJob) []string {
 		Goal:              job.Context.Goal,
 	}
 
-	// 转换AvailableFlows
+	// Convert AvailableFlows
 	planningData.AvailableFlows = make([]model.FlowInfo, len(job.Agent.Flows))
 	for i, flow := range job.Agent.Flows {
 		planningData.AvailableFlows[i] = model.FlowInfo{
@@ -86,14 +94,14 @@ func PlanJobTasks(job *agentmodel.AgentJob) []string {
 		}
 	}
 
-	// 调用RunPlanningFlow
-	planningText, err := RunPlanningFlow(planningData)
+	// Call RunPlanningFlow
+	planningText, err := RunPlanningFlow(planningData, job.Agent.Client)
 	if err != nil {
 		log.Errorf("Failed to run planning flow: %v", err)
 		return []string{}
 	}
 
-	// 解析规划结果
+	// Parse planning results
 	var planningResults []PlanningStepResult
 	err = json.Unmarshal([]byte(planningText), &planningResults)
 	if err != nil {
@@ -101,7 +109,7 @@ func PlanJobTasks(job *agentmodel.AgentJob) []string {
 		return []string{}
 	}
 
-	// 将规划结果转换为字符串数组返回
+	// Convert planning results to string array and return
 	taskPlan := make([]string, len(planningResults))
 	for i, result := range planningResults {
 		taskBytes, _ := json.Marshal(result)
@@ -109,20 +117,4 @@ func PlanJobTasks(job *agentmodel.AgentJob) []string {
 	}
 
 	return taskPlan
-}
-
-// Resume continues a paused job
-func ResumeJob(job *agentmodel.AgentJob) error {
-	// When resuming, we replan based on the existing context
-	job.Status = "running"
-
-	ExecuteJob(job)
-	return nil
-}
-
-// Stop pauses the job execution
-func StopJob(job *agentmodel.AgentJob) error {
-	job.Status = "paused"
-
-	return nil
 }
