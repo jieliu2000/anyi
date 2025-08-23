@@ -1,0 +1,90 @@
+# Anyi配置文件示例 - 集成 Agent 支持
+# 这个文件展示了如何在一个配置文件中同时配置 Clients、Flows 和 Agents
+
+# LLM 客户端配置
+clients:
+  - name: openai-gpt4
+    type: openai
+    apiKey: "${OPENAI_API_KEY}"
+    model: gpt-4
+    default: true
+    
+  - name: anthropic-claude
+    type: anthropic
+    apiKey: "${ANTHROPIC_API_KEY}"
+    model: claude-3-sonnet
+
+# 工作流配置
+flows:
+  - name: web_search
+    clientName: openai-gpt4
+    steps:
+      - name: query_generation
+        executor:
+          type: llm
+          withconfig:
+            prompt: |
+              Generate specific search queries for: {{.input}}
+              Return 3-5 focused search terms that will help find relevant information.
+              
+  - name: document_analysis
+    clientName: anthropic-claude
+    steps:
+      - name: analysis
+        executor:
+          type: llm
+          withconfig:
+            prompt: |
+              Analyze the following document and extract key insights:
+              
+              {{.input}}
+              
+              Please provide:
+              1. Main topics and themes
+              2. Key findings or conclusions
+              3. Important data points or statistics
+              4. Actionable recommendations
+              
+  - name: report_synthesis
+    clientName: openai-gpt4
+    steps:
+      - name: synthesis
+        executor:
+          type: llm
+          withconfig:
+            prompt: |
+              Based on the research findings below, create a comprehensive report:
+              
+              {{.input}}
+              
+              Structure the report with:
+              - Executive Summary
+              - Detailed Analysis
+              - Key Findings
+              - Recommendations
+              - Conclusion
+
+# Agent 配置（新功能）
+agents:
+  - name: research_assistant
+    description: "An AI research assistant that can search, analyze, and synthesize information into comprehensive reports"
+    flows:
+      - web_search
+      - document_analysis
+      - report_synthesis
+    clientName: openai-gpt4
+    config:
+      max_search_depth: 3
+      analysis_style: "comprehensive"
+      report_format: "professional"
+      
+  - name: content_creator
+    description: "An AI content creator specialized in writing and editing various types of content"
+    flows:
+      - document_analysis
+      - report_synthesis
+    clientName: anthropic-claude
+    config:
+      writing_style: "engaging"
+      target_audience: "general"
+      content_length: "medium"

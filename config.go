@@ -14,11 +14,22 @@ import (
 )
 
 // AnyiConfig represents the top-level configuration structure for the Anyi framework.
-// It contains configurations for clients, flows, and formatters.
+// It contains configurations for clients, flows, formatters, and agents.
 type AnyiConfig struct {
-	Clients    []llm.ClientConfig
-	Flows      []FlowConfig
-	Formatters []FormatterConfig
+	Clients    []llm.ClientConfig `mapstructure:"clients"`
+	Flows      []FlowConfig       `mapstructure:"flows"`
+	Formatters []FormatterConfig  `mapstructure:"formatters"`
+	Agents     []AgentConfig      `mapstructure:"agents"` // New: Agent configurations
+}
+
+// AgentConfig defines the configuration structure for agents.
+// Agents are intelligent entities that can plan and execute multiple workflows.
+type AgentConfig struct {
+	Name        string                 `mapstructure:"name"`
+	Description string                 `mapstructure:"description"`
+	Flows       []string               `mapstructure:"flows"`     // Available flows for this agent
+	ClientName  string                 `mapstructure:"clientName"` // LLM client for task planning
+	Config      map[string]interface{} `mapstructure:"config"`    // Agent-specific configuration
 }
 
 // ValidatorConfig defines the configuration structure for validators.
@@ -278,8 +289,59 @@ func NewValidatorFromConfig(validatorConfig *ValidatorConfig) (flow.StepValidato
 
 }
 
+// NewAgentFromConfig creates a new agent from an agent configuration.
+// It validates the configuration, creates the agent instance, and registers it
+// with the global registry for later retrieval.
+//
+// Parameters:
+//   - agentConfig: Agent configuration containing name, description, flows, and client settings
+//
+// Returns:
+//   - Any error encountered during agent creation or registration
+func NewAgentFromConfig(agentConfig *AgentConfig) error {
+	if agentConfig == nil {
+		return errors.New("agent config is nil")
+	}
+
+	if agentConfig.Name == "" {
+		return errors.New("agent name cannot be empty")
+	}
+
+	if agentConfig.ClientName == "" {
+		return fmt.Errorf("agent '%s' must have a client configured", agentConfig.Name)
+	}
+
+	if len(agentConfig.Flows) == 0 {
+		return fmt.Errorf("agent '%s' must have at least one flow configured", agentConfig.Name)
+	}
+
+	// Verify that the specified client exists
+	_, err := GetClient(agentConfig.ClientName)
+	if err != nil {
+		return fmt.Errorf("agent '%s' references unknown client '%s': %w", 
+			agentConfig.Name, agentConfig.ClientName, err)
+	}
+
+	// Verify that all specified flows exist
+	for _, flowName := range agentConfig.Flows {
+		_, err := GetFlow(flowName)
+		if err != nil {
+			return fmt.Errorf("agent '%s' references unknown flow '%s': %w", 
+				agentConfig.Name, flowName, err)
+		}
+	}
+
+	// Store agent configuration in the global registry
+	GlobalRegistry.mu.Lock()
+	GlobalRegistry.AgentConfigs[agentConfig.Name] = agentConfig
+	GlobalRegistry.mu.Unlock()
+
+	log.Infof("Agent configuration '%s' loaded successfully", agentConfig.Name)
+	return nil
+}
+
 // Config configures the Anyi framework with the provided configuration.
-// It initializes clients, flows, and formatters based on the configuration.
+// It initializes clients, flows, formatters, and agents based on the configuration.
 //
 // Parameters:
 //   - config: Complete configuration for the Anyi framework
@@ -305,6 +367,14 @@ func Config(config *AnyiConfig) error {
 	// Init flows
 	for _, flowConfig := range config.Flows {
 		_, err := NewFlowFromConfig(&flowConfig)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Init agents (new)
+	for _, agentConfig := range config.Agents {
+		err := NewAgentFromConfig(&agentConfig)
 		if err != nil {
 			return err
 		}

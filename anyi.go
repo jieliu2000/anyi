@@ -8,13 +8,14 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/jieliu2000/anyi/agent"
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/llm"
 	"github.com/jieliu2000/anyi/llm/chat"
 )
 
 // anyiRegistry is the central registry for all components in the Anyi framework.
-// It stores clients, flows, validators, executors, and formatters for reuse across the application.
+// It stores clients, flows, validators, executors, formatters, and agents for reuse across the application.
 type anyiRegistry struct {
 	mu                sync.RWMutex
 	Clients           map[string]llm.Client
@@ -22,17 +23,19 @@ type anyiRegistry struct {
 	Validators        map[string]flow.StepValidator
 	Executors         map[string]flow.StepExecutor
 	Formatters        map[string]chat.PromptFormatter
+	AgentConfigs      map[string]*AgentConfig // Store agent configurations
 	defaultClientName string
 }
 
 // GlobalRegistry is the singleton instance of anyiRegistry.
 // All components are registered and retrieved through this global registry.
 var GlobalRegistry *anyiRegistry = &anyiRegistry{
-	Clients:    make(map[string]llm.Client),
-	Flows:      make(map[string]*flow.Flow),
-	Validators: make(map[string]flow.StepValidator),
-	Executors:  make(map[string]flow.StepExecutor),
-	Formatters: make(map[string]chat.PromptFormatter),
+	Clients:      make(map[string]llm.Client),
+	Flows:        make(map[string]*flow.Flow),
+	Validators:   make(map[string]flow.StepValidator),
+	Executors:    make(map[string]flow.StepExecutor),
+	Formatters:   make(map[string]chat.PromptFormatter),
+	AgentConfigs: make(map[string]*AgentConfig),
 }
 
 // RegisterNewDefaultClient registers a client as the default client in the global registry.
@@ -304,6 +307,68 @@ func GetClient(name string) (llm.Client, error) {
 		return nil, errors.New("no client found with the given name: " + name)
 	}
 	return client, nil
+}
+
+// AgentWrapper wraps an agent instance with registry access.
+type AgentWrapper struct {
+	*agent.Agent
+}
+
+// Execute executes the given objective using the global anyi registry.
+func (w *AgentWrapper) Execute(objective string) (*agent.TaskResult, error) {
+	return w.Agent.ExecuteWithRegistry(objective, GetFlow, GetClient)
+}
+
+// GetAgent retrieves an agent from the global registry by name.
+// If the agent doesn't exist yet, it creates one from the stored configuration.
+//
+// Parameters:
+//   - name: Name of the agent to retrieve
+//
+// Returns:
+//   - The requested agent wrapped with registry access
+//   - An error if the agent configuration is not found
+func GetAgent(name string) (*AgentWrapper, error) {
+	if name == "" {
+		return nil, errors.New("agent name cannot be empty")
+	}
+
+	GlobalRegistry.mu.RLock()
+	agentConfig, exists := GlobalRegistry.AgentConfigs[name]
+	GlobalRegistry.mu.RUnlock()
+
+	if !exists {
+		return nil, fmt.Errorf("no agent configuration found with name: %s", name)
+	}
+
+	// Create agent from configuration
+	agentInstance := &agent.Agent{
+		Name:        agentConfig.Name,
+		Description: agentConfig.Description,
+		Flows:       agentConfig.Flows,
+		ClientName:  agentConfig.ClientName,
+		Memory:      agent.NewSimpleMemory(),
+		Config:      agentConfig.Config,
+	}
+
+	// Wrap with registry access
+	wrapper := &AgentWrapper{Agent: agentInstance}
+	return wrapper, nil
+}
+
+// ListAgents returns a list of all configured agent names.
+//
+// Returns:
+//   - A slice of agent names
+func ListAgents() []string {
+	GlobalRegistry.mu.RLock()
+	defer GlobalRegistry.mu.RUnlock()
+
+	names := make([]string, 0, len(GlobalRegistry.AgentConfigs))
+	for name := range GlobalRegistry.AgentConfigs {
+		names = append(names, name)
+	}
+	return names
 }
 
 // NewClientFromConfigFile creates a new client from a configuration file and optionally registers it.
