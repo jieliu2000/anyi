@@ -15,29 +15,34 @@ import (
 
 // TaskPlanner is responsible for planning task execution by generating execution plans.
 type TaskPlanner struct {
-	registry AgentRegistry
-	client   llm.Client
-	agent    *Agent
+	getFlow   func(string) (*flow.Flow, error)
+	getClient func(string) (llm.Client, error)
+	client    llm.Client
+	agent     *Agent
 }
 
 // NewTaskPlanner creates a new TaskPlanner instance.
-func NewTaskPlanner(registry AgentRegistry, agent *Agent) (*TaskPlanner, error) {
-	if registry == nil {
-		return nil, errors.New("registry cannot be nil")
+func NewTaskPlanner(getFlow func(string) (*flow.Flow, error), getClient func(string) (llm.Client, error), agent *Agent) (*TaskPlanner, error) {
+	if getFlow == nil {
+		return nil, errors.New("getFlow function cannot be nil")
+	}
+	if getClient == nil {
+		return nil, errors.New("getClient function cannot be nil")
 	}
 	if agent == nil {
 		return nil, errors.New("agent cannot be nil")
 	}
 
-	client, err := agent.GetClient(registry)
+	client, err := agent.GetClient(getClient)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get client for agent: %w", err)
 	}
 
 	return &TaskPlanner{
-		registry: registry,
-		client:   client,
-		agent:    agent,
+		getFlow:   getFlow,
+		getClient: getClient,
+		client:    client,
+		agent:     agent,
 	}, nil
 }
 
@@ -50,9 +55,13 @@ func (p *TaskPlanner) PlanExecution(objective string) (*ExecutionPlan, error) {
 	log.Debugf("Planning execution for objective: %s", objective)
 
 	// Get available flows for the agent
-	flows, err := p.registry.GetFlows(p.agent)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get flows for agent: %w", err)
+	var flows []*flow.Flow
+	for _, flowName := range p.agent.Flows {
+		flow, err := p.getFlow(flowName)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get flow '%s': %w", flowName, err)
+		}
+		flows = append(flows, flow)
 	}
 
 	if len(flows) == 0 {

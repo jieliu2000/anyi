@@ -15,16 +15,16 @@ import (
 
 // AgentExecutor is responsible for executing the generated execution plans.
 type AgentExecutor struct {
-	registry AgentRegistry
-	agent    *Agent
-	memory   AgentMemory
-	mutex    sync.RWMutex
+	flowGetter func(string) (*flow.Flow, error)
+	agent      *Agent
+	memory     AgentMemory
+	mutex      sync.RWMutex
 }
 
 // NewAgentExecutor creates a new AgentExecutor instance.
-func NewAgentExecutor(registry AgentRegistry, agent *Agent, memory AgentMemory) (*AgentExecutor, error) {
-	if registry == nil {
-		return nil, errors.New("registry cannot be nil")
+func NewAgentExecutor(getFlow func(string) (*flow.Flow, error), agent *Agent, memory AgentMemory) (*AgentExecutor, error) {
+	if getFlow == nil {
+		return nil, errors.New("getFlow function cannot be nil")
 	}
 	if agent == nil {
 		return nil, errors.New("agent cannot be nil")
@@ -34,9 +34,9 @@ func NewAgentExecutor(registry AgentRegistry, agent *Agent, memory AgentMemory) 
 	}
 
 	return &AgentExecutor{
-		registry: registry,
-		agent:    agent,
-		memory:   memory,
+		flowGetter: getFlow,
+		agent:      agent,
+		memory:     memory,
 	}, nil
 }
 
@@ -150,23 +150,9 @@ func (e *AgentExecutor) executeStep(step ExecutionStep, taskResult *TaskResult) 
 	return stepResult, nil
 }
 
-// getFlow retrieves a flow from the registry.
+// getFlow retrieves a flow using the flow getter function.
 func (e *AgentExecutor) getFlow(flowName string) (*flow.Flow, error) {
-	e.mutex.RLock()
-	defer e.mutex.RUnlock()
-
-	flows, err := e.registry.GetFlows(e.agent)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get flows for agent: %w", err)
-	}
-
-	for _, f := range flows {
-		if f.Name == flowName {
-			return f, nil
-		}
-	}
-
-	return nil, fmt.Errorf("flow '%s' not found in agent's available flows", flowName)
+	return e.flowGetter(flowName)
 }
 
 // prepareFlowInput prepares the input for flow execution, potentially incorporating previous step results.

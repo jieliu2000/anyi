@@ -25,18 +25,12 @@ func (a Agent) GetClientName() string {
 	return a.ClientName
 }
 
-// GetClient retrieves the LLM client for this agent from the registry.
-func (a *Agent) GetClient(registry AgentRegistry) (llm.Client, error) {
+// GetClient retrieves the LLM client for this agent using the provided function.
+func (a *Agent) GetClient(getClient func(string) (llm.Client, error)) (llm.Client, error) {
 	if a.ClientName == "" {
 		return nil, errors.New("agent has no client configured")
 	}
-	return registry.GetClient(a.ClientName)
-}
-
-// AgentRegistry defines the interface for agent registry operations needed by agents.
-type AgentRegistry interface {
-	GetFlows(agent *Agent) ([]*flow.Flow, error)
-	GetClient(clientName string) (llm.Client, error)
+	return getClient(a.ClientName)
 }
 
 // Execute executes the given objective using the provided registry functions.
@@ -52,22 +46,14 @@ func (a *Agent) ExecuteWithRegistry(objective string, getFlow func(string) (*flo
 		a.Memory = NewSimpleMemory()
 	}
 
-	// Create registry adapter with function pointers
-	registryAdapter := &FunctionalRegistryAdapter{
-		Functions: RegistryFunctions{
-			GetFlow:   getFlow,
-			GetClient: getClient,
-		},
-	}
-
 	// Create executor
-	executor, err := NewAgentExecutor(registryAdapter, a, a.Memory)
+	executor, err := NewAgentExecutor(getFlow, a, a.Memory)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create executor: %w", err)
 	}
 
 	// Create planner
-	planner, err := NewTaskPlanner(registryAdapter, a)
+	planner, err := NewTaskPlanner(getFlow, getClient, a)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create planner: %w", err)
 	}

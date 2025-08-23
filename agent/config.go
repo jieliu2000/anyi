@@ -9,7 +9,7 @@ import (
 
 // AgentConfig represents the configuration structure for agents.
 type AgentConfig struct {
-	Agents []Agent `mapstructure:"agents"`
+	Agents []Agent `yaml:"agents" mapstructure:"agents"`
 }
 
 // LoadAgentsFromFile loads agent configurations from a YAML file.

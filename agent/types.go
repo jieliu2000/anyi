@@ -7,12 +7,12 @@ import (
 // Agent is an intelligent agent that can autonomously plan and execute multiple workflows
 // based on task objectives.
 type Agent struct {
-	Name        string         `mapstructure:"name"`
-	Description string         `mapstructure:"description"`
-	Flows       []string       `mapstructure:"flows"`      // Available flows - core capabilities of the agent
-	ClientName  string         `mapstructure:"clientName"` // LLM client for task planning
-	Memory      AgentMemory    `mapstructure:"-"`          // Agent's working memory
-	Config      map[string]any `mapstructure:"config"`     // Agent configuration parameters
+	Name        string         `yaml:"name" mapstructure:"name"`
+	Description string         `yaml:"description" mapstructure:"description"`
+	Flows       []string       `yaml:"flows" mapstructure:"flows"`           // Available flows - core capabilities of the agent
+	ClientName  string         `yaml:"clientName" mapstructure:"clientName"` // LLM client for task planning
+	Memory      AgentMemory    `yaml:"-" mapstructure:"-"`                   // Agent's working memory
+	Config      map[string]any `yaml:"config" mapstructure:"config"`         // Agent configuration parameters
 }
 
 // TaskStatus represents the status of a task execution.

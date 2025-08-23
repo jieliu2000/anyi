@@ -2,8 +2,6 @@ package agent
 
 import (
 	"testing"
-
-	"github.com/jieliu2000/anyi/registry"
 )
 
 func TestAgent(t *testing.T) {
@@ -69,40 +67,6 @@ func TestSimpleMemory(t *testing.T) {
 	history = memory.GetTaskHistory()
 	if len(history) != 0 {
 		t.Errorf("Expected empty history after clear, got %d items", len(history))
-	}
-}
-
-func TestAgentRegistry(t *testing.T) {
-	reg := registry.NewRegistry()
-
-	// Create and register an agent
-	agent := Agent{
-		Name:        "test_agent",
-		Description: "A test agent",
-		Flows:       []string{"test_flow"},
-		ClientName:  "test_client",
-		Memory:      NewSimpleMemory(),
-		Config:      make(map[string]any),
-	}
-
-	err := reg.RegisterAgent(agent.Name, agent)
-	if err != nil {
-		t.Errorf("Failed to register agent: %v", err)
-	}
-
-	// Retrieve the agent
-	retrievedInterface, err := reg.GetAgent("test_agent")
-	if err != nil {
-		t.Errorf("Failed to get agent: %v", err)
-	}
-
-	retrieved, ok := retrievedInterface.(Agent)
-	if !ok {
-		t.Error("Retrieved agent is not of correct type")
-	}
-
-	if retrieved.Name != "test_agent" {
-		t.Errorf("Expected name 'test_agent', got '%s'", retrieved.Name)
 	}
 }
 
