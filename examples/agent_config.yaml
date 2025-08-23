@@ -8,7 +8,7 @@ clients:
     apiKey: "${OPENAI_API_KEY}"
     model: gpt-4
     default: true
-    
+
   - name: anthropic-claude
     type: anthropic
     apiKey: "${ANTHROPIC_API_KEY}"
@@ -26,7 +26,7 @@ flows:
             prompt: |
               Generate specific search queries for: {{.input}}
               Return 3-5 focused search terms that will help find relevant information.
-              
+
   - name: document_analysis
     clientName: anthropic-claude
     steps:
@@ -36,15 +36,15 @@ flows:
           withconfig:
             prompt: |
               Analyze the following document and extract key insights:
-              
+
               {{.input}}
-              
+
               Please provide:
               1. Main topics and themes
               2. Key findings or conclusions
               3. Important data points or statistics
               4. Actionable recommendations
-              
+
   - name: report_synthesis
     clientName: openai-gpt4
     steps:
@@ -54,9 +54,9 @@ flows:
           withconfig:
             prompt: |
               Based on the research findings below, create a comprehensive report:
-              
+
               {{.input}}
-              
+
               Structure the report with:
               - Executive Summary
               - Detailed Analysis
@@ -77,7 +77,7 @@ agents:
       max_search_depth: 3
       analysis_style: "comprehensive"
       report_format: "professional"
-      
+
   - name: content_creator
     description: "An AI content creator specialized in writing and editing various types of content"
     flows:

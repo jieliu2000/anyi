@@ -27,9 +27,9 @@ type AnyiConfig struct {
 type AgentConfig struct {
 	Name        string                 `mapstructure:"name"`
 	Description string                 `mapstructure:"description"`
-	Flows       []string               `mapstructure:"flows"`     // Available flows for this agent
+	Flows       []string               `mapstructure:"flows"`      // Available flows for this agent
 	ClientName  string                 `mapstructure:"clientName"` // LLM client for task planning
-	Config      map[string]interface{} `mapstructure:"config"`    // Agent-specific configuration
+	Config      map[string]interface{} `mapstructure:"config"`     // Agent-specific configuration
 }
 
 // ValidatorConfig defines the configuration structure for validators.
@@ -318,7 +318,7 @@ func NewAgentFromConfig(agentConfig *AgentConfig) error {
 	// Verify that the specified client exists
 	_, err := GetClient(agentConfig.ClientName)
 	if err != nil {
-		return fmt.Errorf("agent '%s' references unknown client '%s': %w", 
+		return fmt.Errorf("agent '%s' references unknown client '%s': %w",
 			agentConfig.Name, agentConfig.ClientName, err)
 	}
 
@@ -326,7 +326,7 @@ func NewAgentFromConfig(agentConfig *AgentConfig) error {
 	for _, flowName := range agentConfig.Flows {
 		_, err := GetFlow(flowName)
 		if err != nil {
-			return fmt.Errorf("agent '%s' references unknown flow '%s': %w", 
+			return fmt.Errorf("agent '%s' references unknown flow '%s': %w",
 				agentConfig.Name, flowName, err)
 		}
 	}

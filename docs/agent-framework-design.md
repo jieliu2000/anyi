@@ -92,7 +92,7 @@ flows:
           withconfig:
             prompt: "Analyze this document: {{.input}}"
 
-agents:  # 新增 Agent 配置部分
+agents: # 新增 Agent 配置部分
   - name: research_assistant
     description: "An AI assistant specialized in research and analysis"
     flows:
@@ -174,7 +174,7 @@ func Config(config *AnyiConfig) error {
     Init()
 
     log.Debug("Config Anyi with: ", config)
-    
+
     // 现有的客户端初始化
     for _, clientConfig := range config.Clients {
         if clientConfig.Name != "" {
@@ -242,12 +242,12 @@ func GetAgent(name string) (*Agent, error) {
     if err != nil {
         return nil, err
     }
-    
+
     agent, ok := agentInterface.(*Agent)
     if !ok {
         return nil, fmt.Errorf("invalid agent type for %s", name)
     }
-    
+
     return agent, nil
 }
 
@@ -276,7 +276,7 @@ clients:
     apiKey: "${OPENAI_API_KEY}"
     model: gpt-4
     default: true
-    
+
   - name: anthropic-claude
     type: anthropic
     apiKey: "${ANTHROPIC_API_KEY}"
@@ -294,7 +294,7 @@ flows:
             prompt: |
               Generate search queries for: {{.input}}
               Provide 3-5 specific search terms.
-      
+
   - name: document_analysis
     clientName: anthropic-claude
     steps:
@@ -305,7 +305,7 @@ flows:
             prompt: |
               Analyze the following document and provide key insights:
               {{.input}}
-              
+
               Focus on:
               1. Main topics
               2. Key findings
@@ -321,7 +321,7 @@ flows:
             prompt: |
               Based on the research findings below, create a comprehensive report:
               {{.input}}
-              
+
               Include:
               - Executive Summary
               - Detailed Analysis
@@ -340,7 +340,7 @@ agents:
       max_search_results: 10
       analysis_depth: "comprehensive"
       report_format: "professional"
-      
+
   - name: content_creator
     description: "An AI content creator specialized in writing and editing"
     flows:
@@ -360,7 +360,7 @@ package main
 import (
     "fmt"
     "log"
-    
+
     "github.com/jieliu2000/anyi"
 )
 
@@ -387,7 +387,7 @@ func main() {
     fmt.Printf("Task completed successfully!\n")
     fmt.Printf("Final Output: %s\n", result.FinalOutput)
     fmt.Printf("Execution took: %v\n", result.Duration)
-    
+
     // 5. 查看执行历史
     history := agent.GetExecutionHistory()
     fmt.Printf("Agent has completed %d tasks\n", len(history))
@@ -399,22 +399,26 @@ func main() {
 ### 阶段 1: 配置系统集成 ✅
 
 #### 1.1 扩展 AnyiConfig 结构
+
 - [x] 在 `config.go` 中添加 `AgentConfig` 类型
 - [x] 扩展 `AnyiConfig` 包含 `Agents` 字段
 - [x] 创建 `NewAgentFromConfig` 函数
 
 #### 1.2 更新配置加载流程
+
 - [x] 修改 `Config()` 函数支持 Agent 配置加载
 - [x] 在 `ConfigFromFile()` 和 `ConfigFromString()` 中集成 Agent
 
 ### 阶段 2: 核心 Agent 框架 ✅
 
 #### 2.1 创建 registry 包
+
 - [x] 重构 GlobalRegistry 到 `registry/registry.go`
 - [x] 创建 `registry/types.go` 定义接口避免循环引用
 - [x] 实现 Agent 注册和检索方法
 
 #### 2.2 实现 agent 包
+
 - [x] 创建 `agent/types.go` - 核心类型定义
 - [x] 创建 `agent/memory.go` - Agent 记忆系统
 - [x] 创建 `agent/agent.go` - Agent 核心逻辑
@@ -425,11 +429,13 @@ func main() {
 ### 阶段 3: 主框架集成 🔄
 
 #### 3.1 更新主配置文件
+
 - [x] 在 `config.go` 中添加 `AgentConfig` 结构体
 - [ ] 实现 `NewAgentFromConfig()` 函数
 - [ ] 集成到 `Config()` 主函数
 
 #### 3.2 添加便利函数
+
 - [ ] 在 `anyi.go` 中添加 `GetAgent()` 函数
 - [ ] 添加 `RegisterAgent()` 函数
 - [ ] 添加 `ListAgents()` 函数
@@ -437,11 +443,13 @@ func main() {
 ### 阶段 4: 测试和示例
 
 #### 4.1 单元测试
+
 - [x] Agent 基础功能测试
 - [x] Memory 系统测试
 - [ ] 集成测试
 
 #### 4.2 示例和文档
+
 - [x] 创建使用示例
 - [ ] 编写详细文档
 - [ ] 性能测试
@@ -453,6 +461,7 @@ func main() {
 **决策**: 扩展现有的 `AnyiConfig` 结构，而不是创建独立的配置系统
 
 **原因**:
+
 - 保持配置的一致性和统一性
 - 利用现有的配置加载机制（支持多种格式）
 - 避免用户需要维护多个配置文件
@@ -463,6 +472,7 @@ func main() {
 **决策**: Agent.Execute() 只需要一个字符串参数
 
 **原因**:
+
 - 符合用户的简化需求
 - 隐藏内部复杂性
 - 让 LLM 负责智能规划，而不是用户手动构建复杂对象
@@ -473,6 +483,7 @@ func main() {
 **决策**: 创建独立的 `registry` 包，使用接口隔离
 
 **原因**:
+
 - 彻底解决 Agent ↔ Flow 循环引用问题
 - 保持代码的清晰架构
 - 提供类型安全的访问方式
@@ -483,6 +494,7 @@ func main() {
 **决策**: Agent 不直接执行任务，而是规划和协调 Flow 执行
 
 **原因**:
+
 - 保持与现有 Anyi 架构的兼容性
 - Flow 仍然是实际的执行单元
 - Agent 专注于智能规划和协调
@@ -500,6 +512,7 @@ func main() {
 ### 渐进式采用
 
 用户可以：
+
 1. 继续使用现有的 Flow 方式
 2. 逐步添加 Agent 配置
 3. 混合使用 Flow 和 Agent
@@ -540,6 +553,7 @@ result, _ := agent.Execute("分析销售数据趋势并提供业务建议")
 3. ✅ **极简执行**: 通过 `agent.Execute("objective")` 执行任务
 
 同时保持了：
+
 - 向后兼容性
 - 架构清晰性
 - 类型安全
@@ -605,40 +619,43 @@ func (r *Registry) GetAgent(name string) (interface{}, error)
 func (r *Registry) GetFlows(agent interface{}) ([]*flow.Flow, error)
 func (r *Registry) ListAgents() ([]string, error)
 ```
+
     "github.com/jieliu2000/anyi/flow"
     "github.com/jieliu2000/anyi/llm"
     "github.com/jieliu2000/anyi/llm/chat"
+
 )
 
 type Registry struct {
-    mu         sync.RWMutex
-    clients    map[string]llm.Client
-    flows      map[string]*flow.Flow
-    validators map[string]flow.StepValidator
-    executors  map[string]flow.StepExecutor
-    formatters map[string]chat.PromptFormatter
-    agents     map[string]*Agent     // 新增：Agent 注册
-    defaultClientName string
+mu sync.RWMutex
+clients map[string]llm.Client
+flows map[string]*flow.Flow
+validators map[string]flow.StepValidator
+executors map[string]flow.StepExecutor
+formatters map[string]chat.PromptFormatter
+agents map[string]*Agent // 新增：Agent 注册
+defaultClientName string
 }
 
 var GlobalRegistry = NewRegistry()
 
 func NewRegistry() *Registry {
-    return &Registry{
-        clients:    make(map[string]llm.Client),
-        flows:      make(map[string]*flow.Flow),
-        validators: make(map[string]flow.StepValidator),
-        executors:  make(map[string]flow.StepExecutor),
-        formatters: make(map[string]chat.PromptFormatter),
-        agents:     make(map[string]*Agent),
-    }
+return &Registry{
+clients: make(map[string]llm.Client),
+flows: make(map[string]*flow.Flow),
+validators: make(map[string]flow.StepValidator),
+executors: make(map[string]flow.StepExecutor),
+formatters: make(map[string]chat.PromptFormatter),
+agents: make(map[string]\*Agent),
+}
 }
 
 // Agent 相关方法
 func (r *Registry) RegisterAgent(name string, agent *Agent) error
 func (r *Registry) GetAgent(name string) (*Agent, error)
-func (r *Registry) GetFlows(agent *Agent) ([]*flow.Flow, error)
-```
+func (r *Registry) GetFlows(agent *Agent) ([]\*flow.Flow, error)
+
+````
 
 ### 3. Agent 核心功能
 
@@ -699,7 +716,7 @@ func (p *TaskPlanner) PlanExecution(objective string, agent *Agent) (*ExecutionP
 }
     `, objective, agent.Description, p.formatFlowsInfo(flows), objective)
 }
-```
+````
 
 #### 3.2 Agent 执行器（极简版）
 

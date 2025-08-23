@@ -6,7 +6,7 @@ import (
 
 func TestAgentConfigurationBasic(t *testing.T) {
 	// Test basic agent configuration loading without full mock setup
-	
+
 	// Initialize the framework
 	Init()
 

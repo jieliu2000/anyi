@@ -28,7 +28,7 @@ func main() {
 		fmt.Println("   export OPENAI_API_KEY=your-key")
 		fmt.Println("   export ANTHROPIC_API_KEY=your-key")
 		fmt.Println()
-		
+
 		// Continue with demo using mock setup
 		fmt.Println("🔧 Setting up demo with mock configuration...")
 		setupMockDemo()
@@ -90,7 +90,7 @@ func setupMockDemo() {
 	fmt.Println("   3. Create agent instances with registry access")
 	fmt.Println("   4. Enable simple agent.Execute(objective) calls")
 	fmt.Println()
-	
+
 	fmt.Println("📋 Example usage after proper setup:")
 	fmt.Println(`
    // Load configuration
@@ -105,7 +105,7 @@ func setupMockDemo() {
    // Get results
    fmt.Printf("Result: %s\n", result.FinalOutput)
 	`)
-	
+
 	fmt.Println("🎯 Key benefits of this integration:")
 	fmt.Println("   ✅ Single configuration file for all components")
 	fmt.Println("   ✅ Simple agent.Execute(objective) interface")
