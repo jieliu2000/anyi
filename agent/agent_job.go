@@ -1,128 +1,134 @@
 package agent
 
 import (
-	"encoding/json"
-	"errors"
-
-	"github.com/jieliu2000/anyi/agent/agentmodel"
-	"github.com/jieliu2000/anyi/agentflows/model"
-	log "github.com/sirupsen/logrus"
+	"fmt"
+	"github.com/jieliu2000/anyi/flow"
 )
 
-// PlanningStepResult represents a single step in the planning result
-type PlanningStepResult struct {
-	FlowName    string `json:"flowName"`
-	Description string `json:"description"`
-}
+// AgentJob represents an asynchronous job that an agent executes
+type AgentJob struct {
+	// Agent is the agent that executes the job
+	Agent *Agent
 
-// StartJob starts a new job for the agent with the given context
-// It returns an AgentJob reference immediately while the job runs asynchronously
-func StartAgentJob(a *agentmodel.Agent, context *agentmodel.AgentContext) (*agentmodel.AgentJob, error) {
-	// Check if agent has at least one flow
-	if len(a.Flows) == 0 {
-		return nil, errors.New("agent must have at least one flow to start a job")
-	}
+	// Context is the context for the job execution
+	Context *AgentContext
 
-	if a.Client == nil {
-		return nil, errors.New("agent must have a valid client to start a job")
-	}
+	// Status indicates the current status of the job
+	Status string // "running", "paused", "completed", "failed"
 
-	job := &agentmodel.AgentJob{
-		Agent:   a,
-		Context: context,
-		Status:  "running",
-	}
-
-	// Run the job asynchronously
-	go ExecuteJob(job)
-
-	return job, nil
+	// FlowExecutionPlan is the planned flows to execute
+	FlowExecutionPlan []*flow.Flow
+	
+	// stopChan is used to signal the job to stop execution
+	stopChan chan struct{}
 }
 
 // Execute runs the agent job asynchronously
-func ExecuteJob(job *agentmodel.AgentJob) {
+func (job *AgentJob) Execute() {
 	// Initialize stop channel if not already done
+	if job.stopChan == nil {
+		job.stopChan = make(chan struct{})
+	}
 
-	var taskPlan = PlanJobTasks(job)
+	var taskPlan = job.PlanTasks()
 
 	for _, task := range taskPlan {
-
+		// Check if stop was requested
+		select {
+		case <-job.stopChan:
+			job.Status = "paused"
+			return
+		default:
+			// Continue execution
+		}
+		
 		// Execute each task in the plan
-		RunJobTask(job, task)
+		job.RunTask(task)
 	}
 
 	job.Status = "completed"
 }
 
-func RunJobTask(job *agentmodel.AgentJob, task string) {
-	// task参数是JSON格式的规划步骤，需要解析它
-	var stepResult PlanningStepResult
-	err := json.Unmarshal([]byte(task), &stepResult)
-	if err != nil {
-		log.Errorf("Failed to unmarshal task: %v", err)
-		return
-	}
-
-	// 根据stepResult.FlowName查找对应的flow并执行
-	// 这里暂时只记录日志，实际执行逻辑可以后续补充
-	log.Infof("Running task: %s - %s", stepResult.FlowName, stepResult.Description)
-}
-
-func PlanJobTasks(job *agentmodel.AgentJob) []string {
-	// 将job以及job相关Agent中的数据转化为AgentPlanningData结构
-	planningData := model.AgentPlanningData{
-		Role:              job.Agent.Role,
-		BackStory:         job.Agent.BackStory,
-		PreferredLanguage: job.Agent.PreferredLanguage,
-		Goal:              job.Context.Goal,
-	}
-
-	// 转换AvailableFlows
-	planningData.AvailableFlows = make([]model.FlowInfo, len(job.Agent.Flows))
-	for i, flow := range job.Agent.Flows {
-		planningData.AvailableFlows[i] = model.FlowInfo{
-			Name:        flow.Name,
-			Description: flow.Description,
+func (job *AgentJob) RunTask(task string) {
+	// Find the flow by name
+	var targetFlow *flow.Flow
+	for _, flow := range job.Agent.Flows {
+		if flow.Name == task {
+			targetFlow = flow
+			break
 		}
 	}
 
-	// 调用RunPlanningFlow
-	planningText, err := RunPlanningFlow(planningData)
-	if err != nil {
-		log.Errorf("Failed to run planning flow: %v", err)
-		return []string{}
+	if targetFlow == nil {
+		// Log error: flow not found
+		job.Context.ExecuteLog = append(job.Context.ExecuteLog, fmt.Sprintf("Error: Flow '%s' not found", task))
+		return
 	}
 
-	// 解析规划结果
-	var planningResults []PlanningStepResult
-	err = json.Unmarshal([]byte(planningText), &planningResults)
-	if err != nil {
-		log.Errorf("Failed to unmarshal planning results: %v", err)
-		return []string{}
+	// Execute the flow
+	// For now, we just log the execution
+	job.Context.ExecuteLog = append(job.Context.ExecuteLog, fmt.Sprintf("Executing flow: %s - %s", targetFlow.Name, targetFlow.Description))
+
+	// In a real implementation, we would execute the flow steps here
+	// flowContext := flow.NewFlowContext()
+	// result, err := targetFlow.Run(flowContext)
+}
+
+func (job *AgentJob) PlanTasks() []string {
+	// Use AgentPlanningFlow to generate the task plan
+	// For now, we'll create a simple plan based on the goal
+
+	// Log that we're planning tasks
+	job.Context.ExecuteLog = append(job.Context.ExecuteLog, "Planning tasks to achieve goal: " + job.Context.Goal)
+
+	// In a real implementation, we would use the LLM client here
+	// to generate a plan based on the agent's backstory, role, goal, and available flows
+
+	// Create a prompt for the LLM
+	prompt := job.createPlanningPrompt()
+
+	// For demonstration, return a hardcoded plan
+	// In reality, this would come from the LLM response
+	return []string{"Task1", "Task2", "Task3"}
+}
+
+func (job *AgentJob) createPlanningPrompt() string {
+	// Build the prompt with agent information and available flows
+	prompt := fmt.Sprintf("Agent Role: %s\n", job.Agent.Role)
+	prompt += fmt.Sprintf("Backstory: %s\n", job.Agent.BackStory)
+	prompt += fmt.Sprintf("Goal: %s\n\n", job.Context.Goal)
+	prompt += "Available Flows:\n"
+
+	for _, flow := range job.Agent.Flows {
+		prompt += fmt.Sprintf("- %s: %s\n", flow.Name, flow.Description)
 	}
 
-	// 将规划结果转换为字符串数组返回
-	taskPlan := make([]string, len(planningResults))
-	for i, result := range planningResults {
-		taskBytes, _ := json.Marshal(result)
-		taskPlan[i] = string(taskBytes)
-	}
+	prompt += "\nPlease generate a sequence of flow names to execute to achieve the goal. Only return the flow names separated by commas."
 
-	return taskPlan
+	return prompt
 }
 
 // Resume continues a paused job
-func ResumeJob(job *agentmodel.AgentJob) error {
+func (job *AgentJob) Resume() error {
 	// When resuming, we replan based on the existing context
 	job.Status = "running"
-
-	ExecuteJob(job)
+	
+	// Re-initialize stop channel for resumed execution
+	job.stopChan = make(chan struct{})
+	
+	go job.Execute()
 	return nil
 }
 
 // Stop pauses the job execution
-func StopJob(job *agentmodel.AgentJob) error {
+func (job *AgentJob) Stop() error {
 	job.Status = "paused"
+
+	// Initialize and close stop channel to signal stop
+	if job.stopChan == nil {
+		job.stopChan = make(chan struct{})
+	}
+	close(job.stopChan)
 
 	return nil
 }

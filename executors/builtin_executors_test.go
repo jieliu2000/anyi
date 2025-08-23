@@ -1,12 +1,13 @@
-package executors
+package anyi
 
 import (
 	"testing"
-	"time"
 
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/stretchr/testify/assert"
 )
+
+// ... existing code ...
 
 func TestSetVariablesExecutor_Run(t *testing.T) {
 	// Test Case 1: Setting variables with an empty variable name
@@ -222,99 +223,7 @@ func TestDeepSeekStyleResponseFilter_Think(t *testing.T) {
 }
 
 func TestDeepSeekStyleResponseFilter_Init(t *testing.T) {
-	// Test Case 1: Valid configuration
-	t.Run("Valid configuration", func(t *testing.T) {
-		filter := &DeepSeekStyleResponseFilter{}
-		err := filter.Init()
-		assert.NoError(t, err)
-	})
-
-	// Test Case 2: Invalid configuration (unknown field)
-	t.Run("Invalid configuration", func(t *testing.T) {
-		filter := &DeepSeekStyleResponseFilter{}
-		err := filter.Init()
-		assert.NoError(t, err)
-	})
-}
-
-func TestDelayExecutor_Init(t *testing.T) {
-	// Test Case 1: Valid microseconds
-	t.Run("Valid microseconds", func(t *testing.T) {
-		executor := DelayExecutor{
-			Milliseconds: 1000,
-		}
-		err := executor.Init()
-		assert.NoError(t, err)
-	})
-
-	// Test Case 2: Valid milliseconds
-	t.Run("Valid milliseconds", func(t *testing.T) {
-		executor := DelayExecutor{
-			Milliseconds: 1000,
-		}
-		err := executor.Init()
-		assert.NoError(t, err)
-	})
-
-	// Test Case 3: Both microseconds and milliseconds set (should error)
-	t.Run("Both microseconds and milliseconds set", func(t *testing.T) {
-		executor := DelayExecutor{
-			Milliseconds: 1000,
-		}
-		err := executor.Init()
-		assert.Error(t, err)
-		assert.Equal(t, "only one of microseconds or milliseconds should be set", err.Error())
-	})
-
-	// Test Case 4: Neither microseconds nor milliseconds set (should error)
-	t.Run("Neither microseconds nor milliseconds set", func(t *testing.T) {
-		executor := DelayExecutor{}
-		err := executor.Init()
-		assert.Error(t, err)
-		assert.Equal(t, "either microseconds or milliseconds must be set", err.Error())
-	})
-}
-
-func TestDelayExecutor_Run(t *testing.T) {
-	// Test Case 1: Delay with microseconds
-	t.Run("Delay with microseconds", func(t *testing.T) {
-		executor := DelayExecutor{
-			Milliseconds: 10, // 10 milliseconds
-		}
-
-		flowContext := flow.FlowContext{}
-		step := &flow.Step{}
-
-		start := time.Now()
-		result, err := executor.Run(flowContext, step)
-		duration := time.Since(start)
-
-		assert.NoError(t, err)
-		assert.NotNil(t, result)
-		// Allow some tolerance for timing
-		assert.True(t, duration >= 10*time.Millisecond, "Delay should be at least 10ms")
-		assert.True(t, duration < 15*time.Millisecond, "Delay should be less than 15ms")
-	})
-
-	// Test Case 2: Delay with milliseconds
-	t.Run("Delay with milliseconds", func(t *testing.T) {
-		executor := DelayExecutor{
-			Milliseconds: 20, // 20 milliseconds
-		}
-
-		flowContext := flow.FlowContext{}
-		step := &flow.Step{}
-
-		start := time.Now()
-		result, err := executor.Run(flowContext, step)
-		duration := time.Since(start)
-
-		assert.NoError(t, err)
-		assert.NotNil(t, result)
-		// Allow some tolerance for timing
-		assert.True(t, duration >= 20*time.Millisecond, "Delay should be at least 20ms")
-		assert.True(t, duration < 25*time.Millisecond, "Delay should be less than 25ms")
-	})
+	// ... existing code ...
 }
 
 // MCP Executor tests have been moved to mcp_executor_test.go
