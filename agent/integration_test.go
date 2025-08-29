@@ -34,7 +34,7 @@ func TestAgentRegistryIntegration(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "does not implement Execute method")
 	assert.Equal(t, "value", ctx.Variables["test"])
-	assert.Equal(t, "test task", result) // Should return original task since no Flow was executed
+	assert.Equal(t, "", result) // Should return empty result when flow execution fails
 
 	mockFlowGetter.AssertExpectations(t)
 }

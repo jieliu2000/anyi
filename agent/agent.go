@@ -5,13 +5,6 @@ import (
 	"time"
 )
 
-// AgentContext execution context - uses value type to ensure safety
-type AgentContext struct {
-	Variables map[string]interface{}
-	Memory    interface{}
-	History   []string
-}
-
 // FlowGetter dependency interface - resolves circular references
 type FlowGetter interface {
 	GetFlow(name string) (interface{}, error)
@@ -88,7 +81,7 @@ func (a *Agent) Execute(task string, ctx AgentContext) (string, AgentContext, er
 				return "", resultCtx, fmt.Errorf("execute flow %s: %w", step.FlowName, err)
 			}
 		} else {
-			return result, resultCtx, fmt.Errorf("flow %s does not implement Execute method", step.FlowName)
+			return "", resultCtx, fmt.Errorf("flow %s does not implement Execute method", step.FlowName)
 		}
 
 		resultCtx.History = append(resultCtx.History, result)

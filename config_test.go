@@ -7,6 +7,7 @@ import (
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/internal/test"
 	"github.com/jieliu2000/anyi/llm"
+	"github.com/jieliu2000/anyi/registry"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -40,12 +41,7 @@ func (m MockValidator) Validate(stepOutput string, Step *flow.Step) bool {
 
 func TestNewFlowFromConfig_Success(t *testing.T) {
 	// Setup
-	GlobalRegistry = &anyiRegistry{
-		Flows:      make(map[string]*flow.Flow),
-		Clients:    make(map[string]llm.Client),
-		Executors:  make(map[string]flow.StepExecutor),
-		Validators: make(map[string]flow.StepValidator),
-	}
+	registry.Clear()
 	RegisterClient("test-client", &test.MockClient{})
 	RegisterExecutor("test-executor", &MockExecutor{})
 	RegisterValidator("test-validator", &MockValidator{})
