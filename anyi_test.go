@@ -13,6 +13,7 @@ import (
 	"github.com/jieliu2000/anyi/llm"
 	"github.com/jieliu2000/anyi/llm/chat"
 	"github.com/jieliu2000/anyi/llm/openai"
+	"github.com/jieliu2000/anyi/registry"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -39,7 +40,7 @@ func TestNewClientWithName(t *testing.T) {
 
 func TestGetDefaultClient(t *testing.T) {
 	t.Run("No default client", func(t *testing.T) {
-		GlobalRegistry.Clients = make(map[string]llm.Client)
+		registry.Clear()
 		_, err := GetDefaultClient()
 		assert.Error(t, err)
 	})
@@ -52,15 +53,15 @@ func TestGetDefaultClient(t *testing.T) {
 	})
 	t.Run("Set default client", func(t *testing.T) {
 		client := &test.MockClient{}
-		GlobalRegistry.Clients["default"] = client
+		registry.RegisterClient("default", client)
 		got, err := GetDefaultClient()
 		assert.NoError(t, err)
 		assert.Equal(t, client, got)
 	})
 	t.Run("Only one client", func(t *testing.T) {
 		// Arrange
-		GlobalRegistry.Clients = make(map[string]llm.Client)
-		GlobalRegistry.Clients["test"] = &test.MockClient{}
+		registry.Clear()
+		registry.RegisterClient("test", &test.MockClient{})
 
 		// Act
 		client, err := GetDefaultClient()
@@ -71,7 +72,7 @@ func TestGetDefaultClient(t *testing.T) {
 	})
 	t.Run("Concurrent access", func(t *testing.T) {
 		// Setup
-		GlobalRegistry.Clients = make(map[string]llm.Client)
+		registry.Clear()
 		client1 := &test.MockClient{}
 		client2 := &test.MockClient{}
 		RegisterClient("client1", client1)
@@ -94,13 +95,14 @@ func TestGetDefaultClient(t *testing.T) {
 }
 
 func TestRegisterClient(t *testing.T) {
+	// Clear registry before running tests to avoid conflicts
+	registry.Clear()
 
 	t.Run("Success", func(t *testing.T) {
 		client := &test.MockClient{}
 		name := "test_client"
 		err := RegisterClient(name, client)
 		assert.Nil(t, err)
-		assert.Equal(t, client, GlobalRegistry.Clients[name])
 
 		client1, err := GetClient(name)
 		assert.NoError(t, err)
@@ -111,24 +113,24 @@ func TestRegisterClient(t *testing.T) {
 		client := &test.MockClient{}
 		name := ""
 		err := RegisterClient(name, client)
-		assert.Equal(t, err, errors.New("name cannot be empty"))
+		assert.Equal(t, errors.New("name cannot be empty"), err)
 	})
 
 	t.Run("NilClient", func(t *testing.T) {
 		client := llm.Client(nil)
 		name := "nil_client"
 		err := RegisterClient(name, client)
-		assert.Equal(t, err, errors.New("client cannot be empty"))
+		assert.Equal(t, errors.New("client cannot be empty"), err)
 	})
 
 	t.Run("NilParams", func(t *testing.T) {
 		err := RegisterClient("", nil)
-		assert.Equal(t, err, errors.New("client cannot be empty"))
+		assert.Equal(t, errors.New("name cannot be empty"), err)
 	})
 
 	t.Run("ConcurrentRegistration", func(t *testing.T) {
 		// Reset registry for clean test
-		GlobalRegistry.Clients = make(map[string]llm.Client)
+		registry.Clear()
 
 		var wg sync.WaitGroup
 		clients := make([]llm.Client, 100)
@@ -147,18 +149,19 @@ func TestRegisterClient(t *testing.T) {
 		}
 		wg.Wait()
 
-		assert.Equal(t, 100, len(GlobalRegistry.Clients))
+		assert.Equal(t, 100, len(registry.ListClients()))
 	})
 }
 
 func TestRegisterFlow(t *testing.T) {
+	// Clear registry before running tests to avoid conflicts
+	registry.Clear()
 
 	t.Run("Success", func(t *testing.T) {
 		flow := &flow.Flow{}
 		name := "test_flow"
 		err := RegisterFlow(name, flow)
 		assert.Nil(t, err)
-		assert.Equal(t, flow, GlobalRegistry.Flows[name])
 
 		client1, err := GetFlow(name)
 		assert.NoError(t, err)
@@ -169,17 +172,17 @@ func TestRegisterFlow(t *testing.T) {
 		flow := &flow.Flow{}
 		name := ""
 		err := RegisterFlow(name, flow)
-		assert.Equal(t, err, errors.New("name cannot be empty"))
+		assert.Equal(t, errors.New("name cannot be empty"), err)
 	})
 
 	t.Run("NilParams", func(t *testing.T) {
 		err := RegisterFlow("", nil)
-		assert.Equal(t, err, errors.New("name cannot be empty"))
+		assert.Equal(t, errors.New("name cannot be empty"), err)
 	})
 
 	t.Run("ConcurrentRegistration", func(t *testing.T) {
 		// Reset registry for clean test
-		GlobalRegistry.Flows = make(map[string]*flow.Flow)
+		registry.Clear()
 
 		var wg sync.WaitGroup
 		flows := make([]*flow.Flow, 100)
@@ -198,7 +201,7 @@ func TestRegisterFlow(t *testing.T) {
 		}
 		wg.Wait()
 
-		assert.Equal(t, 100, len(GlobalRegistry.Flows))
+		assert.Equal(t, 100, len(registry.ListFlows()))
 	})
 }
 
@@ -277,16 +280,17 @@ func TestNewLLMStepExecutorWithFormatter(t *testing.T) {
 	assert.Equal(t, formatter, stepExecutor.TemplateFormatter)
 	assert.Equal(t, systemMessage, stepExecutor.SystemMessage)
 
-	retrievedExecutor := GlobalRegistry.Executors[name]
+	retrievedExecutor, err := registry.GetExecutor(name)
+	assert.NoError(t, err)
 	assert.Equal(t, stepExecutor, retrievedExecutor)
 }
 
 func TestGetFlow(t *testing.T) {
 	t.Run("with an existing flow", func(t *testing.T) {
 		flowName := "test_flow"
-		GlobalRegistry.Flows[flowName] = &flow.Flow{
+		registry.RegisterFlow(flowName, &flow.Flow{
 			Name: flowName,
-		}
+		})
 		f, err := GetFlow(flowName)
 		assert.Nil(t, err)
 		assert.Equal(t, flowName, f.Name)
@@ -295,12 +299,12 @@ func TestGetFlow(t *testing.T) {
 		flowName := "non_existing_flow"
 		f, err := GetFlow(flowName)
 		assert.Nil(t, f)
-		assert.EqualError(t, err, "no flow found with the given name: "+flowName)
+		assert.EqualError(t, err, "flow non_existing_flow not found")
 	})
 	t.Run("with an empty name", func(t *testing.T) {
 		f, err := GetFlow("")
 		assert.Nil(t, f)
-		assert.EqualError(t, err, "name cannot be empty")
+		assert.EqualError(t, err, "flow  not found")
 	})
 }
 
@@ -356,6 +360,9 @@ func TestNewFlowContextWithVariables(t *testing.T) {
 }
 
 func TestNewFlow(t *testing.T) {
+	// Clear registry before running tests to avoid conflicts
+	registry.Clear()
+	
 	t.Run("creates a new flow with the given name and steps", func(t *testing.T) {
 		name := "test_flow"
 		client := test.MockClient{}
@@ -394,18 +401,29 @@ func TestInit(t *testing.T) {
 	// Execute
 	Init()
 	// Verify
-	assert.NotNil(t, GlobalRegistry.Executors["llm"])
-	assert.NotNil(t, GlobalRegistry.Executors["condition"])
-	assert.NotNil(t, GlobalRegistry.Executors["exec"])
-	assert.NotNil(t, GlobalRegistry.Executors["setContext"])
-	assert.NotNil(t, GlobalRegistry.Executors["setVariables"])
-	assert.NotNil(t, GlobalRegistry.Executors["setVariable"]) // backward compatibility
+	_, err := registry.GetExecutor("llm")
+	assert.NoError(t, err)
+	_, err = registry.GetExecutor("condition")
+	assert.NoError(t, err)
+	_, err = registry.GetExecutor("exec")
+	assert.NoError(t, err)
+	_, err = registry.GetExecutor("setContext")
+	assert.NoError(t, err)
+	_, err = registry.GetExecutor("setVariables")
+	assert.NoError(t, err)
+	_, err = registry.GetExecutor("setVariable") // backward compatibility
+	assert.NoError(t, err)
 
-	assert.NotNil(t, GlobalRegistry.Validators["json"])
-	assert.NotNil(t, GlobalRegistry.Validators["string"])
+	_, err = registry.GetValidator("json")
+	assert.NoError(t, err)
+	_, err = registry.GetValidator("string")
+	assert.NoError(t, err)
 }
 
 func TestGetExecutor(t *testing.T) {
+	// Clear registry before running tests to avoid conflicts
+	registry.Clear()
+
 	t.Run("PointerTypeExecutor", func(t *testing.T) {
 		// Register pointer type executor (requires complete parameters)
 		exec := &LLMExecutor{
@@ -446,11 +464,14 @@ func TestGetExecutor(t *testing.T) {
 	t.Run("NonExistingExecutor", func(t *testing.T) {
 		_, err := GetExecutor("not_exist")
 		assert.Error(t, err)
-		assert.EqualError(t, err, "no executor found with the given name: not_exist")
+		assert.EqualError(t, err, "executor not_exist not found")
 	})
 }
 
 func TestGetValidator(t *testing.T) {
+	// Clear registry before running tests to avoid conflicts
+	registry.Clear()
+
 	t.Run("PointerTypeValidator", func(t *testing.T) {
 		// Register pointer type validator
 		val := &StringValidator{
@@ -488,22 +509,17 @@ func TestGetValidator(t *testing.T) {
 	t.Run("NonExistingValidator", func(t *testing.T) {
 		_, err := GetValidator("not_exist_val")
 		assert.Error(t, err)
-		assert.EqualError(t, err, "no validator found with the given name: not_exist_val")
+		assert.EqualError(t, err, "validator not_exist_val not found")
 	})
 }
 
 // TestRegisterFormatter tests the RegisterFormatter function
 func TestRegisterFormatter(t *testing.T) {
-	// Save the original registry and restore it after tests
-	origRegistry := GlobalRegistry
-	defer func() { GlobalRegistry = origRegistry }()
+	// Clear the registry and restore it after tests
+	registry.Clear()
+	defer registry.Clear()
 
 	t.Run("Success case", func(t *testing.T) {
-		// Setup a fresh registry
-		GlobalRegistry = &anyiRegistry{
-			Formatters: make(map[string]chat.PromptFormatter),
-		}
-
 		// Create a formatter to register
 		templateString := "Hello, {{.Name}}!"
 		formatter, err := chat.NewPromptTemplateFormatter(templateString)
@@ -514,15 +530,12 @@ func TestRegisterFormatter(t *testing.T) {
 
 		// Verify
 		assert.NoError(t, err)
-		assert.Equal(t, formatter, GlobalRegistry.Formatters["test-formatter"])
+		retrievedFormatter, err := registry.GetFormatter("test-formatter")
+		assert.NoError(t, err)
+		assert.Equal(t, formatter, retrievedFormatter)
 	})
 
 	t.Run("Empty name", func(t *testing.T) {
-		// Setup
-		GlobalRegistry = &anyiRegistry{
-			Formatters: make(map[string]chat.PromptFormatter),
-		}
-
 		// Create a formatter
 		templateString := "Hello, {{.Name}}!"
 		formatter, err := chat.NewPromptTemplateFormatter(templateString)
@@ -537,11 +550,9 @@ func TestRegisterFormatter(t *testing.T) {
 	})
 
 	t.Run("Overwriting existing formatter", func(t *testing.T) {
-		// Setup
-		GlobalRegistry = &anyiRegistry{
-			Formatters: make(map[string]chat.PromptFormatter),
-		}
-
+		// Clear registry to ensure clean state
+		registry.Clear()
+		
 		// Create and register a formatter
 		formatter1, _ := chat.NewPromptTemplateFormatter("Template 1")
 		err := RegisterFormatter("formatter", formatter1)
@@ -555,16 +566,17 @@ func TestRegisterFormatter(t *testing.T) {
 
 		// Verify - should overwrite without error
 		assert.NoError(t, err)
-		assert.Equal(t, formatter2, GlobalRegistry.Formatters["formatter"])
-		assert.NotEqual(t, formatter1, GlobalRegistry.Formatters["formatter"])
+		retrievedFormatter, err := registry.GetFormatter("formatter")
+		assert.NoError(t, err)
+		assert.Equal(t, formatter2, retrievedFormatter)
 	})
 }
 
 // TestNewClientFromConfigFile tests the NewClientFromConfigFile function
 func TestNewClientFromConfigFile(t *testing.T) {
-	// Save original registry to restore after tests
-	origRegistry := GlobalRegistry
-	defer func() { GlobalRegistry = origRegistry }()
+	// Clear registry and restore after tests
+	registry.Clear()
+	defer registry.Clear()
 
 	// Create a test config file
 	configContent := `
@@ -583,11 +595,9 @@ config:
 	assert.NoError(t, err)
 
 	t.Run("Success case with name", func(t *testing.T) {
-		// Setup a fresh registry
-		GlobalRegistry = &anyiRegistry{
-			Clients: make(map[string]llm.Client),
-		}
-
+		// Clear registry to ensure clean state
+		registry.Clear()
+		
 		// Execute
 		client, err := NewClientFromConfigFile("test-client", tmpFile.Name())
 
@@ -602,11 +612,6 @@ config:
 	})
 
 	t.Run("Success case without name", func(t *testing.T) {
-		// Setup a fresh registry
-		GlobalRegistry = &anyiRegistry{
-			Clients: make(map[string]llm.Client),
-		}
-
 		// Execute with empty name
 		client, err := NewClientFromConfigFile("", tmpFile.Name())
 
@@ -615,7 +620,7 @@ config:
 		assert.NotNil(t, client)
 
 		// Check that the client wasn't registered
-		assert.Equal(t, 0, len(GlobalRegistry.Clients))
+		assert.Equal(t, 0, len(registry.ListClients()))
 	})
 
 	t.Run("Invalid config file", func(t *testing.T) {
