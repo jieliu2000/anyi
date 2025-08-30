@@ -3,6 +3,7 @@ package agent
 import (
 	"fmt"
 	"time"
+	"github.com/jieliu2000/anyi/llm"
 )
 
 // FlowGetter dependency interface - resolves circular references
@@ -24,6 +25,7 @@ type Agent struct {
 	AvailableFlows []string
 	Config         Config
 	getFlow        FlowGetter
+	Client         llm.Client
 }
 
 // DefaultConfig returns default configuration
@@ -43,6 +45,18 @@ func NewAgent(role, backstory string, availableFlows []string, getFlow FlowGette
 		AvailableFlows: availableFlows,
 		getFlow:        getFlow,
 		Config:         DefaultConfig(),
+	}
+}
+
+// NewAgentWithClient creates a new Agent with LLM client
+func NewAgentWithClient(role, backstory string, availableFlows []string, getFlow FlowGetter, client llm.Client) *Agent {
+	return &Agent{
+		Role:           role,
+		BackStory:      backstory,
+		AvailableFlows: availableFlows,
+		getFlow:        getFlow,
+		Config:         DefaultConfig(),
+		Client:         client,
 	}
 }
 
