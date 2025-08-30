@@ -296,7 +296,7 @@ func TestConfigWithInvalidExecutor(t *testing.T) {
 	// Clear registry before running tests to avoid conflicts
 	registry.Clear()
 	defer registry.Clear()
-	
+
 	RegisterExecutor("executor1", &MockExecutor{})
 	config := AnyiConfig{
 		Clients: []llm.ClientConfig{
@@ -333,7 +333,7 @@ func TestConfigWithInvalidValidator(t *testing.T) {
 	// Clear registry before running tests to avoid conflicts
 	registry.Clear()
 	defer registry.Clear()
-	
+
 	RegisterExecutor("executor1", &MockExecutor{})
 	config := AnyiConfig{
 		Clients: []llm.ClientConfig{
@@ -373,7 +373,7 @@ func TestConfigWithInvalidClient(t *testing.T) {
 	// Clear registry before running tests to avoid conflicts
 	registry.Clear()
 	defer registry.Clear()
-	
+
 	RegisterExecutor("executor1", &MockExecutor{})
 	config := AnyiConfig{
 		Clients: []llm.ClientConfig{
@@ -456,7 +456,7 @@ func TestConfigFromString(t *testing.T) {
 	// Clear registry before running tests to avoid conflicts
 	registry.Clear()
 	defer registry.Clear()
-	
+
 	// Setup test
 	RegisterExecutor("string-executor", &MockExecutor{})
 
@@ -614,7 +614,7 @@ func TestConfigFromFile(t *testing.T) {
 	// Clear registry before running tests to avoid conflicts
 	registry.Clear()
 	defer registry.Clear()
-	
+
 	// Setup test
 	RegisterExecutor("file-executor", &MockExecutor{})
 
