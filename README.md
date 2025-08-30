@@ -16,6 +16,7 @@ Anyi is a powerful autonomous AI agent framework that helps you build AI solutio
 - **Configuration-Driven Development** - Define workflows and clients through code or external config files (YAML, JSON, TOML)
 - **Multimodal Support** - Send text and images to compatible models simultaneously
 - **Go Template Integration** - Use Go's template engine to generate dynamic prompts
+- **Autonomous AI Agents** - Create intelligent agents that can plan and execute complex tasks
 
 ## When to Use Anyi
 
@@ -26,6 +27,7 @@ Anyi is ideal for:
 - **DevOps Integration** - Connect AI capabilities with your existing systems through command executors and API integrations
 - **Rapid Prototyping** - Configure complex AI workflows through config files without changing code
 - **Enterprise Solutions** - Maintain separation of code and configuration for production deployment across environments
+- **Autonomous Agents** - Build intelligent agents that can plan, execute, and adapt to complex tasks
 
 ## Supported LLM Providers
 
@@ -207,6 +209,61 @@ func main() {
 }
 ```
 
+## Creating Autonomous Agents
+
+Anyi now includes a powerful Agent framework that enables you to create autonomous AI agents capable of planning and executing complex tasks:
+
+```go
+package main
+
+import (
+	"log"
+	"os"
+
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm/openai"
+)
+
+func main() {
+	// Create client
+	config := openai.DefaultConfig("gpt-4")
+	config.APIKey = os.Getenv("OPENAI_API_KEY")
+	client, err := anyi.NewClient("gpt4", config)
+	if err != nil {
+		log.Fatalf("Failed to create client: %v", err)
+	}
+
+	// Create an autonomous agent
+	agent, err := anyi.NewAgent(
+		"researcher",                                    // Agent name (for registry)
+		"Research Assistant",                           // Agent role
+		"Expert at researching topics and writing reports", // Agent backstory
+		[]string{"research_flow", "analyze_flow"},      // Available flows
+		client,                                         // LLM client for planning
+	)
+	if err != nil {
+		log.Fatalf("Failed to create agent: %v", err)
+	}
+
+	// Execute a complex task
+	result, _, err := agent.Execute(
+		"Research the impact of AI on healthcare and write a comprehensive report",
+		anyi.AgentContext{
+			Variables: map[string]interface{}{
+				"depth":   "detailed",
+				"sources": 10,
+				"format":  "markdown",
+			},
+		},
+	)
+	if err != nil {
+		log.Fatalf("Agent execution failed: %v", err)
+	}
+
+	log.Printf("Research result: %s", result)
+}
+```
+
 ## Built-in Components
 
 ### Executors
@@ -236,6 +293,7 @@ func main() {
 - [Building Workflows](docs/en/tutorials/workflows.md) - Creating complex AI workflows
 - [Configuration Management](docs/en/tutorials/configuration.md) - Using config files and environment variables
 - [Multimodal Applications](docs/en/tutorials/multimodal.md) - Working with text and images
+- [Building Autonomous Agents](docs/en/tutorials/agents.md) - Creating intelligent autonomous agents
 
 ### How-To Guides
 

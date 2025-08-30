@@ -50,7 +50,7 @@ go get -u github.com/jieliu2000/anyi
 
 ### 基本用法
 
-```go
+``go
 package main
 
 import (
@@ -89,7 +89,7 @@ func main() {
 
 ### 使用代码
 
-```go
+``go
 package main
 
 import (
@@ -137,7 +137,7 @@ func main() {
 
 Anyi 支持配置驱动开发，允许你在外部文件中定义 LLM 客户端和工作流：
 
-```yaml
+```
 # config.yaml
 clients:
   - name: "ollama"
@@ -175,7 +175,7 @@ flows:
 
 加载并使用此配置：
 
-```go
+``go
 package main
 
 import (
@@ -220,6 +220,60 @@ func main() {
 - **StringValidator** - 通过正则表达式或相等性检查文本
 - **JsonValidator** - 确保输出是有效的 JSON
 
+## 创建自主式智能体
+
+Anyi 现在包含一个强大的智能体框架，使您能够创建能够规划和执行复杂任务的自主式 AI 智能体：
+
+``go
+package main
+
+import (
+	"log"
+	"os"
+
+	"github.com/jieliu2000/anyi"
+	"github.com/jieliu2000/anyi/llm/dashscope"
+)
+
+func main() {
+	// 创建客户端
+	config := dashscope.DefaultConfig(os.Getenv("DASHSCOPE_API_KEY"), "qwen-max")
+	client, err := anyi.NewClient("qwen", config)
+	if err != nil {
+		log.Fatalf("创建客户端失败: %v", err)
+	}
+
+	// 创建自主式智能体
+	agent, err := anyi.NewAgent(
+		"研究员",                                    // 智能体名称（用于注册）
+		"研究助理",                                 // 智能体角色
+		"擅长研究主题并撰写报告的专家",                // 智能体背景故事
+		[]string{"研究流程", "分析流程"},              // 可用流程
+		client,                                   // 用于规划的 LLM 客户端
+	)
+	if err != nil {
+		log.Fatalf("创建智能体失败: %v", err)
+	}
+
+	// 执行复杂任务
+	result, _, err := agent.Execute(
+		"研究人工智能对医疗保健的影响并撰写综合报告",
+		anyi.AgentContext{
+			Variables: map[string]interface{}{
+				"深度":   "详细",
+				"来源":   10,
+				"格式":   "``",
+			},
+		},
+	)
+	if err != nil {
+		log.Fatalf("智能体执行失败: %v", err)
+	}
+
+	log.Printf("研究报告: %s", result)
+}
+```
+
 ## 文档
 
 ### 入门指南
@@ -234,6 +288,7 @@ func main() {
 - [构建工作流](docs/zh/tutorials/workflows.md) - 创建复杂的 AI 工作流
 - [配置管理](docs/zh/tutorials/configuration.md) - 使用配置文件和环境变量
 - [多模态应用](docs/zh/tutorials/multimodal.md) - 处理文本和图像
+- [构建自主式智能体](docs/zh/tutorials/agents.md) - 创建智能的自主式智能体
 
 ### 操作指南
 
