@@ -1,8 +1,10 @@
 package agent
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
+	
 	"github.com/jieliu2000/anyi/llm/chat"
 )
 
@@ -19,13 +21,53 @@ type ExecutionStep struct {
 
 // planExecution plans execution steps
 func (a *Agent) planExecution(task string, ctx AgentContext) (*ExecutionPlan, error) {
-	// If LLM client is available, use AI for intelligent planning
+	// If AI planning flow is available, use flow-based planning
+	if a.aiPlanningFlow != nil {
+		return a.flowBasedPlanExecution(task, ctx)
+	}
+	
+	// If LLM client is available, use traditional AI planning
 	if a.Client != nil {
 		return a.aiPlanExecution(task, ctx)
 	}
 	
 	// Fallback to simple planning strategy
 	return a.simplePlanExecution(task, ctx)
+}
+
+// flowBasedPlanExecution uses the AI planning flow to intelligently plan execution steps
+func (a *Agent) flowBasedPlanExecution(task string, ctx AgentContext) (*ExecutionPlan, error) {
+	if a.aiPlanningFlow == nil {
+		// Fallback to simple planning if AI planning flow is not available
+		return a.simplePlanExecution(task, ctx)
+	}
+	
+	// Create flow context with planning variables
+	flowContext := a.aiPlanningFlow.NewFlowContext(task, nil)
+	flowContext.SetVariable("AgentRole", a.Role)
+	flowContext.SetVariable("AgentBackground", a.BackStory)
+	flowContext.SetVariable("AvailableFlows", strings.Join(a.AvailableFlows, ", "))
+	flowContext.SetVariable("ContextVariables", ctx.Variables)
+	
+	// Execute the AI planning flow
+	for _, step := range a.aiPlanningFlow.Steps {
+		var err error
+		flowContext, err = step.Executor.Run(*flowContext, &step)
+		if err != nil {
+			// Fallback to simple planning if flow execution fails
+			return a.simplePlanExecution(task, ctx)
+		}
+	}
+	
+	// Parse the execution plan from the flow context
+	var steps []ExecutionStep
+	err := json.Unmarshal([]byte(flowContext.Text), &steps)
+	if err != nil {
+		// Fallback to simple planning if parsing fails
+		return a.simplePlanExecution(task, ctx)
+	}
+	
+	return &ExecutionPlan{Steps: steps}, nil
 }
 
 // aiPlanExecution uses AI to intelligently plan execution steps

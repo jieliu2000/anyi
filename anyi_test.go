@@ -414,7 +414,7 @@ func TestInit(t *testing.T) {
 	_, err = registry.GetExecutor("set_variables")
 	assert.NoError(t, err)
 	_, err = registry.GetExecutor("setVariable") // backward compatibility
-	assert.Error(t, err) // This should fail as it's not registered
+	assert.Error(t, err)                         // This should fail as it's not registered
 
 	_, err = registry.GetValidator("json")
 	assert.NoError(t, err)
@@ -659,5 +659,77 @@ config:
 		// Verify
 		assert.Error(t, err)
 		assert.Nil(t, client)
+	})
+}
+
+// TestNewAgent tests the NewAgent function
+func TestNewAgent(t *testing.T) {
+	// Clear registry and restore after tests
+	registry.Clear()
+	defer registry.Clear()
+
+	t.Run("Success case with name", func(t *testing.T) {
+		// Clear registry to ensure clean state
+		registry.Clear()
+
+		// Execute
+		availableFlows := []string{"flow1", "flow2"}
+		agent, err := NewAgent("test-agent", "test-role", "test-backstory", availableFlows, nil)
+
+		// Verify
+		assert.NoError(t, err)
+		assert.NotNil(t, agent)
+		assert.Equal(t, "test-role", agent.Role)
+		assert.Equal(t, "test-backstory", agent.BackStory)
+		assert.Equal(t, availableFlows, agent.AvailableFlows)
+
+		// Check that the agent was registered
+		registeredAgent, err := registry.GetAgent("test-agent")
+		assert.NoError(t, err)
+		assert.Equal(t, agent, registeredAgent)
+	})
+
+	t.Run("Success case without name", func(t *testing.T) {
+		// Clear registry to ensure clean state
+		registry.Clear()
+
+		// Execute with empty name
+		availableFlows := []string{"flow1", "flow2"}
+		agent, err := NewAgent("", "test-role", "test-backstory", availableFlows, nil)
+
+		// Verify
+		assert.NoError(t, err)
+		assert.NotNil(t, agent)
+		assert.Equal(t, "test-role", agent.Role)
+		assert.Equal(t, "test-backstory", agent.BackStory)
+		assert.Equal(t, availableFlows, agent.AvailableFlows)
+
+		// Check that the agent wasn't registered
+		assert.Equal(t, 0, len(registry.ListAgents()))
+	})
+
+	t.Run("Success case with client", func(t *testing.T) {
+		// Clear registry to ensure clean state
+		registry.Clear()
+
+		// Create a mock client
+		mockClient := &test.MockClient{}
+
+		// Execute
+		availableFlows := []string{"flow1", "flow2"}
+		agent, err := NewAgent("test-agent-with-client", "test-role", "test-backstory", availableFlows, mockClient)
+
+		// Verify
+		assert.NoError(t, err)
+		assert.NotNil(t, agent)
+		assert.Equal(t, "test-role", agent.Role)
+		assert.Equal(t, "test-backstory", agent.BackStory)
+		assert.Equal(t, availableFlows, agent.AvailableFlows)
+		assert.Equal(t, mockClient, agent.Client)
+
+		// Check that the agent was registered
+		registeredAgent, err := registry.GetAgent("test-agent-with-client")
+		assert.NoError(t, err)
+		assert.Equal(t, agent, registeredAgent)
 	})
 }

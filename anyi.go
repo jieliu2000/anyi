@@ -6,6 +6,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/jieliu2000/anyi/agent"
 	"github.com/jieliu2000/anyi/executors"
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/llm"
@@ -386,6 +387,33 @@ func NewFlow(name string, client llm.Client, steps ...flow.Step) (*flow.Flow, er
 		return nil, err
 	}
 	return f, nil
+}
+
+// NewAgent creates a new agent with the specified parameters and optionally registers it.
+// If a name is provided, the agent is registered in the global registry under that name.
+//
+// Parameters:
+//   - name: Name to register the agent under (optional, can be empty)
+//   - role: Role of the agent
+//   - backstory: Background story of the agent
+//   - availableFlows: List of available flows for the agent
+//   - client: LLM client to use for the agent (can be nil)
+//
+// Returns:
+//   - A new agent
+//   - Any error encountered during agent creation
+func NewAgent(name string, role string, backstory string, availableFlows []string, client llm.Client) (*agent.Agent, error) {
+	a := agent.NewAgentWithClient(role, backstory, availableFlows, registry.Global, client)
+
+	// If name is not empty, register the agent
+	if name != "" {
+		err := registry.RegisterAgent(name, a)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return a, nil
 }
 
 // RegisterExecutor registers an executor in the global registry.
