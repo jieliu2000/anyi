@@ -21,7 +21,7 @@ Anyi 组件是工作流的构建块。它们提供可以组合在一起创建复
 
 #### 配置
 
-```yaml
+```
 executor:
   type: "llm"
   withconfig:
@@ -52,7 +52,8 @@ executor:
 - `{{.Memory}}`：结构化内存数据
 - `{{.Memory.FieldName}}`：特定内存字段
 - `{{.Think}}`：之前的思考过程
-- `{{.Images}}`：图像 URL 数组
+- `{{.ImageURLs}}`：图像 URL 数组
+- `{{.Variables}}`：工作流变量
 
 #### 模板函数
 
@@ -66,7 +67,7 @@ executor:
 
 #### 使用示例
 
-```go
+```
 // 程序化使用
 executor := &anyi.LLMExecutor{
     Template: "用 3 个要点总结这个文本：\n\n{{.Text}}",
@@ -82,7 +83,7 @@ executor := &anyi.LLMExecutor{
 
 #### 配置
 
-```yaml
+```
 executor:
   type: "setcontext"
   withconfig:
@@ -113,7 +114,7 @@ executor:
 
 #### 使用示例
 
-```go
+```
 // 使用结构化数据初始化工作流
 executor := &anyi.SetContextExecutor{
     Memory: map[string]interface{}{
@@ -130,7 +131,7 @@ executor := &anyi.SetContextExecutor{
 
 #### 配置
 
-```yaml
+```
 executor:
   type: "conditional"
   withconfig:
@@ -177,7 +178,7 @@ executor:
 
 #### 配置
 
-```yaml
+```
 executor:
   type: "command"
   withconfig:
@@ -210,7 +211,7 @@ executor:
 
 #### 使用示例
 
-```go
+```
 // 执行 Python 数据处理脚本
 executor := &anyi.RunCommandExecutor{
     Command: "python",
@@ -230,7 +231,7 @@ executor := &anyi.RunCommandExecutor{
 
 #### 配置
 
-```yaml
+```
 validator:
   type: "string"
   withconfig:
@@ -257,7 +258,7 @@ validator:
 
 #### 使用示例
 
-```go
+```
 // 验证输出是适当的摘要
 validator := &anyi.StringValidator{
     MinLength: 50,
@@ -274,7 +275,7 @@ validator := &anyi.StringValidator{
 
 #### 配置
 
-```yaml
+```
 validator:
   type: "json"
   withconfig:
@@ -309,7 +310,7 @@ validator:
 
 #### 使用示例
 
-```go
+```
 // 验证结构化分析输出
 validator := &anyi.JsonValidator{
     RequiredFields: []string{"analysis", "recommendations", "confidence"},
@@ -334,7 +335,7 @@ validator := &anyi.JsonValidator{
 
 #### 配置
 
-```yaml
+```
 validator:
   type: "regex"
   withconfig:
@@ -353,7 +354,7 @@ validator:
 
 #### 使用示例
 
-```go
+```
 // 验证邮箱格式
 validator := &anyi.RegexValidator{
     Pattern: `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`,
@@ -367,7 +368,7 @@ validator := &anyi.RegexValidator{
 
 #### 接口
 
-```go
+```
 type Validator interface {
     Validate(context *FlowContext) error
 }
@@ -375,7 +376,7 @@ type Validator interface {
 
 #### 实现示例
 
-```go
+```
 type WordCountValidator struct {
     MinWords int
     MaxWords int
@@ -405,7 +406,7 @@ Anyi 使用 Go 的 `text/template` 包以及附加函数。
 
 #### 基本语法
 
-```go
+```
 // 变量访问
 {{.Text}}
 {{.Memory.FieldName}}
@@ -441,7 +442,7 @@ Anyi 使用 Go 的 `text/template` 包以及附加函数。
 
 #### 模板示例
 
-```yaml
+```
 # 分析模板
 template: |
   分析以下{{.Memory.ContentType}}：
@@ -481,7 +482,7 @@ template: |
 
 ### 错误处理模式
 
-```go
+```
 // 检查特定错误类型
 if validationErr, ok := err.(*anyi.ValidationError); ok {
     log.Printf("验证失败：%s", validationErr.Message)
@@ -509,7 +510,7 @@ for i := 0; i < maxRetries; i++ {
 
 ### 模板缓存
 
-```go
+```
 // 缓存编译的模板
 var templateCache = make(map[string]*template.Template)
 
@@ -530,7 +531,7 @@ func getTemplate(templateString string) (*template.Template, error) {
 
 ### 内存管理
 
-```go
+```
 // 在长时间运行的工作流中清理上下文
 func cleanupContext(ctx *FlowContext) {
     // 清理大型内存对象
@@ -577,7 +578,7 @@ func cleanupContext(ctx *FlowContext) {
 
 ### 测试
 
-```go
+```
 func TestLLMExecutor(t *testing.T) {
     executor := &anyi.LLMExecutor{
         Template: "总结：{{.Text}}",
@@ -602,7 +603,7 @@ func TestLLMExecutor(t *testing.T) {
 
 ### 创建自定义执行器
 
-```go
+```
 type CustomAnalysisExecutor struct {
     AnalysisType string
     Parameters   map[string]interface{}
@@ -624,7 +625,7 @@ func (e *CustomAnalysisExecutor) Execute(ctx *FlowContext, client Client) (*Flow
 
 ### 注册自定义组件
 
-```go
+```
 // 注册自定义执行器
 anyi.RegisterExecutor("custom-analysis", func(config map[string]interface{}) (Executor, error) {
     return &CustomAnalysisExecutor{

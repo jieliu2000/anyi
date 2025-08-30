@@ -60,7 +60,7 @@ myAgent.Config = config
 ```go
 result, context, err := agent.Execute(
     "研究人工智能对医疗保健的影响并撰写综合报告",
-    anyi.AgentContext{
+    agent.AgentContext{
         Variables: map[string]interface{}{
             "深度":   "详细",
             "来源":   10,
@@ -87,7 +87,7 @@ Anyi 智能体支持多种规划策略：
 
 ```go
 // 带 LLM 客户端用于 AI 规划的智能体
-agent := anyi.NewAgentWithClient(
+agent := agent.NewAgentWithClient(
     "AI 研究员",
     "智能研究助理",
     []string{"网络搜索", "分析", "总结"},
@@ -102,7 +102,7 @@ agent := anyi.NewAgentWithClient(
 
 ```go
 // 不带 LLM 客户端使用简单规划的智能体
-agent := anyi.NewAgent(
+agent := agent.NewAgent(
     "基础研究员",
     "研究助理",
     []string{"研究", "分析", "总结"},
@@ -115,7 +115,7 @@ agent := anyi.NewAgent(
 智能体使用 [AgentContext](../../reference/api.md#AgentContext) 来维护状态和传递变量：
 
 ```go
-context := anyi.AgentContext{
+context := agent.AgentContext{
     Variables: map[string]interface{}{
         "主题": "人工智能在医疗保健中的应用",
         "语气": "专业",
@@ -134,7 +134,7 @@ context := anyi.AgentContext{
 
 以下是研究智能体的完整示例：
 
-```go
+``go
 package main
 
 import (
@@ -142,7 +142,9 @@ import (
     "os"
     
     "github.com/jieliu2000/anyi"
+    "github.com/jieliu2000/anyi/agent"
     "github.com/jieliu2000/anyi/llm/openai"
+    "github.com/jieliu2000/anyi/registry"
 )
 
 func main() {
@@ -169,7 +171,7 @@ func main() {
     // 执行研究任务
     result, context, err := agent.Execute(
         "分析量子计算的最新发展及其对网络安全的潜在影响",
-        anyi.AgentContext{
+        agent.AgentContext{
             Variables: map[string]interface{}{
                 "深度":       "全面",
                 "视角":       "技术",

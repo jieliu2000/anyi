@@ -60,7 +60,7 @@ Once created, agents can execute tasks using the [Execute](../../reference/api.m
 ```go
 result, context, err := agent.Execute(
     "Research the impact of AI on healthcare and write a comprehensive report",
-    anyi.AgentContext{
+    agent.AgentContext{
         Variables: map[string]interface{}{
             "depth":   "detailed",
             "sources": 10,
@@ -87,7 +87,7 @@ When an LLM client is provided, agents use AI to create intelligent plans:
 
 ```go
 // Agent with LLM client for AI planning
-agent := anyi.NewAgentWithClient(
+agent := agent.NewAgentWithClient(
     "AI Researcher",
     "Intelligent research assistant",
     []string{"web_search", "analyze", "summarize"},
@@ -102,7 +102,7 @@ When no LLM client is available, agents use a simple sequential approach:
 
 ```go
 // Agent without LLM client uses simple planning
-agent := anyi.NewAgent(
+agent := agent.NewAgent(
     "Basic Researcher",
     "Research assistant",
     []string{"research", "analyze", "summarize"},
@@ -115,7 +115,7 @@ agent := anyi.NewAgent(
 Agents use [AgentContext](../../reference/api.md#AgentContext) to maintain state and pass variables:
 
 ```go
-context := anyi.AgentContext{
+context := agent.AgentContext{
     Variables: map[string]interface{}{
         "topic": "AI in Healthcare",
         "tone":  "professional",
@@ -142,7 +142,9 @@ import (
     "os"
     
     "github.com/jieliu2000/anyi"
+    "github.com/jieliu2000/anyi/agent"
     "github.com/jieliu2000/anyi/llm/openai"
+    "github.com/jieliu2000/anyi/registry"
 )
 
 func main() {
@@ -169,7 +171,7 @@ func main() {
     // Execute research task
     result, context, err := agent.Execute(
         "Analyze the latest developments in quantum computing and their potential impact on cybersecurity",
-        anyi.AgentContext{
+        agent.AgentContext{
             Variables: map[string]interface{}{
                 "depth":        "comprehensive",
                 "perspective":  "technical",

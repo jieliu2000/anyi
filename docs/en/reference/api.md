@@ -202,6 +202,54 @@ Loads configuration from a file (supports YAML, JSON, TOML).
 
 - `error`: Error if loading fails
 
+## Agent Management Functions
+
+### anyi.NewAgent
+
+```go
+func NewAgent(name string, role string, backstory string, availableFlows []string, client llm.Client) (*agent.Agent, error)
+```
+
+Creates a new agent with the specified parameters and optionally registers it in the global registry.
+
+**Parameters:**
+
+- `name`: Name to register the agent under (optional, can be empty)
+- `role`: Role of the agent
+- `backstory`: Background story of the agent
+- `availableFlows`: List of available flows for the agent
+- `client`: LLM client to use for the agent (can be nil)
+
+**Returns:**
+
+- `*agent.Agent`: The created agent instance
+- `error`: Error if agent creation fails
+
+### anyi.GetAgent
+
+```go
+func GetAgent(name string) (*agent.Agent, error)
+```
+
+Retrieves a previously registered agent by name.
+
+**Parameters:**
+
+- `name`: Name of the agent to retrieve
+
+**Returns:**
+
+- `*agent.Agent`: The agent instance
+- `error`: Error if agent not found
+
+### anyi.ListAgents
+
+```go
+func ListAgents() []string
+```
+
+Returns a list of all registered agent names.
+
 ## Flow Management
 
 ### Flow Interface
@@ -300,10 +348,12 @@ type Step struct {
 
 ```go
 type FlowContext struct {
-    Text   string
-    Memory interface{}
-    Think  string
-    Images []string
+    Text      string
+    Memory    interface{}
+    Variables map[string]interface{}
+    Flow      *Flow
+    ImageURLs []string
+    Think     string
 }
 ```
 
@@ -311,8 +361,10 @@ type FlowContext struct {
 
 - `Text`: Current text content being processed
 - `Memory`: Structured data for complex workflows
+- `Variables`: Key-value pairs for workflow variables
+- `Flow`: Reference to the parent flow
+- `ImageURLs`: Array of image URLs for multimodal processing
 - `Think`: Extracted thinking process from LLM responses
-- `Images`: Array of image URLs for multimodal processing
 
 ### Context Creation Functions
 
@@ -334,14 +386,7 @@ Creates a new flow context with structured memory data.
 
 ## Error Types
 
-### Common Error Types
-
-The framework defines several error types for different scenarios:
-
-- `ErrClientNotFound`: Returned when a requested client is not registered
-- `ErrFlowNotFound`: Returned when a requested flow is not found
-- `ErrInvalidConfig`: Returned when configuration is invalid
-- `ErrProviderNotSupported`: Returned when an unsupported provider is specified
+The framework does not currently export specific error types. Error handling should be implemented based on the specific needs of your application.
 
 ## Provider-Specific Configurations
 

@@ -52,7 +52,8 @@ Templates can access the following variables from FlowContext:
 - `{{.Memory}}`: Structured memory data
 - `{{.Memory.FieldName}}`: Specific memory fields
 - `{{.Think}}`: Previous thinking process
-- `{{.Images}}`: Array of image URLs
+- `{{.ImageURLs}}`: Array of image URLs
+- `{{.Variables}}`: Workflow variables
 
 #### Template Functions
 
@@ -441,7 +442,7 @@ Additional functions available in templates:
 
 #### Example Templates
 
-```yaml
+```
 # Analysis template
 template: |
   Analyze the following {{.Memory.ContentType}}:

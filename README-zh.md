@@ -258,7 +258,7 @@ func main() {
 	// 执行复杂任务
 	result, _, err := agent.Execute(
 		"研究人工智能对医疗保健的影响并撰写综合报告",
-		anyi.AgentContext{
+		agent.AgentContext{
 			Variables: map[string]interface{}{
 				"深度":   "详细",
 				"来源":   10,

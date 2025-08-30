@@ -141,7 +141,7 @@ func main() {
 
 Anyi supports configuration-driven development, allowing you to define LLM clients and workflows in external files:
 
-```yaml
+```
 # config.yaml
 clients:
   - name: "gpt4"
@@ -248,7 +248,7 @@ func main() {
 	// Execute a complex task
 	result, _, err := agent.Execute(
 		"Research the impact of AI on healthcare and write a comprehensive report",
-		anyi.AgentContext{
+		agent.AgentContext{
 			Variables: map[string]interface{}{
 				"depth":   "detailed",
 				"sources": 10,

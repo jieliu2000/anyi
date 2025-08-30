@@ -202,6 +202,54 @@ func ConfigFromFile(filename string) error
 
 - `error`: 加载失败时的错误
 
+## 智能体管理函数
+
+### anyi.NewAgent
+
+```go
+func NewAgent(name string, role string, backstory string, availableFlows []string, client llm.Client) (*agent.Agent, error)
+```
+
+创建具有指定参数的新智能体，并可选择将其注册到全局注册表中。
+
+**参数：**
+
+- `name`: 用于注册智能体的名称（可选，可以为空）
+- `role`: 智能体的角色
+- `backstory`: 智能体的背景故事
+- `availableFlows`: 智能体可用的流程列表
+- `client`: 用于智能体的 LLM 客户端（可以为 nil）
+
+**返回值：**
+
+- `*agent.Agent`: 创建的智能体实例
+- `error`: 智能体创建失败时的错误
+
+### anyi.GetAgent
+
+```go
+func GetAgent(name string) (*agent.Agent, error)
+```
+
+按名称检索先前注册的智能体。
+
+**参数：**
+
+- `name`: 要检索的智能体名称
+
+**返回值：**
+
+- `*agent.Agent`: 智能体实例
+- `error`: 找不到智能体时的错误
+
+### anyi.ListAgents
+
+```go
+func ListAgents() []string
+```
+
+返回所有已注册智能体名称的列表。
+
 ## 流程管理
 
 ### Flow 接口
@@ -249,14 +297,18 @@ GetName() string
 
 返回流程的名称。
 
+### 流程上下文
+
 ### FlowContext 结构
 
 ```go
 type FlowContext struct {
-    Text   string                 `json:"text"`
-    Memory map[string]interface{} `json:"memory"`
-    Think  string                 `json:"think"`
-    Images []string               `json:"images"`
+    Text      string
+    Memory    interface{}
+    Variables map[string]interface{}
+    Flow      *Flow
+    ImageURLs []string
+    Think     string
 }
 ```
 
@@ -264,8 +316,28 @@ type FlowContext struct {
 
 - `Text`: 当前文本内容
 - `Memory`: 结构化内存数据
-- `Think`: 思考过程内容
-- `Images`: 图像 URL 数组
+- `Variables`: 工作流变量的键值对
+- `Flow`: 父工作流的引用
+- `ImageURLs`: 图像 URL 数组
+- `Think`: 从 LLM 响应中提取的思考过程
+
+### 上下文创建函数
+
+#### anyi.NewFlowContext
+
+```go
+func NewFlowContext(text string) *FlowContext
+```
+
+创建具有初始文本的新流程上下文。
+
+#### anyi.NewFlowContextWithMemory
+
+```go
+func NewFlowContextWithMemory(memory interface{}) *FlowContext
+```
+
+创建具有结构化内存数据的新流程上下文。
 
 ## 步骤管理
 
@@ -399,37 +471,13 @@ type JSONValidator struct {
 
 ## 错误处理
 
-### 错误类型
-
-Anyi 定义了以下错误类型：
-
-```go
-var (
-    ErrClientNotFound    = errors.New("client not found")
-    ErrInvalidConfig     = errors.New("invalid configuration")
-    ErrExecutionFailed   = errors.New("execution failed")
-    ErrValidationFailed  = errors.New("validation failed")
-    ErrNetworkTimeout    = errors.New("network timeout")
-    ErrRateLimitExceeded = errors.New("rate limit exceeded")
-)
-```
-
 ### 错误处理示例
 
-```go
+``go
 response, info, err := client.Chat(messages, nil)
 if err != nil {
-    switch {
-    case errors.Is(err, anyi.ErrNetworkTimeout):
-        // 处理网络超时
-        log.Println("网络超时，稍后重试")
-    case errors.Is(err, anyi.ErrRateLimitExceeded):
-        // 处理速率限制
-        log.Println("达到速率限制，等待后重试")
-    default:
-        // 处理其他错误
-        log.Printf("未知错误: %v", err)
-    }
+    // Handle errors appropriately based on your application's needs
+    log.Printf("Chat failed: %v", err)
     return
 }
 ```
