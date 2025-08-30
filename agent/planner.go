@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	
+
 	"github.com/jieliu2000/anyi/llm/chat"
 )
 
@@ -25,12 +25,18 @@ func (a *Agent) planExecution(task string, ctx AgentContext) (*ExecutionPlan, er
 	if a.aiPlanningFlow != nil {
 		return a.flowBasedPlanExecution(task, ctx)
 	}
-	
-	// If LLM client is available, use traditional AI planning
+
+	// If LLM client is available, create AI planning flow lazily and use flow-based planning
 	if a.Client != nil {
+		// Create the AI planning flow on-demand
+		a.createAIPlanningFlow()
+		if a.aiPlanningFlow != nil {
+			return a.flowBasedPlanExecution(task, ctx)
+		}
+		// If creation failed, fall back to traditional AI planning
 		return a.aiPlanExecution(task, ctx)
 	}
-	
+
 	// Fallback to simple planning strategy
 	return a.simplePlanExecution(task, ctx)
 }
@@ -41,14 +47,14 @@ func (a *Agent) flowBasedPlanExecution(task string, ctx AgentContext) (*Executio
 		// Fallback to simple planning if AI planning flow is not available
 		return a.simplePlanExecution(task, ctx)
 	}
-	
+
 	// Create flow context with planning variables
 	flowContext := a.aiPlanningFlow.NewFlowContext(task, nil)
 	flowContext.SetVariable("AgentRole", a.Role)
 	flowContext.SetVariable("AgentBackground", a.BackStory)
 	flowContext.SetVariable("AvailableFlows", strings.Join(a.AvailableFlows, ", "))
 	flowContext.SetVariable("ContextVariables", ctx.Variables)
-	
+
 	// Execute the AI planning flow
 	for _, step := range a.aiPlanningFlow.Steps {
 		var err error
@@ -58,7 +64,7 @@ func (a *Agent) flowBasedPlanExecution(task string, ctx AgentContext) (*Executio
 			return a.simplePlanExecution(task, ctx)
 		}
 	}
-	
+
 	// Parse the execution plan from the flow context
 	var steps []ExecutionStep
 	err := json.Unmarshal([]byte(flowContext.Text), &steps)
@@ -66,7 +72,7 @@ func (a *Agent) flowBasedPlanExecution(task string, ctx AgentContext) (*Executio
 		// Fallback to simple planning if parsing fails
 		return a.simplePlanExecution(task, ctx)
 	}
-	
+
 	return &ExecutionPlan{Steps: steps}, nil
 }
 
@@ -74,7 +80,7 @@ func (a *Agent) flowBasedPlanExecution(task string, ctx AgentContext) (*Executio
 func (a *Agent) aiPlanExecution(task string, ctx AgentContext) (*ExecutionPlan, error) {
 	// Create planning prompt
 	prompt := a.createPlanningPrompt(task, ctx)
-	
+
 	// Create message for LLM
 	messages := []chat.Message{
 		{
@@ -86,14 +92,14 @@ func (a *Agent) aiPlanExecution(task string, ctx AgentContext) (*ExecutionPlan, 
 			Content: prompt,
 		},
 	}
-	
+
 	// Call LLM for planning
 	response, _, err := a.Client.Chat(messages, nil)
 	if err != nil {
 		// Fallback to simple planning if AI planning fails
 		return a.simplePlanExecution(task, ctx)
 	}
-	
+
 	// Parse AI response to create execution plan
 	return a.parseAIPlanResponse(response.Content, task)
 }
@@ -116,7 +122,7 @@ func (a *Agent) simplePlanExecution(task string, ctx AgentContext) (*ExecutionPl
 // createPlanningPrompt creates a prompt for AI planning
 func (a *Agent) createPlanningPrompt(task string, ctx AgentContext) string {
 	availableFlows := strings.Join(a.AvailableFlows, ", ")
-	
+
 	prompt := fmt.Sprintf(`Task: %s
 
 Agent Role: %s
@@ -132,7 +138,7 @@ Example response: ["flow1", "flow2", "flow3"]
 
 Only respond with the JSON array, nothing else.`,
 		task, a.Role, a.BackStory, availableFlows, ctx.Variables)
-	
+
 	return prompt
 }
 
@@ -141,22 +147,22 @@ func (a *Agent) parseAIPlanResponse(aiResponse, task string) (*ExecutionPlan, er
 	// Simple parsing: extract flow names from response
 	// This is a basic implementation - in production, you'd want more robust JSON parsing
 	steps := make([]ExecutionStep, 0)
-	
+
 	// For now, we'll use a simple approach: split by commas and clean up
 	// In a real implementation, you'd parse the JSON properly
 	response := strings.TrimSpace(aiResponse)
 	response = strings.Trim(response, "[]")
-	
+
 	if response == "" {
 		// If AI response is empty, fallback to simple planning
 		return a.simplePlanExecution(task, AgentContext{Variables: make(map[string]interface{})})
 	}
-	
+
 	flowNames := strings.Split(response, ",")
 	for _, flowName := range flowNames {
 		flowName = strings.TrimSpace(flowName)
 		flowName = strings.Trim(flowName, "\"") // Remove quotes
-		
+
 		// Only add flows that are actually available
 		for _, availableFlow := range a.AvailableFlows {
 			if availableFlow == flowName {
@@ -168,12 +174,12 @@ func (a *Agent) parseAIPlanResponse(aiResponse, task string) (*ExecutionPlan, er
 			}
 		}
 	}
-	
+
 	// If no valid flows were found, fallback to simple planning
 	if len(steps) == 0 {
 		return a.simplePlanExecution(task, AgentContext{Variables: make(map[string]interface{})})
 	}
-	
+
 	return &ExecutionPlan{Steps: steps}, nil
 }
 

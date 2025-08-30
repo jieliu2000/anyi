@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
-	
+
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/llm"
 	"github.com/jieliu2000/anyi/llm/chat"
@@ -15,31 +15,17 @@ type FlowGetter interface {
 	GetFlow(name string) (interface{}, error)
 }
 
-// Config Agent configuration
-type Config struct {
-	MaxIterations int           `mapstructure:"maxIterations" json:"maxIterations" yaml:"maxIterations"`
-	MaxRetries    int           `mapstructure:"maxRetries" json:"maxRetries" yaml:"maxRetries"`
-	Timeout       time.Duration `mapstructure:"timeout" json:"timeout" yaml:"timeout"`
-}
-
 // Agent concrete type
 type Agent struct {
 	Role           string
 	BackStory      string
 	AvailableFlows []string
-	Config         Config
+	MaxIterations  int           `mapstructure:"maxIterations" json:"maxIterations" yaml:"maxIterations"`
+	MaxRetries     int           `mapstructure:"maxRetries" json:"maxRetries" yaml:"maxRetries"`
+	Timeout        time.Duration `mapstructure:"timeout" json:"timeout" yaml:"timeout"`
 	getFlow        FlowGetter
 	Client         llm.Client
 	aiPlanningFlow *flow.Flow
-}
-
-// DefaultConfig returns default configuration
-func DefaultConfig() Config {
-	return Config{
-		MaxIterations: 10,
-		MaxRetries:    3,
-		Timeout:       30 * time.Minute,
-	}
 }
 
 // NewAgent creates a new Agent
@@ -49,7 +35,9 @@ func NewAgent(role, backstory string, availableFlows []string, getFlow FlowGette
 		BackStory:      backstory,
 		AvailableFlows: availableFlows,
 		getFlow:        getFlow,
-		Config:         DefaultConfig(),
+		MaxIterations:  10,
+		MaxRetries:     3,
+		Timeout:        30 * time.Minute,
 	}
 }
 
@@ -60,15 +48,15 @@ func NewAgentWithClient(role, backstory string, availableFlows []string, getFlow
 		BackStory:      backstory,
 		AvailableFlows: availableFlows,
 		getFlow:        getFlow,
-		Config:         DefaultConfig(),
+		MaxIterations:  10,
+		MaxRetries:     3,
+		Timeout:        30 * time.Minute,
 		Client:         client,
 	}
-	
-	// Initialize AI planning flow if LLM client is available
-	if client != nil {
-		agent.createAIPlanningFlow()
-	}
-	
+
+	// Note: AI planning flow will be created lazily during planning if needed
+	// This avoids unnecessary initialization overhead when the agent might not use AI planning
+
 	return agent
 }
 
@@ -101,7 +89,7 @@ func (a *Agent) Execute(task string, ctx AgentContext) (string, AgentContext, er
 		}); ok {
 			result, resultCtx.Variables, err = executable.Execute(result, resultCtx.Variables)
 			if err != nil {
-				if step.Retryable && i < a.Config.MaxRetries {
+				if step.Retryable && i < a.MaxRetries {
 					continue // Retry current step
 				}
 				return "", resultCtx, fmt.Errorf("execute flow %s: %w", step.FlowName, err)
@@ -118,7 +106,7 @@ func (a *Agent) Execute(task string, ctx AgentContext) (string, AgentContext, er
 		}
 
 		// Check if maximum iterations exceeded
-		if i >= a.Config.MaxIterations-1 {
+		if i >= a.MaxIterations-1 {
 			break
 		}
 	}
@@ -132,7 +120,7 @@ func (a *Agent) createAIPlanningFlow() {
 	if a.Client == nil {
 		return // No LLM client available, cannot create AI planning flow
 	}
-	
+
 	// Create LLM step for generating the plan
 	llmStep, err := a.createLLMStep()
 	if err != nil {
@@ -140,12 +128,12 @@ func (a *Agent) createAIPlanningFlow() {
 		return
 	}
 	llmStep.Name = "llm-planning"
-	
+
 	// Create PlanParser step for parsing the LLM response
 	planParserExecutor := NewPlanParserExecutor(a.AvailableFlows)
 	planParserStep := flow.NewStep(planParserExecutor, nil, nil)
 	planParserStep.Name = "plan-parser"
-	
+
 	// Create the AI planning flow
 	aiPlanningFlow, err := flow.NewFlow(a.Client, "ai-planning", *llmStep, *planParserStep)
 	if err != nil {
@@ -153,7 +141,7 @@ func (a *Agent) createAIPlanningFlow() {
 		// In a real implementation, you might want to log this error
 		return
 	}
-	
+
 	a.aiPlanningFlow = aiPlanningFlow
 }
 
@@ -164,27 +152,27 @@ func (a *Agent) createLLMStep() (*flow.Step, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Create a custom LLM executor that implements the StepExecutor interface
 	llmExecutor := &agentLLMExecutor{
 		templateFormatter: formatter,
-		systemMessage:    "You are an intelligent task planner. Based on the task description and available flows, create an optimal execution plan.",
-		outputJSON:       true,
+		systemMessage:     "You are an intelligent task planner. Based on the task description and available flows, create an optimal execution plan.",
+		outputJSON:        true,
 	}
-	
+
 	// Initialize the executor
 	if err := llmExecutor.Init(); err != nil {
 		return nil, err
 	}
-	
+
 	return flow.NewStep(llmExecutor, nil, a.Client), nil
 }
 
 // agentLLMExecutor is a custom LLM executor implementation that avoids importing executors package
 type agentLLMExecutor struct {
 	templateFormatter chat.PromptFormatter
-	systemMessage    string
-	outputJSON       bool
+	systemMessage     string
+	outputJSON        bool
 }
 
 // Init initializes the executor
@@ -241,7 +229,7 @@ func (e *agentLLMExecutor) Run(flowContext flow.FlowContext, step *flow.Step) (*
 // createPlanningTemplate creates a template for AI planning
 func (a *Agent) createPlanningTemplate() string {
 	availableFlows := strings.Join(a.AvailableFlows, ", ")
-	
+
 	template := `Task: {{.Text}}
 
 Agent Role: {{.Flow.Variables.AgentRole}}
@@ -256,7 +244,7 @@ Respond with a JSON array of flow names in the order they should be executed.
 Example response: ["flow1", "flow2", "flow3"]
 
 Only respond with the JSON array, nothing else.`
-	
+
 	return template
 }
 

@@ -1,0 +1,87 @@
+---
+clients:
+  - name: openai
+    type: openai
+    config:
+      apiKey: ${OPENAI_API_KEY}
+      model: gpt-4
+
+  - name: ollama
+    type: ollama
+    config:
+      model: llama3.1
+
+flows:
+  - name: codeAnalysisFlow
+    clientName: openai
+    steps:
+      - name: analyzeCode
+        executor:
+          type: llm
+          withConfig:
+            template: >
+              Analyze the following code and identify potential issues, 
+              improvements, and best practices:
+              
+              {{.Text}}
+        validator:
+          type: string
+          withConfig:
+            minLength: 100
+
+  - name: documentationFlow
+    clientName: ollama
+    steps:
+      - name: generateDocs
+        executor:
+          type: llm
+          withConfig:
+            template: >
+              Generate documentation for the following code:
+              
+              {{.Text}}
+
+  - name: testingFlow
+    clientName: ollama
+    steps:
+      - name: generateTests
+        executor:
+          type: llm
+          withConfig:
+            template: >
+              Generate unit tests for the following code:
+              
+              {{.Text}}
+
+agents:
+  - name: codeReviewer
+    role: "Senior Code Reviewer"
+    backstory: "Experienced software engineer specializing in code quality and best practices"
+    availableFlows:
+      - codeAnalysisFlow
+      - documentationFlow
+    clientName: openai
+    maxIterations: 5
+    maxRetries: 2
+    timeout: "30m"
+
+  - name: testGenerator
+    role: "Test Automation Specialist"
+    backstory: "Expert in generating comprehensive test suites for various programming languages"
+    availableFlows:
+      - testingFlow
+      - documentationFlow
+    clientName: ollama
+    maxIterations: 3
+    maxRetries: 3
+    timeout: "15m"
+
+  - name: documentationWriter
+    role: "Technical Documentation Writer"
+    backstory: "Specialist in creating clear and comprehensive technical documentation"
+    availableFlows:
+      - documentationFlow
+    clientName: ollama
+    maxIterations: 2
+    maxRetries: 1
+    timeout: "10m"

@@ -1,0 +1,54 @@
+package main
+
+import (
+	"fmt"
+	"log"
+
+	"github.com/jieliu2000/anyi"
+)
+
+func main() {
+	// Example of loading agent configuration from a YAML string
+	configContent := `
+agents:
+  - name: codeReviewer
+    role: "Senior Code Reviewer"
+    backstory: "Experienced software engineer specializing in code quality and best practices"
+    availableFlows:
+      - codeAnalysisFlow
+      - documentationFlow
+    maxIterations: 5
+    maxRetries: 2
+    timeout: "30m"
+
+  - name: documentationWriter
+    role: "Technical Documentation Writer"
+    backstory: "Specialist in creating clear and comprehensive technical documentation"
+    availableFlows:
+      - documentationFlow
+    maxIterations: 2
+    maxRetries: 1
+    timeout: "10m"
+`
+
+	// Load configuration from string
+	err := anyi.ConfigFromString(configContent, "yaml")
+	if err != nil {
+		log.Fatalf("Failed to load configuration: %v", err)
+	}
+
+	// Get an agent by name
+	agent, err := anyi.GetAgent("codeReviewer")
+	if err != nil {
+		log.Fatalf("Failed to get agent: %v", err)
+	}
+
+	// Print agent information
+	fmt.Printf("Agent Name: %s\n", "codeReviewer")
+	fmt.Printf("Role: %s\n", agent.Role)
+	fmt.Printf("Backstory: %s\n", agent.BackStory)
+	fmt.Printf("Available Flows: %v\n", agent.AvailableFlows)
+	fmt.Printf("Max Iterations: %d\n", agent.MaxIterations)
+	fmt.Printf("Max Retries: %d\n", agent.MaxRetries)
+	fmt.Printf("Timeout: %v\n", agent.Timeout)
+}

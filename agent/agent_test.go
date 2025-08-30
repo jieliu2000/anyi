@@ -43,8 +43,8 @@ func TestNewAgent(t *testing.T) {
 	assert.Equal(t, "Test backstory", agent.BackStory)
 	assert.Equal(t, []string{"flow1", "flow2"}, agent.AvailableFlows)
 	assert.Equal(t, mockFlowGetter, agent.getFlow)
-	assert.Equal(t, 10, agent.Config.MaxIterations)
-	assert.Equal(t, 3, agent.Config.MaxRetries)
+	assert.Equal(t, 10, agent.MaxIterations)
+	assert.Equal(t, 3, agent.MaxRetries)
 }
 
 func TestExecute_EmptyContext(t *testing.T) {
@@ -167,7 +167,7 @@ func TestExecute_WithRetry(t *testing.T) {
 	mockFlowGetter.On("GetFlow", "retry-flow").Return(&executableFlow, nil)
 
 	agent := NewAgent("Test", "Test", []string{"retry-flow"}, mockFlowGetter)
-	agent.Config.MaxRetries = 2
+	agent.MaxRetries = 2
 
 	// Since we used an object that does not implement Execute method, it will return an error
 	_, _, err := agent.Execute("test task", AgentContext{})

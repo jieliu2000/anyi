@@ -4,21 +4,38 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/jieliu2000/anyi/agent"
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/internal/utils"
 	"github.com/jieliu2000/anyi/llm"
+	"github.com/jieliu2000/anyi/registry"
 	"github.com/mitchellh/mapstructure"
 )
 
+// AgentConfig defines the configuration structure for agents.
+// Agents are autonomous entities that can plan and execute workflows.
+type AgentConfig struct {
+	Name           string   `mapstructure:"name" json:"name" yaml:"name"`
+	Role           string   `mapstructure:"role" json:"role" yaml:"role"`
+	BackStory      string   `mapstructure:"backstory" json:"backstory" yaml:"backstory"`
+	AvailableFlows []string `mapstructure:"availableFlows" json:"availableFlows" yaml:"availableFlows"`
+	ClientName     string   `mapstructure:"clientName" json:"clientName" yaml:"clientName"`
+	MaxIterations  int      `mapstructure:"maxIterations" json:"maxIterations" yaml:"maxIterations"`
+	MaxRetries     int      `mapstructure:"maxRetries" json:"maxRetries" yaml:"maxRetries"`
+	Timeout        string   `mapstructure:"timeout" json:"timeout" yaml:"timeout"` // Using string for easier config parsing
+}
+
 // AnyiConfig represents the top-level configuration structure for the Anyi framework.
-// It contains configurations for clients, flows, and formatters.
+// It contains configurations for clients, flows, formatters, and agents.
 type AnyiConfig struct {
 	Clients    []llm.ClientConfig
 	Flows      []FlowConfig
 	Formatters []FormatterConfig
+	Agents     []AgentConfig // Add Agents configuration
 }
 
 // ValidatorConfig defines the configuration structure for validators.
@@ -274,8 +291,63 @@ func NewValidatorFromConfig(validatorConfig *ValidatorConfig) (flow.StepValidato
 
 }
 
+// NewAgentFromConfig creates a new agent from an agent configuration.
+// It initializes the agent with the specified parameters and associates the appropriate client.
+//
+// Parameters:
+//   - agentConfig: Agent configuration containing role, backstory, and other settings
+//
+// Returns:
+//   - A new agent instance
+//   - Any error encountered during agent creation
+func NewAgentFromConfig(agentConfig *AgentConfig) (*agent.Agent, error) {
+	if agentConfig == nil {
+		return nil, errors.New("agent config is nil")
+	}
+
+	// Get the client if specified
+	var client llm.Client
+	var err error
+	if agentConfig.ClientName != "" {
+		client, err = GetClient(agentConfig.ClientName)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get client %s for agent %s: %w", agentConfig.ClientName, agentConfig.Name, err)
+		}
+	}
+
+	// Create the agent using the factory function
+	a := agent.NewAgentWithClient(agentConfig.Role, agentConfig.BackStory, agentConfig.AvailableFlows, registry.Global, client)
+
+	// Apply configuration overrides
+	if agentConfig.MaxIterations > 0 {
+		a.MaxIterations = agentConfig.MaxIterations
+	}
+	if agentConfig.MaxRetries > 0 {
+		a.MaxRetries = agentConfig.MaxRetries
+	}
+	if agentConfig.Timeout != "" {
+		// Parse duration from string
+		timeout, err := time.ParseDuration(agentConfig.Timeout)
+		if err != nil {
+			log.Warnf("Invalid timeout format for agent %s: %s. Using default.", agentConfig.Name, agentConfig.Timeout)
+		} else {
+			a.Timeout = timeout
+		}
+	}
+
+	// Register the agent if a name is provided
+	if agentConfig.Name != "" {
+		err = registry.RegisterAgent(agentConfig.Name, a)
+		if err != nil {
+			return nil, fmt.Errorf("failed to register agent %s: %w", agentConfig.Name, err)
+		}
+	}
+
+	return a, nil
+}
+
 // Config configures the Anyi framework with the provided configuration.
-// It initializes clients, flows, and formatters based on the configuration.
+// It initializes clients, flows, formatters, and agents based on the configuration.
 //
 // Parameters:
 //   - config: Complete configuration for the Anyi framework
@@ -303,6 +375,15 @@ func Config(config *AnyiConfig) error {
 		_, flowErr := NewFlowFromConfig(&flowConfig)
 		if flowErr != nil {
 			return flowErr
+		}
+	}
+
+	// Init agents - this should be done after flows are initialized
+	// since agents may depend on flows
+	for _, agentConfig := range config.Agents {
+		_, agentErr := NewAgentFromConfig(&agentConfig)
+		if agentErr != nil {
+			return agentErr
 		}
 	}
 
