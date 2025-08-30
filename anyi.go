@@ -6,10 +6,12 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/jieliu2000/anyi/executors"
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/llm"
 	"github.com/jieliu2000/anyi/llm/chat"
 	"github.com/jieliu2000/anyi/registry"
+	"github.com/jieliu2000/anyi/validators"
 )
 
 // RegisterNewDefaultClient registers a client as the default client in the global registry.
@@ -423,9 +425,9 @@ func RegisterValidator(name string, validator flow.StepValidator) error {
 //
 // Returns:
 //   - A new LLM executor
-func NewLLMStepExecutorWithFormatter(name string, formatter *chat.PromptyTemplateFormatter, systemMessage string, client llm.Client) *LLMExecutor {
+func NewLLMStepExecutorWithFormatter(name string, formatter *chat.PromptyTemplateFormatter, systemMessage string, client llm.Client) *executors.LLMExecutor {
 
-	stepExecutor := LLMExecutor{
+	stepExecutor := executors.LLMExecutor{
 		TemplateFormatter: formatter,
 		SystemMessage:     systemMessage,
 	}
@@ -435,18 +437,18 @@ func NewLLMStepExecutorWithFormatter(name string, formatter *chat.PromptyTemplat
 }
 
 // NewLLMStep creates a new workflow step with an LLM executor.
-// This is a convenience function that calls NewLLMStepWithTemplate.
+// This is a convenience function that calls executors.NewLLMStepWithTemplate.
 //
 // Parameters:
-//   - tmplate: Template string for generating prompts
+//   - template: Template string for generating prompts
 //   - systemMessage: System message to include in the conversation
 //   - client: LLM client to use for the step
 //
 // Returns:
 //   - A new workflow step
 //   - Any error encountered during step creation
-func NewLLMStep(tmplate string, systemMessage string, client llm.Client) (*flow.Step, error) {
-	return NewLLMStepWithTemplate(tmplate, systemMessage, client)
+func NewLLMStep(template string, systemMessage string, client llm.Client) (*flow.Step, error) {
+	return executors.NewLLMStepWithTemplate(template, systemMessage, client)
 }
 
 // Init initializes the Anyi framework by registering built-in executors and validators.
@@ -454,18 +456,14 @@ func NewLLMStep(tmplate string, systemMessage string, client llm.Client) (*flow.
 func Init() {
 
 	log.Debug("Initializing Anyi...")
-	RegisterExecutor("llm", &LLMExecutor{})
-	RegisterExecutor("condition", &ConditionalFlowExecutor{})
-	RegisterExecutor("exec", &RunCommandExecutor{})
-	RegisterExecutor("setContext", &SetContextExecutor{})
-	RegisterExecutor("setVariables", &SetVariablesExecutor{})
-	// Register with old name for backward compatibility
-	RegisterExecutor("setVariable", &SetVariablesExecutor{})
-	// Register MCP executor
-	RegisterExecutor("mcp", &MCPExecutor{})
+	// 注册内建执行器
+	executors.RegisterBuiltinExecutors()
 
-	RegisterValidator("string", &StringValidator{})
-	RegisterValidator("json", &JsonValidator{})
+	// 注册内建验证器
+	validators.RegisterBuiltinValidators()
+
+	// 注册MCP执行器（保留在主包中）
+	RegisterExecutor("mcp", &MCPExecutor{})
 
 	log.Debug("Anyi initialized successfully.")
 }

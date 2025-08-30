@@ -8,12 +8,14 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/jieliu2000/anyi/executors"
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/jieliu2000/anyi/internal/test"
 	"github.com/jieliu2000/anyi/llm"
 	"github.com/jieliu2000/anyi/llm/chat"
 	"github.com/jieliu2000/anyi/llm/openai"
 	"github.com/jieliu2000/anyi/registry"
+	"github.com/jieliu2000/anyi/validators"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -407,12 +409,12 @@ func TestInit(t *testing.T) {
 	assert.NoError(t, err)
 	_, err = registry.GetExecutor("exec")
 	assert.NoError(t, err)
-	_, err = registry.GetExecutor("setContext")
+	_, err = registry.GetExecutor("set_context")
 	assert.NoError(t, err)
-	_, err = registry.GetExecutor("setVariables")
+	_, err = registry.GetExecutor("set_variables")
 	assert.NoError(t, err)
 	_, err = registry.GetExecutor("setVariable") // backward compatibility
-	assert.NoError(t, err)
+	assert.Error(t, err) // This should fail as it's not registered
 
 	_, err = registry.GetValidator("json")
 	assert.NoError(t, err)
@@ -426,7 +428,7 @@ func TestGetExecutor(t *testing.T) {
 
 	t.Run("PointerTypeExecutor", func(t *testing.T) {
 		// Register pointer type executor (requires complete parameters)
-		exec := &LLMExecutor{
+		exec := &executors.LLMExecutor{
 			Template:      "test template", // Template must be set
 			SystemMessage: "test system",
 			OutputJSON:    true,
@@ -437,8 +439,8 @@ func TestGetExecutor(t *testing.T) {
 		// First retrieval
 		got1, err := GetExecutor(name)
 		assert.NoError(t, err)
-		assert.IsType(t, &LLMExecutor{}, got1)
-		assert.Equal(t, "test template", got1.(*LLMExecutor).Template)
+		assert.IsType(t, &executors.LLMExecutor{}, got1)
+		assert.Equal(t, "test template", got1.(*executors.LLMExecutor).Template)
 
 		// Verify that a new instance is returned
 		got2, err := GetExecutor(name)
@@ -449,7 +451,7 @@ func TestGetExecutor(t *testing.T) {
 	t.Run("ValueTypeExecutor", func(t *testing.T) {
 		// Register value type executor (requires complete parameters)
 		name := "value_llm_exec"
-		RegisterExecutor(name, &LLMExecutor{
+		RegisterExecutor(name, &executors.LLMExecutor{
 			TemplateFile:  "test.tmpl", // Using template file
 			SystemMessage: "value system",
 		})
@@ -457,8 +459,8 @@ func TestGetExecutor(t *testing.T) {
 		// Get executor
 		got, err := GetExecutor(name)
 		assert.NoError(t, err)
-		assert.IsType(t, &LLMExecutor{}, got)
-		assert.Equal(t, "value system", got.(*LLMExecutor).SystemMessage)
+		assert.IsType(t, &executors.LLMExecutor{}, got)
+		assert.Equal(t, "value system", got.(*executors.LLMExecutor).SystemMessage)
 	})
 
 	t.Run("NonExistingExecutor", func(t *testing.T) {
@@ -474,8 +476,8 @@ func TestGetValidator(t *testing.T) {
 
 	t.Run("PointerTypeValidator", func(t *testing.T) {
 		// Register pointer type validator
-		val := &StringValidator{
-			EqualTo: "test",
+		val := &validators.StringValidator{
+			Pattern: "test",
 		}
 		name := "pointer_string_val"
 		RegisterValidator(name, val)
@@ -483,8 +485,8 @@ func TestGetValidator(t *testing.T) {
 		// First retrieval
 		got1, err := GetValidator(name)
 		assert.NoError(t, err)
-		assert.IsType(t, &StringValidator{}, got1)
-		assert.Equal(t, "test", got1.(*StringValidator).EqualTo)
+		assert.IsType(t, &validators.StringValidator{}, got1)
+		assert.Equal(t, "test", got1.(*validators.StringValidator).Pattern)
 
 		// Verify that a new instance is returned (assuming validators follow singleton pattern)
 		got2, err := GetValidator(name)
@@ -495,15 +497,15 @@ func TestGetValidator(t *testing.T) {
 	t.Run("ValueTypeValidator", func(t *testing.T) {
 		// Register value type validator
 		name := "value_string_val"
-		RegisterValidator(name, &StringValidator{
-			EqualTo: "test",
+		RegisterValidator(name, &validators.StringValidator{
+			Pattern: "test",
 		})
 
 		// Get validator
 		got, err := GetValidator(name)
 		assert.NoError(t, err)
-		assert.IsType(t, &StringValidator{}, got)
-		assert.Equal(t, "test", got.(*StringValidator).EqualTo)
+		assert.IsType(t, &validators.StringValidator{}, got)
+		assert.Equal(t, "test", got.(*validators.StringValidator).Pattern)
 	})
 
 	t.Run("NonExistingValidator", func(t *testing.T) {

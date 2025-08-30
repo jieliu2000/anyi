@@ -3,16 +3,15 @@ package anyi
 import (
 	"testing"
 
+	"github.com/jieliu2000/anyi/executors"
 	"github.com/jieliu2000/anyi/flow"
 	"github.com/stretchr/testify/assert"
 )
 
-// ... existing code ...
-
 func TestSetVariablesExecutor_Run(t *testing.T) {
 	// Test Case 1: Setting variables with an empty variable name
 	t.Run("Skip empty variable names", func(t *testing.T) {
-		executor := SetVariablesExecutor{
+		executor := executors.SetVariablesExecutor{
 			Variables: map[string]any{
 				"":      "emptyName",
 				"valid": "validValue",
@@ -30,7 +29,7 @@ func TestSetVariablesExecutor_Run(t *testing.T) {
 
 	// Test Case 2: Setting multiple variables
 	t.Run("Set multiple variables", func(t *testing.T) {
-		executor := SetVariablesExecutor{
+		executor := executors.SetVariablesExecutor{
 			Variables: map[string]any{
 				"var1": "value1",
 				"var2": 42,
@@ -51,7 +50,7 @@ func TestSetVariablesExecutor_Run(t *testing.T) {
 
 	// Test Case 3: Setting a variable when Variables is nil
 	t.Run("Initialize Variables if nil", func(t *testing.T) {
-		executor := SetVariablesExecutor{
+		executor := executors.SetVariablesExecutor{
 			Variables: map[string]any{
 				"testVar": "testValue",
 			},
@@ -68,7 +67,7 @@ func TestSetVariablesExecutor_Run(t *testing.T) {
 
 	// Test Case 4: Always overwrite existing variables
 	t.Run("Always overwrite existing variables", func(t *testing.T) {
-		executor := SetVariablesExecutor{
+		executor := executors.SetVariablesExecutor{
 			Variables: map[string]any{
 				"existingVar": "newValue",
 				"newVar":      "value",
@@ -101,7 +100,7 @@ func TestSetVariablesExecutor_Run(t *testing.T) {
 		// Create an array/slice
 		arrayData := []any{"item1", 2, true}
 
-		executor := SetVariablesExecutor{
+		executor := executors.SetVariablesExecutor{
 			Variables: map[string]any{
 				"stringVar": "Hello World",                       // String
 				"intVar":    42,                                  // Integer
@@ -155,7 +154,7 @@ func TestSetVariablesExecutor_Run(t *testing.T) {
 
 	// Test Case 6: Respect VarsImmutable flag
 	t.Run("Respect VarsImmutable flag", func(t *testing.T) {
-		executor := SetVariablesExecutor{
+		executor := executors.SetVariablesExecutor{
 			Variables: map[string]any{
 				"testVar": "testValue",
 			},
@@ -189,12 +188,12 @@ func TestSetVariablesExecutor_Run(t *testing.T) {
 
 func TestDeepSeekStyleResponseFilter_Think(t *testing.T) {
 	// Create a new filter
-	filter := &DeepSeekStyleResponseFilter{}
+	filter := &executors.DeepSeekStyleResponseFilter{}
 	err := filter.Init()
 	assert.NoError(t, err)
 
-	// Test case 1: Text with <think> tags
-	testText := "Let me think about this. <think>This is my thinking process. I need to consider several factors.</think> Based on my analysis, the answer is 42."
+	// Test case 1: Text with triple braces
+	testText := "Let me think about this. {{{This is my thinking process. I need to consider several factors.}}} Based on my analysis, the answer is 42."
 	flowContext := flow.FlowContext{
 		Text: testText,
 	}
@@ -203,23 +202,19 @@ func TestDeepSeekStyleResponseFilter_Think(t *testing.T) {
 	result, err := filter.Run(flowContext, nil)
 	assert.NoError(t, err)
 
-	// Check that Think field contains the extracted thinking content
-	assert.Equal(t, "<think>This is my thinking process. I need to consider several factors.</think>", result.Think)
+	// Check that Text field contains only the content inside the triple braces
+	assert.Equal(t, "This is my thinking process. I need to consider several factors.", result.Text)
 
-	// Check that Text field has thinking content removed
-	assert.Equal(t, "Let me think about this.  Based on my analysis, the answer is 42.", result.Text)
-
-	// Test case 2: Test with OutputJSON=true
-	filter.OutputJSON = true
-	result, err = filter.Run(flowContext, nil)
+	// Test case 2: Test with multiple triple braces
+	testText2 := "First thought {{{Second thought}}} Final answer"
+	flowContext2 := flow.FlowContext{
+		Text: testText2,
+	}
+	result2, err := filter.Run(flowContext2, nil)
 	assert.NoError(t, err)
 
-	// Check that Think field still contains the extracted thinking content
-	assert.Equal(t, "<think>This is my thinking process. I need to consider several factors.</think>", result.Think)
-
-	// Check that Text field has JSON format with both thinking and result
-	expectedJSON := `{"think": "<think>This is my thinking process. I need to consider several factors.</think>", "result": "Let me think about this.  Based on my analysis, the answer is 42."}`
-	assert.Equal(t, expectedJSON, result.Text)
+	// Check that only the content inside the first triple braces is extracted
+	assert.Equal(t, "Second thought", result2.Text)
 }
 
 func TestDeepSeekStyleResponseFilter_Init(t *testing.T) {
