@@ -293,12 +293,19 @@ func TestConfig(t *testing.T) {
 }
 
 func TestConfigWithInvalidExecutor(t *testing.T) {
+	// Clear registry before running tests to avoid conflicts
+	registry.Clear()
+	defer registry.Clear()
+	
+	RegisterExecutor("executor1", &MockExecutor{})
 	config := AnyiConfig{
 		Clients: []llm.ClientConfig{
 			{
-				Name:   "client1",
-				Type:   "dashscope",
-				Config: map[string]interface{}{},
+				Name: "client1",
+				Type: "openai",
+				Config: map[string]interface{}{
+					"api_key": "test_key",
+				},
 			},
 		},
 
@@ -323,6 +330,10 @@ func TestConfigWithInvalidExecutor(t *testing.T) {
 }
 
 func TestConfigWithInvalidValidator(t *testing.T) {
+	// Clear registry before running tests to avoid conflicts
+	registry.Clear()
+	defer registry.Clear()
+	
 	RegisterExecutor("executor1", &MockExecutor{})
 	config := AnyiConfig{
 		Clients: []llm.ClientConfig{
@@ -359,6 +370,10 @@ func TestConfigWithInvalidValidator(t *testing.T) {
 }
 
 func TestConfigWithInvalidClient(t *testing.T) {
+	// Clear registry before running tests to avoid conflicts
+	registry.Clear()
+	defer registry.Clear()
+	
 	RegisterExecutor("executor1", &MockExecutor{})
 	config := AnyiConfig{
 		Clients: []llm.ClientConfig{
@@ -438,6 +453,10 @@ func TestNewValidatorFromConfig(t *testing.T) {
 
 // TestConfigFromString tests loading configuration from a string with specified format
 func TestConfigFromString(t *testing.T) {
+	// Clear registry before running tests to avoid conflicts
+	registry.Clear()
+	defer registry.Clear()
+	
 	// Setup test
 	RegisterExecutor("string-executor", &MockExecutor{})
 
@@ -592,6 +611,10 @@ flows:
 
 // TestConfigFromFile tests loading configuration from a file
 func TestConfigFromFile(t *testing.T) {
+	// Clear registry before running tests to avoid conflicts
+	registry.Clear()
+	defer registry.Clear()
+	
 	// Setup test
 	RegisterExecutor("file-executor", &MockExecutor{})
 

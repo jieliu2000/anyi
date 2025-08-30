@@ -268,10 +268,6 @@ func NewValidatorFromConfig(validatorConfig *ValidatorConfig) (flow.StepValidato
 
 	validator := reflect.New(reflect.TypeOf(validatorType).Elem()).Interface().(flow.StepValidator)
 
-	if validatorType == nil {
-		return nil, fmt.Errorf("validator type %s is not found", validatorConfig.Type)
-	}
-
 	mapstructure.Decode(validatorConfig.WithConfig, validator)
 	validator.Init()
 	return validator, nil

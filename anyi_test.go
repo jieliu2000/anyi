@@ -299,12 +299,12 @@ func TestGetFlow(t *testing.T) {
 		flowName := "non_existing_flow"
 		f, err := GetFlow(flowName)
 		assert.Nil(t, f)
-		assert.EqualError(t, err, "flow non_existing_flow not found")
+		assert.EqualError(t, err, "no flow found with the given name: non_existing_flow")
 	})
 	t.Run("with an empty name", func(t *testing.T) {
 		f, err := GetFlow("")
 		assert.Nil(t, f)
-		assert.EqualError(t, err, "flow  not found")
+		assert.EqualError(t, err, "no flow found with the given name: ")
 	})
 }
 
@@ -362,7 +362,7 @@ func TestNewFlowContextWithVariables(t *testing.T) {
 func TestNewFlow(t *testing.T) {
 	// Clear registry before running tests to avoid conflicts
 	registry.Clear()
-	
+
 	t.Run("creates a new flow with the given name and steps", func(t *testing.T) {
 		name := "test_flow"
 		client := test.MockClient{}
@@ -464,7 +464,7 @@ func TestGetExecutor(t *testing.T) {
 	t.Run("NonExistingExecutor", func(t *testing.T) {
 		_, err := GetExecutor("not_exist")
 		assert.Error(t, err)
-		assert.EqualError(t, err, "executor not_exist not found")
+		assert.EqualError(t, err, "no executor found with the given name: not_exist")
 	})
 }
 
@@ -509,7 +509,7 @@ func TestGetValidator(t *testing.T) {
 	t.Run("NonExistingValidator", func(t *testing.T) {
 		_, err := GetValidator("not_exist_val")
 		assert.Error(t, err)
-		assert.EqualError(t, err, "validator not_exist_val not found")
+		assert.EqualError(t, err, "no validator found with the given name: not_exist_val")
 	})
 }
 
@@ -552,7 +552,7 @@ func TestRegisterFormatter(t *testing.T) {
 	t.Run("Overwriting existing formatter", func(t *testing.T) {
 		// Clear registry to ensure clean state
 		registry.Clear()
-		
+
 		// Create and register a formatter
 		formatter1, _ := chat.NewPromptTemplateFormatter("Template 1")
 		err := RegisterFormatter("formatter", formatter1)
@@ -597,7 +597,7 @@ config:
 	t.Run("Success case with name", func(t *testing.T) {
 		// Clear registry to ensure clean state
 		registry.Clear()
-		
+
 		// Execute
 		client, err := NewClientFromConfigFile("test-client", tmpFile.Name())
 
@@ -612,6 +612,9 @@ config:
 	})
 
 	t.Run("Success case without name", func(t *testing.T) {
+		// Clear registry to ensure clean state
+		registry.Clear()
+
 		// Execute with empty name
 		client, err := NewClientFromConfigFile("", tmpFile.Name())
 

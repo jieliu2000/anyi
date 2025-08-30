@@ -71,39 +71,19 @@ func GetAgent(name string) (*agent.Agent, error) {
 
 // RegisterFlow registers a flow
 func RegisterFlow(name string, flow *flow.Flow) error {
+	// Validate parameters first
+	if name == "" {
+		return fmt.Errorf("name cannot be empty")
+	}
+	if flow == nil {
+		return fmt.Errorf("flow cannot be empty")
+	}
+
 	Global.mu.Lock()
 	defer Global.mu.Unlock()
 
-	if _, exists := Global.Flows[name]; exists {
-		return fmt.Errorf("flow %s already exists", name)
-	}
-
+	// Allow overwriting existing flows
 	Global.Flows[name] = flow
-	return nil
-}
-
-// GetFlow retrieves a flow by name
-func GetFlow(name string) (*flow.Flow, error) {
-	Global.mu.RLock()
-	defer Global.mu.RUnlock()
-
-	flow, exists := Global.Flows[name]
-	if !exists {
-		return nil, fmt.Errorf("flow %s not found", name)
-	}
-	return flow, nil
-}
-
-// RegisterClient registers an LLM client
-func RegisterClient(name string, client llm.Client) error {
-	Global.mu.Lock()
-	defer Global.mu.Unlock()
-
-	if _, exists := Global.Clients[name]; exists {
-		return fmt.Errorf("client %s already exists", name)
-	}
-
-	Global.Clients[name] = client
 	return nil
 }
 
@@ -114,20 +94,55 @@ func GetClient(name string) (llm.Client, error) {
 
 	client, exists := Global.Clients[name]
 	if !exists {
-		return nil, fmt.Errorf("client %s not found", name)
+		return nil, fmt.Errorf("no client found with the given name: %s", name)
 	}
 	return client, nil
 }
 
-// RegisterExecutor registers a step executor
-func RegisterExecutor(name string, executor flow.StepExecutor) error {
+// GetFlow retrieves a flow by name
+func GetFlow(name string) (*flow.Flow, error) {
+	Global.mu.RLock()
+	defer Global.mu.RUnlock()
+
+	flow, exists := Global.Flows[name]
+	if !exists {
+		return nil, fmt.Errorf("no flow found with the given name: %s", name)
+	}
+	return flow, nil
+}
+
+// RegisterClient registers an LLM client
+func RegisterClient(name string, client llm.Client) error {
+	// Validate parameters first
+	if name == "" {
+		return fmt.Errorf("name cannot be empty")
+	}
+	if client == nil {
+		return fmt.Errorf("client cannot be empty")
+	}
+
 	Global.mu.Lock()
 	defer Global.mu.Unlock()
 
-	if _, exists := Global.Executors[name]; exists {
-		return fmt.Errorf("executor %s already exists", name)
+	// Allow overwriting existing clients
+	Global.Clients[name] = client
+	return nil
+}
+
+// RegisterExecutor registers a step executor
+func RegisterExecutor(name string, executor flow.StepExecutor) error {
+	// Validate parameters first
+	if name == "" {
+		return fmt.Errorf("name cannot be empty")
+	}
+	if executor == nil {
+		return fmt.Errorf("executor cannot be empty")
 	}
 
+	Global.mu.Lock()
+	defer Global.mu.Unlock()
+
+	// Allow overwriting existing executors
 	Global.Executors[name] = executor
 	return nil
 }
@@ -139,20 +154,25 @@ func GetExecutor(name string) (flow.StepExecutor, error) {
 
 	executor, exists := Global.Executors[name]
 	if !exists {
-		return nil, fmt.Errorf("executor %s not found", name)
+		return nil, fmt.Errorf("no executor found with the given name: %s", name)
 	}
 	return executor, nil
 }
 
 // RegisterValidator registers a step validator
 func RegisterValidator(name string, validator flow.StepValidator) error {
+	// Validate parameters first
+	if name == "" {
+		return fmt.Errorf("name cannot be empty")
+	}
+	if validator == nil {
+		return fmt.Errorf("validator cannot be empty")
+	}
+
 	Global.mu.Lock()
 	defer Global.mu.Unlock()
 
-	if _, exists := Global.Validators[name]; exists {
-		return fmt.Errorf("validator %s already exists", name)
-	}
-
+	// Allow overwriting existing validators
 	Global.Validators[name] = validator
 	return nil
 }
@@ -164,7 +184,7 @@ func GetValidator(name string) (flow.StepValidator, error) {
 
 	validator, exists := Global.Validators[name]
 	if !exists {
-		return nil, fmt.Errorf("validator %s not found", name)
+		return nil, fmt.Errorf("no validator found with the given name: %s", name)
 	}
 	return validator, nil
 }
@@ -275,13 +295,18 @@ func GetDefaultClient() (llm.Client, error) {
 
 // RegisterFormatter registers a prompt formatter
 func RegisterFormatter(name string, formatter chat.PromptFormatter) error {
+	// Validate parameters first
+	if name == "" {
+		return fmt.Errorf("name cannot be empty")
+	}
+	if formatter == nil {
+		return fmt.Errorf("formatter cannot be empty")
+	}
+
 	Global.mu.Lock()
 	defer Global.mu.Unlock()
 
-	if _, exists := Global.Formatters[name]; exists {
-		return fmt.Errorf("formatter %s already exists", name)
-	}
-
+	// Allow overwriting existing formatters
 	Global.Formatters[name] = formatter
 	return nil
 }
@@ -293,7 +318,7 @@ func GetFormatter(name string) (chat.PromptFormatter, error) {
 
 	formatter, exists := Global.Formatters[name]
 	if !exists {
-		return nil, fmt.Errorf("formatter %s not found", name)
+		return nil, fmt.Errorf("no formatter found with the given name: %s", name)
 	}
 	return formatter, nil
 }
