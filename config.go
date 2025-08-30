@@ -290,9 +290,9 @@ func Config(config *AnyiConfig) error {
 	// Init clients
 	for _, clientConfig := range config.Clients {
 		if clientConfig.Name != "" {
-			_, err := NewClientFromConfig(&clientConfig)
-			if err != nil {
-				return err
+			_, clientErr := NewClientFromConfig(&clientConfig)
+			if clientErr != nil {
+				return clientErr
 			}
 
 		}
@@ -300,9 +300,9 @@ func Config(config *AnyiConfig) error {
 
 	// Init flows
 	for _, flowConfig := range config.Flows {
-		_, err := NewFlowFromConfig(&flowConfig)
-		if err != nil {
-			return err
+		_, flowErr := NewFlowFromConfig(&flowConfig)
+		if flowErr != nil {
+			return flowErr
 		}
 	}
 

@@ -643,24 +643,24 @@ flows:
 
 	t.Run("Success: Load configuration from file", func(t *testing.T) {
 		// Execute
-		err := ConfigFromFile(tmpFile.Name())
+		configErr := ConfigFromFile(tmpFile.Name())
 
 		// Verify
-		assert.NoError(t, err)
+		assert.NoError(t, configErr)
 
 		// Verify the flow was registered
-		flow, err := GetFlow("file-flow")
-		assert.NoError(t, err)
+		flow, flowErr := GetFlow("file-flow")
+		assert.NoError(t, flowErr)
 		assert.NotNil(t, flow)
 		assert.Equal(t, "file-flow", flow.Name)
 	})
 
 	t.Run("Failure: File does not exist", func(t *testing.T) {
 		// Execute
-		err := ConfigFromFile("non-existent-file.yaml")
+		nonExistErr := ConfigFromFile("non-existent-file.yaml")
 
 		// Verify
-		assert.Error(t, err)
+		assert.Error(t, nonExistErr)
 	})
 
 	// Create an invalid config file
@@ -679,9 +679,9 @@ flows: []
 
 	t.Run("Failure: Invalid configuration file format", func(t *testing.T) {
 		// Execute
-		err := ConfigFromFile(invalidFile.Name())
+		invalidErr := ConfigFromFile(invalidFile.Name())
 
 		// Verify
-		assert.Error(t, err)
+		assert.Error(t, invalidErr)
 	})
 }
