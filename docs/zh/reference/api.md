@@ -1,5 +1,7 @@
 # API 参考
 
+> **📚 最新完整的 API 文档请访问：[pkg.go.dev/github.com/jieliu2000/anyi](https://pkg.go.dev/github.com/jieliu2000/anyi)**
+
 本文档提供 Anyi 框架公共 API 的全面参考。涵盖构建 AI 应用程序时使用的核心接口、方法和数据结构。
 
 ## 核心接口

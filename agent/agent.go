@@ -12,7 +12,7 @@ import (
 
 // FlowGetter dependency interface - resolves circular references
 type FlowGetter interface {
-	GetFlow(name string) (interface{}, error)
+	GetFlow(name string) (*flow.Flow, error)
 }
 
 // Agent concrete type
@@ -83,11 +83,13 @@ func (a *Agent) Execute(task string, ctx AgentContext) (string, AgentContext, er
 			return "", ctx, fmt.Errorf("get flow %s: %w", step.FlowName, err)
 		}
 
-		// Execute Flow
-		if executable, ok := flow.(interface {
+		// Execute Flow using Execute method (for backward compatibility)
+		// Check if flow implements Execute method
+		if executableFlow, ok := interface{}(flow).(interface {
 			Execute(input string, ctx map[string]interface{}) (string, map[string]interface{}, error)
 		}); ok {
-			result, resultCtx.Variables, err = executable.Execute(result, resultCtx.Variables)
+			// Use Execute method
+			result, resultCtx.Variables, err = executableFlow.Execute(result, resultCtx.Variables)
 			if err != nil {
 				if step.Retryable && i < a.MaxRetries {
 					continue // Retry current step
@@ -95,7 +97,17 @@ func (a *Agent) Execute(task string, ctx AgentContext) (string, AgentContext, er
 				return "", resultCtx, fmt.Errorf("execute flow %s: %w", step.FlowName, err)
 			}
 		} else {
-			return "", resultCtx, fmt.Errorf("flow %s does not implement Execute method", step.FlowName)
+			// Use Run method (new approach)
+			flowContext := flow.NewFlowContext(result, resultCtx.Variables)
+			resultFlowContext, err := flow.Run(*flowContext)
+			if err != nil {
+				if step.Retryable && i < a.MaxRetries {
+					continue // Retry current step
+				}
+				return "", resultCtx, fmt.Errorf("execute flow %s: %w", step.FlowName, err)
+			}
+			result = resultFlowContext.Text
+			resultCtx.Variables = resultFlowContext.Variables
 		}
 
 		resultCtx.History = append(resultCtx.History, result)

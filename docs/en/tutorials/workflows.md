@@ -359,15 +359,14 @@ func main() {
 }
 ```
 
-### Parallel Processing
+### Application-Level Concurrency
 
-For steps that can run independently:
+While Anyi workflows execute steps sequentially, you can implement concurrency at the application level for independent tasks:
 
 ```go
-// Note: This is a conceptual example - actual parallel execution
-// would require custom implementation or future Anyi features
-func runParallelSteps(input string) ([]string, error) {
-	// Create multiple clients
+// Application-level concurrent processing example
+func processConcurrentlyWithMultipleClients(input string) ([]string, error) {
+	// Create multiple clients for different providers
 	client1, _ := anyi.GetClient("openai")
 	client2, _ := anyi.GetClient("anthropic")
 	client3, _ := anyi.GetClient("deepseek")
@@ -376,7 +375,7 @@ func runParallelSteps(input string) ([]string, error) {
 	results := make(chan string, 3)
 	errors := make(chan error, 3)
 
-	// Run steps in parallel
+	// Run independent requests concurrently
 	go func() {
 		result, _, err := client1.Chat([]chat.Message{
 			{Role: "user", Content: "Analyze from perspective 1: " + input},

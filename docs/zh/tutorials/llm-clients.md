@@ -10,16 +10,16 @@ Anyi 支持多个 LLM 提供商，提供统一的接口来访问不同的 AI 模
 
 | 提供商       | 类型 | 主要模型                  | 特点             |
 | ------------ | ---- | ------------------------- | ---------------- |
-| OpenAI       | 云端 | GPT-4, GPT-3.5            | 高质量，广泛支持 |
+| DeepSeek     | 云端 | DeepSeek-Reasoner         | 代码生成         |
 | Anthropic    | 云端 | Claude 3.5, Claude 3      | 安全，长上下文   |
 | Azure OpenAI | 云端 | GPT-4, GPT-3.5            | 企业级，合规性   |
 | Ollama       | 本地 | Llama, Mistral, CodeLlama | 隐私，离线使用   |
 | 智谱 AI      | 云端 | GLM-4-Flash, ChatGLM      | 中文优化         |
 | 通义千问     | 云端 | Qwen-Max, Qwen-Plus       | 阿里云，中文     |
-| DeepSeek     | 云端 | DeepSeek-Reasoner         | 代码生成         |
+| OpenAI       | 云端 | GPT-4, GPT-3.5            | 高质量，广泛支持 |
 | SiliconCloud | 云端 | 多种模型                  | 高性价比         |
 
-## OpenAI 客户端
+## DeepSeek 客户端
 
 ### 基本设置
 
@@ -32,87 +32,33 @@ import (
     "os"
 
     "github.com/jieliu2000/anyi"
-    "github.com/jieliu2000/anyi/llm/openai"
+    "github.com/jieliu2000/anyi/llm/deepseek"
     "github.com/jieliu2000/anyi/llm/chat"
 )
 
 func main() {
-    // 创建 OpenAI 配置
-    config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
+    // DeepSeek 配置
+    config := deepseek.DefaultConfig(os.Getenv("DEEPSEEK_API_KEY"))
+    config.Model = "deepseek-reasoner"
 
-    // 可选：自定义配置
-    config.Model = "gpt-4"
-    config.Temperature = 0.7
-    config.MaxTokens = 1000
-
-    // 创建客户端
-    client, err := anyi.NewClient("openai", config)
+    client, err := anyi.NewClient("deepseek", config)
     if err != nil {
-        log.Fatalf("创建 OpenAI 客户端失败: %v", err)
+        log.Fatalf("创建 DeepSeek 客户端失败: %v", err)
     }
 
-    // 准备消息
     messages := []chat.Message{
         {
-            Role:    "system",
-            Content: "你是一个专业的编程助手。",
-        },
-        {
             Role:    "user",
-            Content: "请解释 Go 语言的 goroutine。",
+            Content: "请写一个 Python 的机器学习数据预处理脚本。",
         },
     }
 
-    // 发送请求
-    response, info, err := client.Chat(messages, nil)
+    response, _, err := client.Chat(messages, nil)
     if err != nil {
         log.Fatalf("聊天失败: %v", err)
     }
 
-    fmt.Printf("回复: %s\n", response.Content)
-    fmt.Printf("使用 tokens: %d\n", info.TotalTokens)
-}
-```
-
-### 高级配置
-
-```go
-config := openai.Config{
-    APIKey:      os.Getenv("OPENAI_API_KEY"),
-    Model:       "gpt-4-turbo-preview",
-    Temperature: 0.3,
-    MaxTokens:   2000,
-    TopP:        0.9,
-    BaseURL:     "https://api.openai.com/v1", // 自定义端点
-    Timeout:     30 * time.Second,
-}
-```
-
-### 流式响应
-
-```go
-func streamExample() {
-    config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
-    client, _ := anyi.NewClient("openai", config)
-
-    messages := []chat.Message{
-        {Role: "user", Content: "写一首关于编程的诗"},
-    }
-
-    // 创建流式选项
-    options := &chat.ChatOptions{
-        Stream: true,
-        StreamCallback: func(content string) {
-            fmt.Print(content) // 实时输出
-        },
-    }
-
-    response, _, err := client.Chat(messages, options)
-    if err != nil {
-        log.Fatal(err)
-    }
-
-    fmt.Printf("\n完整回复: %s\n", response.Content)
+    fmt.Printf("DeepSeek 回复: %s\n", response.Content)
 }
 ```
 
@@ -427,7 +373,7 @@ func main() {
 }
 ```
 
-## DeepSeek 客户端
+## OpenAI 客户端
 
 ### 基本设置
 
@@ -440,33 +386,87 @@ import (
     "os"
 
     "github.com/jieliu2000/anyi"
-    "github.com/jieliu2000/anyi/llm/deepseek"
+    "github.com/jieliu2000/anyi/llm/openai"
     "github.com/jieliu2000/anyi/llm/chat"
 )
 
 func main() {
-    // DeepSeek 配置
-    config := deepseek.DefaultConfig(os.Getenv("DEEPSEEK_API_KEY"))
-    config.Model = "deepseek-reasoner"
+    // 创建 OpenAI 配置
+    config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
 
-    client, err := anyi.NewClient("deepseek", config)
+    // 可选：自定义配置
+    config.Model = "gpt-4"
+    config.Temperature = 0.7
+    config.MaxTokens = 1000
+
+    // 创建客户端
+    client, err := anyi.NewClient("openai", config)
     if err != nil {
-        log.Fatalf("创建 DeepSeek 客户端失败: %v", err)
+        log.Fatalf("创建 OpenAI 客户端失败: %v", err)
     }
 
+    // 准备消息
     messages := []chat.Message{
         {
+            Role:    "system",
+            Content: "你是一个专业的编程助手。",
+        },
+        {
             Role:    "user",
-            Content: "请写一个 Python 的机器学习数据预处理脚本。",
+            Content: "请解释 Go 语言的 goroutine。",
         },
     }
 
-    response, _, err := client.Chat(messages, nil)
+    // 发送请求
+    response, info, err := client.Chat(messages, nil)
     if err != nil {
         log.Fatalf("聊天失败: %v", err)
     }
 
-    fmt.Printf("DeepSeek 回复: %s\n", response.Content)
+    fmt.Printf("回复: %s\n", response.Content)
+    fmt.Printf("使用 tokens: %d\n", info.TotalTokens)
+}
+```
+
+### 高级配置
+
+```go
+config := openai.Config{
+    APIKey:      os.Getenv("OPENAI_API_KEY"),
+    Model:       "gpt-4-turbo-preview",
+    Temperature: 0.3,
+    MaxTokens:   2000,
+    TopP:        0.9,
+    BaseURL:     "https://api.openai.com/v1", // 自定义端点
+    Timeout:     30 * time.Second,
+}
+```
+
+### 流式响应
+
+```go
+func streamExample() {
+    config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
+    client, _ := anyi.NewClient("openai", config)
+
+    messages := []chat.Message{
+        {Role: "user", Content: "写一首关于编程的诗"},
+    }
+
+    // 创建流式选项
+    options := &chat.ChatOptions{
+        Stream: true,
+        StreamCallback: func(content string) {
+            fmt.Print(content) // 实时输出
+        },
+    }
+
+    response, _, err := client.Chat(messages, options)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    fmt.Printf("\n完整回复: %s\n", response.Content)
 }
 ```
 
@@ -483,6 +483,7 @@ import (
     "os"
 
     "github.com/jieliu2000/anyi"
+    "github.com/jieliu2000/anyi/llm/deepseek"
     "github.com/jieliu2000/anyi/llm/openai"
     "github.com/jieliu2000/anyi/llm/anthropic"
     "github.com/jieliu2000/anyi/llm/ollama"
@@ -504,11 +505,11 @@ func NewClientPool() *ClientPool {
 }
 
 func (p *ClientPool) initClients() {
-    // OpenAI
-    if apiKey := os.Getenv("OPENAI_API_KEY"); apiKey != "" {
-        config := openai.DefaultConfig(apiKey)
-        if client, err := anyi.NewClient("openai", config); err == nil {
-            p.clients["openai"] = client
+    // DeepSeek
+    if apiKey := os.Getenv("DEEPSEEK_API_KEY"); apiKey != "" {
+        config := deepseek.DefaultConfig(apiKey)
+        if client, err := anyi.NewClient("deepseek", config); err == nil {
+            p.clients["deepseek"] = client
         }
     }
 
@@ -517,6 +518,14 @@ func (p *ClientPool) initClients() {
         config := anthropic.DefaultConfig(apiKey)
         if client, err := anyi.NewClient("claude", config); err == nil {
             p.clients["claude"] = client
+        }
+    }
+
+    // OpenAI
+    if apiKey := os.Getenv("OPENAI_API_KEY"); apiKey != "" {
+        config := openai.DefaultConfig(apiKey)
+        if client, err := anyi.NewClient("openai", config); err == nil {
+            p.clients["openai"] = client
         }
     }
 
@@ -553,7 +562,7 @@ func main() {
     }
 
     // 按优先级尝试不同提供商
-    providers := []string{"openai", "claude", "ollama"}
+    providers := []string{"deepseek", "claude", "openai"}
 
     response, err := pool.ChatWithFallback(messages, providers)
     if err != nil {
@@ -599,11 +608,11 @@ func (lb *LoadBalancer) Chat(messages []chat.Message) (*chat.Message, error) {
 ```yaml
 # clients.yaml
 clients:
-  - name: "openai-gpt4"
-    type: "openai"
+  - name: "deepseek-reasoner"
+    type: "deepseek"
     config:
-      apiKey: "$OPENAI_API_KEY"
-      model: "gpt-4"
+      apiKey: "$DEEPSEEK_API_KEY"
+      model: "deepseek-reasoner"
       temperature: 0.7
       maxTokens: 2000
 
@@ -626,6 +635,14 @@ clients:
     config:
       apiKey: "$ZHIPU_API_KEY"
       model: "glm-4-flash-250414"
+
+  - name: "openai-gpt4"
+    type: "openai"
+    config:
+      apiKey: "$OPENAI_API_KEY"
+      model: "gpt-4"
+      temperature: 0.7
+      maxTokens: 2000
 ```
 
 ### 加载配置
@@ -649,7 +666,7 @@ func main() {
     }
 
     // 获取特定客户端
-    client, err := anyi.GetClient("openai-gpt4")
+    client, err := anyi.GetClient("deepseek-reasoner")
     if err != nil {
         log.Fatalf("获取客户端失败: %v", err)
     }

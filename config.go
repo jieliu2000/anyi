@@ -66,6 +66,8 @@ type FlowConfig struct {
 	ClientName   string           `mapstructure:"clientName" json:"clientName" yaml:"clientName"`
 	ClientConfig llm.ClientConfig `mapstructure:"clientConfig" json:"clientConfig" yaml:"clientConfig"`
 	Name         string           `mapstructure:"name" json:"name" yaml:"name"`
+	// Description provides a detailed explanation of the flow's purpose and functionality
+	Description  string           `mapstructure:"description" json:"description" yaml:"description"`
 	Steps        []StepConfig     `mapstructure:"steps" json:"steps" yaml:"steps"`
 	Variables    map[string]any   `mapstructure:"variables" json:"variables" yaml:"variables"`
 }
@@ -207,21 +209,26 @@ func NewFlowFromConfig(flowConfig *FlowConfig) (*flow.Flow, error) {
 		steps[i] = *step
 	}
 
-	flow, err := flow.NewFlow(client, flowConfig.Name, steps...)
+	var f *flow.Flow
+	if flowConfig.Description != "" {
+		f, err = flow.NewFlowWithDescription(client, flowConfig.Name, flowConfig.Description, steps...)
+	} else {
+		f, err = flow.NewFlow(client, flowConfig.Name, steps...)
+	}
 	if err != nil {
 		return nil, err
 	}
 
 	// Set flow variables from config
 	if flowConfig.Variables != nil {
-		flow.Variables = make(map[string]any)
+		f.Variables = make(map[string]any)
 		for k, v := range flowConfig.Variables {
-			flow.Variables[k] = v
+			f.Variables[k] = v
 		}
 	}
 
-	err = RegisterFlow(flow.Name, flow)
-	return flow, err
+	err = RegisterFlow(f.Name, f)
+	return f, err
 }
 
 // NewExecutorFromConfig creates a new executor from an executor configuration.

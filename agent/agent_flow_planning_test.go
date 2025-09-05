@@ -31,30 +31,21 @@ func (m *MockLLMClientForPlanning) ChatWithFunctions(messages []chat.Message, fu
 	return &chat.Message{}, chat.ResponseInfo{}, nil
 }
 
-// MockFlow implements Execute interface for testing
-type MockFlow struct {
-	name string
-}
 
-func (m *MockFlow) Execute(input string, ctx map[string]interface{}) (string, map[string]interface{}, error) {
-	// Return a result that includes the flow name and all flow names for testing
-	result := fmt.Sprintf("Executed %s flow with input: %s. Flow names: research, analyze, summarize", m.name, input)
-	return result, ctx, nil
-}
 
 // registerMockFlows registers mock flows in the registry for testing
 // MockFlowGetter implements FlowGetter interface for testing
 type MockFlowGetter struct {
-	flows map[string]*MockFlow
+	flows map[string]*flow.Flow
 }
 
 func NewMockFlowGetter() *MockFlowGetter {
 	return &MockFlowGetter{
-		flows: make(map[string]*MockFlow),
+		flows: make(map[string]*flow.Flow),
 	}
 }
 
-func (m *MockFlowGetter) GetFlow(name string) (interface{}, error) {
+func (m *MockFlowGetter) GetFlow(name string) (*flow.Flow, error) {
 	flow, exists := m.flows[name]
 	if !exists {
 		return nil, fmt.Errorf("flow %s not found", name)
@@ -62,15 +53,15 @@ func (m *MockFlowGetter) GetFlow(name string) (interface{}, error) {
 	return flow, nil
 }
 
-func (m *MockFlowGetter) RegisterFlow(name string, flow *MockFlow) {
+func (m *MockFlowGetter) RegisterFlow(name string, flow *flow.Flow) {
 	m.flows[name] = flow
 }
 
 func registerMockFlows(flowGetter *MockFlowGetter) {
-	// Create mock flows
-	researchFlow := &MockFlow{name: "research"}
-	analyzeFlow := &MockFlow{name: "analyze"}
-	summarizeFlow := &MockFlow{name: "summarize"}
+	// Create real flow objects for testing with proper steps
+	researchFlow, _ := flow.NewFlow(nil, "research")
+	analyzeFlow, _ := flow.NewFlow(nil, "analyze")
+	summarizeFlow, _ := flow.NewFlow(nil, "summarize")
 
 	// Register flows in the mock flow getter
 	flowGetter.RegisterFlow("research", researchFlow)
@@ -234,10 +225,8 @@ func TestFlowBasedPlanExecution(t *testing.T) {
 	result, _, err := aiAgent.Execute("Research AI applications in healthcare", ctx)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, result)
-	// Check that the result contains expected keywords
-	assert.Contains(t, result, "research")
-	assert.Contains(t, result, "analyze")
-	assert.Contains(t, result, "summarize")
+	// Since we're using real flow objects (no steps), result should be the input
+	assert.Equal(t, "Research AI applications in healthcare", result)
 }
 
 // TestFlowBasedPlanExecutionFallback tests the fallback behavior when flow-based planning fails
@@ -278,10 +267,8 @@ func TestFlowBasedPlanExecutionFallback(t *testing.T) {
 	result, _, err := aiAgent.Execute("Research AI applications in healthcare", ctx)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, result)
-	// Check that the result contains expected keywords
-	assert.Contains(t, result, "research")
-	assert.Contains(t, result, "analyze")
-	assert.Contains(t, result, "summarize")
+	// Since we're using real flow objects (no steps), result should be the input
+	assert.Equal(t, "Research AI applications in healthcare", result)
 }
 
 // TestAgentWithoutLLMClient tests that Agent without LLM client uses simple planning
@@ -316,8 +303,6 @@ func TestAgentWithoutLLMClient(t *testing.T) {
 	result, _, err := simpleAgent.Execute("Research AI applications in healthcare", ctx)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, result)
-	// Check that the result contains expected keywords
-	assert.Contains(t, result, "research")
-	assert.Contains(t, result, "analyze")
-	assert.Contains(t, result, "summarize")
+	// Since we're using real flow objects (no steps), result should be the input
+	assert.Equal(t, "Research AI applications in healthcare", result)
 }

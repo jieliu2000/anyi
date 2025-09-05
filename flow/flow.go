@@ -17,6 +17,8 @@ const (
 
 type Flow struct {
 	Name string
+	// Description provides a detailed explanation of the flow's purpose and functionality
+	Description string
 
 	Steps []Step
 	// The default ClientImpl for the flow
@@ -43,6 +45,18 @@ func NewFlow(client llm.Client, name string, steps ...Step) (*Flow, error) {
 	}
 
 	flow := &Flow{Steps: steps, Name: name, ClientImpl: client}
+
+	return flow, nil
+}
+
+// NewFlowWithDescription creates a new flow with a description
+func NewFlowWithDescription(client llm.Client, name string, description string, steps ...Step) (*Flow, error) {
+
+	if name == "" {
+		return nil, errors.New("flow name cannot be empty")
+	}
+
+	flow := &Flow{Steps: steps, Name: name, Description: description, ClientImpl: client}
 
 	return flow, nil
 }

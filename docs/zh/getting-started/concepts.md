@@ -10,7 +10,7 @@ Anyi 采用模块化架构，主要组件包括：
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   应用程序层     │    │   工作流层       │    │   LLM 客户端层   │
 │                │    │                │    │                │
-│ • 业务逻辑      │    │ • 流程定义      │    │ • OpenAI       │
+│ • 业务逻辑      │    │ • 流程定义      │    │ • DeepSeek     │
 │ • 用户界面      │◄──►│ • 步骤执行      │◄──►│ • Anthropic    │
 │ • API 端点     │    │ • 上下文管理    │    │ • Ollama       │
 │                │    │                │    │ • 其他提供商    │
@@ -42,16 +42,16 @@ Anyi 采用模块化架构，主要组件包括：
 #### 示例
 
 ```go
-// 创建 OpenAI 客户端
-openaiConfig := openai.DefaultConfig(apiKey)
-openaiClient, err := anyi.NewClient("openai", openaiConfig)
+// 创建 DeepSeek 客户端
+deepseekConfig := deepseek.DefaultConfig(apiKey, "deepseek-reasoner")
+deepseekClient, err := anyi.NewClient("deepseek", deepseekConfig)
 
 // 创建 Ollama 客户端
 ollamaConfig := ollama.DefaultConfig("llama3")
 ollamaClient, err := anyi.NewClient("ollama", ollamaConfig)
 
 // 两个客户端使用相同的接口
-response1, _, err := openaiClient.Chat(messages, nil)
+response1, _, err := deepseekClient.Chat(messages, nil)
 response2, _, err := ollamaClient.Chat(messages, nil)
 ```
 
@@ -255,16 +255,16 @@ Anyi 支持多种配置方式，包括代码配置、文件配置和环境变量
 
 ```yaml
 clients:
-  - name: "openai"
-    type: "openai"
+  - name: "deepseek"
+    type: "deepseek"
     config:
-      apiKey: "$OPENAI_API_KEY" # 环境变量替换
-      model: "gpt-4"
+      apiKey: "$DEEPSEEK_API_KEY" # 环境变量替换
+      model: "deepseek-reasoner"
       temperature: 0.7
 
 flows:
   - name: "analyzer"
-    clientName: "openai"
+    clientName: "deepseek"
     steps:
       - name: "analyze"
         executor:
@@ -287,13 +287,13 @@ import (
     "log"
     "os"
     "github.com/jieliu2000/anyi"
-    "github.com/jieliu2000/anyi/llm/openai"
+    "github.com/jieliu2000/anyi/llm/deepseek"
 )
 
 func main() {
     // 1. 创建客户端
-    config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
-    client, err := anyi.NewClient("openai", config)
+    config := deepseek.DefaultConfig(os.Getenv("DEEPSEEK_API_KEY"), "deepseek-reasoner")
+    client, err := anyi.NewClient("deepseek", config)
     if err != nil {
         log.Fatal(err)
     }
@@ -303,7 +303,7 @@ func main() {
         Flows: []anyi.FlowConfig{
             {
                 Name: "document_analyzer",
-                ClientName: "openai",
+                ClientName: "deepseek",
                 Steps: []anyi.StepConfig{
                     {
                         Name: "extract_key_points",
@@ -376,7 +376,7 @@ func main() {
 
 ### 执行流程
 
-1. **客户端创建**：建立与 OpenAI 的连接
+1. **客户端创建**：建立与 DeepSeek 的连接
 2. **配置加载**：定义分析工作流
 3. **流程获取**：从注册表获取工作流实例
 4. **步骤执行**：
@@ -393,14 +393,14 @@ func main() {
 var globalClient anyi.Client
 
 func init() {
-    config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
-    globalClient, _ = anyi.NewClient("openai", config)
+    config := deepseek.DefaultConfig(os.Getenv("DEEPSEEK_API_KEY"), "deepseek-reasoner")
+    globalClient, _ = anyi.NewClient("deepseek", config)
 }
 
 // ❌ 避免：每次都创建新客户端
 func badExample() {
-    config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
-    client, _ := anyi.NewClient("openai", config) // 每次都创建
+    config := deepseek.DefaultConfig(os.Getenv("DEEPSEEK_API_KEY"), "deepseek-reasoner")
+    client, _ := anyi.NewClient("deepseek", config) // 每次都创建
 }
 ```
 
@@ -423,10 +423,10 @@ result, _ := flow.RunWithInput(input) // 忽略错误
 
 ```go
 // ✅ 好的做法：使用环境变量
-config := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
+config := deepseek.DefaultConfig(os.Getenv("DEEPSEEK_API_KEY"), "deepseek-reasoner")
 
 // ❌ 避免：硬编码密钥
-config := openai.DefaultConfig("sk-hardcoded-key") // 不安全
+config := deepseek.DefaultConfig("hardcoded-key", "deepseek-reasoner") // 不安全
 ```
 
 ## 下一步

@@ -462,45 +462,6 @@ func runWithErrorHandling() {
 }
 ```
 
-## 并行处理
-
-### 1. 并行步骤执行
-
-```yaml
-flows:
-  - name: "parallel_processor"
-    clientName: "openai"
-    steps:
-      - name: "parallel_group"
-        executor:
-          type: "parallel"
-          withconfig:
-            steps:
-              - name: "analyze_sentiment"
-                executor:
-                  type: "llm"
-                  withconfig:
-                    template: "分析情感：{{.Text}}"
-
-              - name: "extract_keywords"
-                executor:
-                  type: "llm"
-                  withconfig:
-                    template: "提取关键词：{{.Text}}"
-
-              - name: "classify_topic"
-                executor:
-                  type: "llm"
-                  withconfig:
-                    template: "分类主题：{{.Text}}"
-
-      - name: "combine_results"
-        executor:
-          type: "llm"
-          withconfig:
-            template: "合并分析结果：\n情感：{{.Memory.sentiment}}\n关键词：{{.Memory.keywords}}\n主题：{{.Memory.topic}}"
-```
-
 ## 性能优化
 
 ### 1. 缓存结果
@@ -653,7 +614,7 @@ func (mf *MonitoredFlow) updateMetrics(duration time.Duration, err error) {
 ### 2. 性能优化建议
 
 - **缓存结果**：对重复输入使用缓存
-- **并行处理**：独立步骤可以并行执行
+- **批量处理**：对多个输入使用应用层并发处理
 - **资源管理**：合理配置客户端连接池
 - **监控指标**：跟踪性能和错误率
 

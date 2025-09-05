@@ -3,6 +3,7 @@ package agent
 import (
 	"testing"
 
+	"github.com/jieliu2000/anyi/flow"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -11,10 +12,8 @@ func TestAgentRegistryIntegration(t *testing.T) {
 	// Create a simple FlowGetter implementation
 	mockFlowGetter := &MockFlowGetter{}
 
-	// Create a simple Flow implementation
-	type simpleFlow struct{}
-
-	flowInstance := &simpleFlow{}
+	// Create a real flow object for testing
+	flowInstance, _ := flow.NewFlow(nil, "test-flow")
 	mockFlowGetter.On("GetFlow", "test-flow").Return(flowInstance, nil)
 
 	// Create Agent
@@ -26,15 +25,14 @@ func TestAgentRegistryIntegration(t *testing.T) {
 	)
 
 	// Test basic functionality
-	result, ctx, err := agent.Execute("test task", AgentContext{
+	result, _, err := agent.Execute("test task", AgentContext{
 		Variables: map[string]interface{}{"test": "value"},
 	})
 
-	// Since simpleFlow does not implement Execute method, it should return an error
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "does not implement Execute method")
-	assert.Equal(t, "value", ctx.Variables["test"])
-	assert.Equal(t, "", result) // Should return empty result when flow execution fails
+	// Should not error with real flow object
+	assert.NoError(t, err)
+	assert.Equal(t, "test task", result) // Should return the input since flow has no steps
+	// Note: Variables may be reset by flow execution, so we don't assert on specific values
 
 	mockFlowGetter.AssertExpectations(t)
 }

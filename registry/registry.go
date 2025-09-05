@@ -33,7 +33,7 @@ var Global = &Registry{
 }
 
 // GetFlow implements agent.FlowGetter interface
-func (r *Registry) GetFlow(name string) (interface{}, error) {
+func (r *Registry) GetFlow(name string) (*flow.Flow, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 

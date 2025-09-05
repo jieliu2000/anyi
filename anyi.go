@@ -15,6 +15,9 @@ import (
 	"github.com/jieliu2000/anyi/validators"
 )
 
+// AgentContext is a type alias for agent.AgentContext
+type AgentContext = agent.AgentContext
+
 // RegisterNewDefaultClient registers a client as the default client in the global registry.
 // If no name is provided, it uses "default" as the client name.
 //
@@ -414,6 +417,26 @@ func NewAgent(name string, role string, backstory string, availableFlows []strin
 	}
 
 	return a, nil
+}
+
+// GetAgent retrieves a previously registered agent by name.
+//
+// Parameters:
+//   - name: Name of the agent to retrieve
+//
+// Returns:
+//   - The agent instance
+//   - An error if agent not found
+func GetAgent(name string) (*agent.Agent, error) {
+	return registry.GetAgent(name)
+}
+
+// ListAgents returns a list of all registered agent names.
+//
+// Returns:
+//   - A slice of agent names
+func ListAgents() []string {
+	return registry.ListAgents()
 }
 
 // RegisterExecutor registers an executor in the global registry.

@@ -80,7 +80,7 @@
 
 当您需要查找特定信息时：
 
-- **[API 参考](reference/api.md)** - 完整的 API 文档
+- **[API 参考](https://pkg.go.dev/github.com/jieliu2000/anyi)** - 完整的 API 文档
 - **[配置参考](reference/configuration.md)** - 所有配置选项
 - **[组件参考](reference/components.md)** - 内置执行器和验证器
 - **[常见问题](reference/faq.md)** - 常见问题解答
@@ -192,6 +192,6 @@ func main() {
 
 - **初学者**: 从 [安装](getting-started/installation.md) 开始
 - **有经验者**: 跳转到 [LLM 客户端](tutorials/llm-clients.md)
-- **参考**: 浏览 [API 文档](reference/api.md)
+- **参考**: 浏览 [API 文档](https://pkg.go.dev/github.com/jieliu2000/anyi)
 
 使用 Anyi 愉快编程！🎉

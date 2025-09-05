@@ -34,7 +34,7 @@ Practical guides for common tasks:
 
 Complete technical documentation:
 
-- [API Reference](reference/api.md) - Complete API documentation
+- [API Reference](https://pkg.go.dev/github.com/jieliu2000/anyi) - Complete API documentation
 - [Configuration Schema](reference/configuration.md) - All configuration options
 - [Built-in Components](reference/components.md) - Executors and validators reference
 

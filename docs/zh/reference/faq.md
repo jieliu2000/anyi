@@ -417,7 +417,7 @@ func main() {
 
 **答：** 几个选项：
 
-1. **文档**：查看此文档和 [API 参考](api.md)
+1. **文档**：查看此文档和 [API 参考](https://pkg.go.dev/github.com/jieliu2000/anyi)
 2. **示例**：浏览 [示例目录](../../../examples/)
 3. **GitHub 问题**：搜索现有 [问题](https://github.com/jieliu2000/anyi/issues) 或创建新问题
 4. **讨论**：加入 [GitHub 讨论](https://github.com/jieliu2000/anyi/discussions)

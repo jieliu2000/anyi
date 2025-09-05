@@ -80,7 +80,7 @@ Follow this structured learning path:
 
 When you need to look up specific information:
 
-- **[API Reference](reference/api.md)** - Complete API documentation
+- **[API Reference](https://pkg.go.dev/github.com/jieliu2000/anyi)** - Complete API documentation
 - **[Configuration Reference](reference/configuration.md)** - All configuration options
 - **[Components Reference](reference/components.md)** - Built-in executors and validators
 - **[FAQ](reference/faq.md)** - Frequently asked questions
@@ -192,6 +192,6 @@ Choose your path:
 
 - **Beginner**: Start with [Installation](getting-started/installation.md)
 - **Experienced**: Jump to [LLM Clients](tutorials/llm-clients.md)
-- **Reference**: Browse [API Documentation](reference/api.md)
+- **Reference**: Browse [API Documentation](https://pkg.go.dev/github.com/jieliu2000/anyi)
 
 Happy coding with Anyi! 🎉
