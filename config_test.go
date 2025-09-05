@@ -89,6 +89,46 @@ func TestNewFlowFromConfig_Success(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, 123, var2)
 }
+
+func TestNewFlowFromConfig_WithDescription(t *testing.T) {
+	// Setup
+	GlobalRegistry = &anyiRegistry{
+		Flows:      make(map[string]*flow.Flow),
+		Clients:    make(map[string]llm.Client),
+		Executors:  make(map[string]flow.StepExecutor),
+		Validators: make(map[string]flow.StepValidator),
+	}
+	RegisterClient("test-client", &test.MockClient{})
+	RegisterExecutor("test-executor", &MockExecutor{})
+	RegisterValidator("test-validator", &MockValidator{})
+
+	flowConfig := &FlowConfig{
+		ClientName:  "test-client",
+		Name:        "test-flow",
+		Description: "This is a test flow for demonstration purposes",
+		Steps: []StepConfig{
+			{
+				Name: "name1",
+				Executor: &ExecutorConfig{
+					Type: "test-executor",
+				},
+				Validator: &ValidatorConfig{
+					Type: "test-validator",
+				},
+			},
+		},
+	}
+
+	// Execute
+	flowInstance, err := NewFlowFromConfig(flowConfig)
+
+	// Verify
+	assert.NoError(t, err)
+	assert.NotNil(t, flowInstance)
+	assert.Equal(t, flowConfig.Name, flowInstance.Name)
+	assert.Equal(t, flowConfig.Description, flowInstance.Description)
+	assert.Equal(t, 1, len(flowInstance.Steps))
+}
 func TestNewFlowFromConfig_WithNil(t *testing.T) {
 	// Execute
 	flowInstance, err := NewFlowFromConfig(nil)
