@@ -121,48 +121,116 @@ func (a *Agent) simplePlanExecution(task string, ctx AgentContext) (*ExecutionPl
 
 // createPlanningPrompt creates a prompt for AI planning
 func (a *Agent) createPlanningPrompt(task string, ctx AgentContext) string {
-	availableFlows := strings.Join(a.AvailableFlows, ", ")
+	// Build detailed flow information with descriptions
+	var flowDetails strings.Builder
+	for _, flowName := range a.AvailableFlows {
+		flow, err := a.getFlow.GetFlow(flowName)
+		if err != nil {
+			// If we can't get the flow, just include the name
+			flowDetails.WriteString(fmt.Sprintf("- %s (description unavailable)\n", flowName))
+		} else {
+			// Include flow name and description
+			if flow.Description != "" {
+				flowDetails.WriteString(fmt.Sprintf("- %s: %s\n", flowName, flow.Description))
+			} else {
+				flowDetails.WriteString(fmt.Sprintf("- %s (no description)\n", flowName))
+			}
+		}
+	}
 
-	prompt := fmt.Sprintf(`Task: %s
+	prompt := fmt.Sprintf(`# TASK PLANNING INSTRUCTION
 
-Agent Role: %s
-Agent Background: %s
+## TASK OVERVIEW
+Task: %s
 
-Available Flows: %s
-
+## AGENT CONTEXT
+Role: %s
+Background: %s
 Context Variables: %v
 
-Please create an optimal execution plan by selecting and ordering the most appropriate flows from the available flows. 
-Respond with a JSON array of flow names in the order they should be executed.
-Example response: ["flow1", "flow2", "flow3"]
+## AVAILABLE FLOWS
+%s
 
-Only respond with the JSON array, nothing else.`,
-		task, a.Role, a.BackStory, availableFlows, ctx.Variables)
+## PLANNING REQUIREMENTS
+1. Analyze the task requirements and match them with the most appropriate flows
+2. Consider the logical sequence and dependencies between flows
+3. Leverage your role expertise (%s) to make informed decisions
+4. Use context variables to personalize the execution plan
+5. Only use flows that are actually available in the list above
+
+## THINKING PROCESS (internal reasoning)
+- What is the core objective of this task?
+- Which flows are most relevant based on their descriptions?
+- What execution order makes logical sense?
+- Are there any dependencies between flows?
+- How can my role expertise inform this plan?
+
+## RESPONSE FORMAT
+You MUST respond with ONLY a valid JSON array containing the flow names in execution order.
+
+## EXAMPLES
+Valid response: ["data_processing", "analysis", "report_generation"]
+Invalid response: "I think we should use data_processing first, then..."
+
+## CONSTRAINTS
+- Do NOT include any explanations, thoughts, or additional text
+- Do NOT use flows that are not in the available list
+- Do NOT modify the flow names in any way
+- If no suitable flows are found, return an empty array: []
+
+## OUTPUT
+Provide ONLY the JSON array:`,
+		task, a.Role, a.BackStory, ctx.Variables, flowDetails.String(), a.Role)
 
 	return prompt
 }
 
 // parseAIPlanResponse parses the AI response to create an execution plan
 func (a *Agent) parseAIPlanResponse(aiResponse, task string) (*ExecutionPlan, error) {
-	// Simple parsing: extract flow names from response
-	// This is a basic implementation - in production, you'd want more robust JSON parsing
+	// Robust JSON parsing for AI response
 	steps := make([]ExecutionStep, 0)
 
-	// For now, we'll use a simple approach: split by commas and clean up
-	// In a real implementation, you'd parse the JSON properly
+	// Clean up the response
 	response := strings.TrimSpace(aiResponse)
-	response = strings.Trim(response, "[]")
 
-	if response == "" {
-		// If AI response is empty, fallback to simple planning
-		return a.simplePlanExecution(task, AgentContext{Variables: make(map[string]interface{})})
+	// Try to parse as JSON array first
+	var flowNames []string
+	err := json.Unmarshal([]byte(response), &flowNames)
+	if err != nil {
+		// If JSON parsing fails, try to extract from markdown or other formats
+		// Look for JSON array pattern
+		if strings.Contains(response, "[") && strings.Contains(response, "]") {
+			start := strings.Index(response, "[")
+			end := strings.LastIndex(response, "]")
+			if start >= 0 && end > start {
+				jsonPart := response[start : end+1]
+				err = json.Unmarshal([]byte(jsonPart), &flowNames)
+			}
+		}
+
+		// If still can't parse, fallback to simple string extraction
+		if err != nil {
+			// Remove brackets and split by commas
+			cleaned := strings.Trim(response, "[]")
+			if cleaned == "" {
+				// If AI response is empty, fallback to simple planning
+				return a.simplePlanExecution(task, AgentContext{Variables: make(map[string]interface{})})
+			}
+
+			// Split and clean flow names
+			rawNames := strings.Split(cleaned, ",")
+			for _, name := range rawNames {
+				name = strings.TrimSpace(name)
+				name = strings.Trim(name, "\"'`") // Remove quotes
+				if name != "" {
+					flowNames = append(flowNames, name)
+				}
+			}
+		}
 	}
 
-	flowNames := strings.Split(response, ",")
+	// Validate and create execution steps
 	for _, flowName := range flowNames {
-		flowName = strings.TrimSpace(flowName)
-		flowName = strings.Trim(flowName, "\"") // Remove quotes
-
 		// Only add flows that are actually available
 		for _, availableFlow := range a.AvailableFlows {
 			if availableFlow == flowName {
