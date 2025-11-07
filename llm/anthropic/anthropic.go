@@ -18,8 +18,8 @@ const (
 	// https://docs.anthropic.com/en/docs/about-claude/models/overview
 
 	// Claude 4.5 series - Latest generation (2025)
-	Claude45Sonnet = "claude-sonnet-4-5" // Latest Sonnet model released Sep 29, 2025
-	Claude45Haiku  = "claude-haiku-4-5"  // Latest Haiku model released Oct 1, 2025
+	Claude45Sonnet = "claude-sonnet-4-5-20250929" // Latest Sonnet model released Sep 29, 2025
+	Claude45Haiku  = "claude-haiku-4-5-20251001"  // Latest Haiku model released Oct 1, 2025
 
 	// Claude 4 series - Previous generation (2025)
 	ClaudeOpus4   = "claude-opus-4-20250514"
