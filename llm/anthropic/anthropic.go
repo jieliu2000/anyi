@@ -17,8 +17,13 @@ const (
 	// Official Anthropic API models (verified from official documentation)
 	// https://docs.anthropic.com/en/docs/about-claude/models/overview
 
-	// Claude 4 series - Latest generation (2025)
+	// Claude 4.5 series - Latest generation (2025)
+	Claude45Sonnet = "claude-sonnet-4-5" // Latest Sonnet model released Sep 29, 2025
+	Claude45Haiku  = "claude-haiku-4-5"  // Latest Haiku model released Oct 1, 2025
+
+	// Claude 4 series - Previous generation (2025)
 	ClaudeOpus4   = "claude-opus-4-20250514"
+	ClaudeOpus41   = "claude-opus-4-1"
 	ClaudeSonnet4 = "claude-sonnet-4-20250514"
 
 	// Claude 3.7 series - Extended thinking model
@@ -34,8 +39,8 @@ const (
 	Claude3Sonnet = "claude-3-sonnet-20240229"
 	Claude3Haiku  = "claude-3-haiku-20240307"
 
-	// Default model - using proven reliable model
-	DefaultModel = "claude-3-5-sonnet-20241022"
+	// Default model - using Claude 4.5 Sonnet for better cost-performance
+	DefaultModel = "claude-sonnet-4-5-20250929"
 )
 
 // AnthropicModelConfig defines configuration parameters for Anthropic models

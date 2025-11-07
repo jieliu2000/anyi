@@ -17,7 +17,16 @@ import (
 const (
 	DefaultBaseUrl = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 
-	// Qwen2.5 series - Latest and most popular
+	// Qwen3 series - Latest generation (2025)
+	Qwen3Max       = "qwen3-max"           // Latest flagship model released Sep 24, 2025
+	Qwen3Plus      = "qwen3-plus"
+	Qwen3Turbo     = "qwen3-turbo"
+	Qwen3Coder     = "qwen3-coder"
+	Qwen3CoderPlus = "qwen3-coder-plus"    // Enhanced code model
+	Qwen3Coder480B = "qwen3-coder-480b-a35b-instruct" // MoE model with 480B parameters, 35B active
+	Qwen3Omni      = "qwen3-omni"          // Open-source multimodal model
+
+	// Qwen2.5 series - Previous generation but still widely used
 	Qwen25Max   = "qwen-max"
 	Qwen25Plus  = "qwen-plus"
 	Qwen25Turbo = "qwen-turbo"
@@ -54,8 +63,8 @@ const (
 	Qwen21B        = "qwen2-1.5b-instruct"
 	Qwen20B        = "qwen2-0.5b-instruct"
 
-	// Default model - using the most popular Qwen-Plus
-	DefaultModel = "qwen-plus"
+	// Default model - using the latest Qwen3-Max for best performance
+	DefaultModel = "qwen3-max"
 )
 
 type DashScopeModelConfig struct {

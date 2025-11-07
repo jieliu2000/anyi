@@ -16,6 +16,53 @@ import (
 
 const (
 	DefaultOllamaUrl = "http://localhost:11434/api"
+
+	// Popular Ollama models (2025)
+	// Note: These are reference model names that can be used with Ollama
+	// Users need to pull these models using 'ollama pull <model_name>' before use
+	
+	// DeepSeek models
+	DeepSeekR1          = "deepseek-r1"              // Latest reasoning model
+	DeepSeekR1_671B     = "deepseek-r1:671b"         // Full-size model
+	DeepSeekR1_8B       = "deepseek-r1:8b"           // Distilled model for local use
+	DeepSeekR1Distill   = "deepseek-r1-distill-qwen-7b"
+	DeepSeekV3          = "deepseek-v3"
+	DeepSeekCoderV2     = "deepseek-coder-v2"
+	
+	// Llama models
+	Llama4Maverick = "llama4-maverick"
+	Llama4Scout    = "llama4-scout"
+	Llama3         = "llama3"
+	Llama3_70B     = "llama3:70b"
+	
+	// Qwen models
+	Qwen3          = "qwen3"               // Latest generation
+	Qwen3_235B     = "qwen3:235b"          // MoE model with 235B parameters, 22B active
+	Qwen3VL        = "qwen3-vl"            // Vision model
+	Qwen25         = "qwen2.5"             // Previous generation
+	Qwen25_72B     = "qwen2.5:72b"
+	Qwen25Coder    = "qwen2.5-coder"
+	
+	// Mistral models
+	Mistral    = "mistral"
+	Mistral7B  = "mistral:7b"
+	MistralLarge = "mistral-large"
+	Mixtral    = "mixtral"
+	
+	// Google models
+	Gemma2     = "gemma2"
+	Gemma2_9B  = "gemma2:9b"
+	Gemma2_27B = "gemma2:27b"
+	
+	// Other popular models
+	Codellama    = "codellama"
+	Phi3         = "phi3"
+	Phi3Mini     = "phi3:mini"
+	NousHermes2  = "nous-hermes2"
+	StarlingLM   = "starling-lm"
+	
+	// Default model recommendation - using the most capable open model
+	DefaultRecommendedModel = "deepseek-r1"
 )
 
 type OllamaModelConfig struct {
@@ -36,6 +83,9 @@ type OllamaClient struct {
 
 // Creats a default Ollama model config.
 func DefaultConfig(model string) *OllamaModelConfig {
+	if len(model) == 0 {
+		model = DefaultRecommendedModel
+	}
 	return &OllamaModelConfig{
 		GeneralLLMConfig: config.DefaultGeneralConfig(),
 		Model:            model,
