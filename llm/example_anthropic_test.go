@@ -13,8 +13,8 @@ func Example_anthropic() {
 	// Make sure to set ANTHROPIC_API_KEY environment variable
 	config := anthropic.DefaultConfig(os.Getenv("ANTHROPIC_API_KEY"))
 
-	// You can specify a specific model, such as Claude 3 Sonnet
-	config.Model = "claude-3-sonnet-20240229"
+	// You can specify a specific model, such as Claude 3 Sonnet (Legacy)
+	config.Model = anthropic.ClaudeSonnet3
 
 	client, err := llm.NewClient(config)
 	if err != nil {
