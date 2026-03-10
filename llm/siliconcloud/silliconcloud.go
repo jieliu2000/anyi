@@ -14,12 +14,15 @@ import (
 const (
 	DefaultBaseUrl = "https://api.siliconflow.cn/v1"
 
+	// Qwen3.5 series (Latest generation 2026)
+	Qwen35Plus  = "Qwen/Qwen3.5-Plus"
+	Qwen35Turbo = "Qwen/Qwen3.5-Turbo"
+
 	// Qwen3 series (Latest generation 2025)
-	Qwen3Max       = "Qwen/Qwen3-Max"           // Latest flagship model released Sep 24, 2025
-	Qwen3Plus      = "Qwen/Qwen3-Plus"
-	Qwen3Turbo     = "Qwen/Qwen3-Turbo"
-	Qwen3Coder     = "Qwen/Qwen3-Coder"
-	Qwen3_235B     = "Qwen/Qwen3-235B-A22B"     // MoE model with 235B parameters, 22B active
+	Qwen3Max   = "Qwen/Qwen3-Max"           // Latest flagship model released Sep 24, 2025
+	Qwen3Plus  = "Qwen/Qwen3-Plus"
+	Qwen3Turbo = "Qwen/Qwen3-Turbo"
+	Qwen3Coder = "Qwen/Qwen3-Coder"
 
 	// Qwen2.5 series (Previous generation but still widely used)
 	Qwen25Max72B  = "Qwen/Qwen2.5-Max"
@@ -33,17 +36,9 @@ const (
 	DeepSeekR1          = "deepseek-ai/DeepSeek-R1"
 	DeepSeekR1Distill   = "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B"
 	DeepSeekV3          = "deepseek-ai/DeepSeek-V3"
-	DeepSeekV31         = "deepseek-ai/DeepSeek-V3.1"
-	DeepSeekV31Terminus = "deepseek-ai/DeepSeek-V3.1-Terminus" // Latest model released Sep 22, 2025
 	DeepSeekChat        = "deepseek-ai/deepseek-chat"
 	DeepSeekCoder       = "deepseek-ai/deepseek-coder-6.7b-instruct"
 	DeepSeekMath        = "deepseek-ai/deepseek-math-7b-instruct"
-
-	// Meta Llama4 series (Latest generation 2025)
-	Llama4Maverick = "meta-llama/Llama-4-Maverick-Instruct"
-	Llama4Scout    = "meta-llama/Llama-4-Scout-Instruct"
-	Llama4_70B     = "meta-llama/Llama-4-70B-Instruct"
-	Llama4_40B     = "meta-llama/Llama-4-40B-Instruct"
 
 	// Meta Llama3 series (Previous generation)
 	Llama32_90B  = "meta-llama/Llama-3.2-90B-Vision-Instruct"
@@ -76,8 +71,8 @@ const (
 	Internlm25_20B = "internlm/internlm2_5-20b-chat"
 	Internlm25_7B  = "internlm/internlm2_5-7b-chat"
 
-	// Default model - using the latest Qwen3-Max for best performance
-	DefaultModel = "Qwen/Qwen3-Max"
+	// Default model - using the latest Qwen3.5-Plus for best performance
+	DefaultModel = "Qwen/Qwen3.5-Plus"
 )
 
 type SiliconCloudConfig struct {

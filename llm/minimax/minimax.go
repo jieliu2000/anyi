@@ -17,12 +17,18 @@ const (
 	// Official MiniMax API models (OpenAI compatible API)
 	// https://platform.minimaxi.com/docs/api-reference/text-openai-api
 
-	// Official MiniMax models from https://platform.minimaxi.com/docs/api-reference/text-intro
-	MiniMaxM2         = "MiniMax-M2"
-	MiniMaxM2Stable   = "MiniMax-M2-Stable"
+	// MiniMax M2 series (2025)
+	MiniMaxM2       = "MiniMax-M2"       // Released Nov 2025
+	MiniMaxM2Stable = "MiniMax-M2-Stable"
+
+	// MiniMax M2.1 series (2025)
+	MiniMaxM21 = "MiniMax-M2.1" // Released Dec 2025
+
+	// MiniMax M2.5 series (2025-2026)
+	MiniMaxM25 = "MiniMax-M2.5" // Latest model released 2026
 
 	// Default model - using the latest model
-	DefaultModel = MiniMaxM2
+	DefaultModel = MiniMaxM25
 )
 
 type MiniMaxModelConfig struct {

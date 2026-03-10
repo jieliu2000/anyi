@@ -17,19 +17,21 @@ import (
 const (
 	DefaultBaseUrl = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 
-	// Qwen3 series - Latest generation (2025)
-	Qwen3Max       = "qwen3-max"           // Latest flagship model released Sep 24, 2025
-	Qwen3Plus      = "qwen3-plus"
-	Qwen3Turbo     = "qwen3-turbo"
-	Qwen3Coder     = "qwen3-coder"
-	Qwen3CoderPlus = "qwen3-coder-plus"    // Enhanced code model
-	Qwen3Coder480B = "qwen3-coder-480b-a35b-instruct" // MoE model with 480B parameters, 35B active
-	Qwen3Omni      = "qwen3-omni"          // Open-source multimodal model
+	// Qwen3.5 series - Latest generation (2026)
+	Qwen35Plus  = "qwen3.5-plus"  // Latest model released Feb 2026
+	Qwen35Turbo = "qwen3.5-turbo"
 
-	// Qwen2.5 series - Previous generation but still widely used
-	Qwen25Max   = "qwen-max"
-	Qwen25Plus  = "qwen-plus"
-	Qwen25Turbo = "qwen-turbo"
+	// Qwen3 series - Previous generation (2025)
+	Qwen3Max   = "qwen3-max"   // Latest flagship released Sep 24, 2025
+	Qwen3Plus  = "qwen3-plus"
+	Qwen3Turbo = "qwen3-turbo"
+	Qwen3Coder = "qwen3-coder"
+	Qwen3Omni  = "qwen3-omni"
+
+	// Qwen2.5 series - Previous generation but still widely used (2024-2025)
+	Qwen25Max   = "qwen-max"             // Also known as qwen2.5-max
+	Qwen25Plus  = "qwen-plus"            // Also known as qwen2.5-plus
+	Qwen25Turbo = "qwen-turbo"           // Also known as qwen2.5-turbo
 	Qwen2572B   = "qwen2.5-72b-instruct"
 	Qwen2532B   = "qwen2.5-32b-instruct"
 	Qwen2514B   = "qwen2.5-14b-instruct"
@@ -63,8 +65,8 @@ const (
 	Qwen21B        = "qwen2-1.5b-instruct"
 	Qwen20B        = "qwen2-0.5b-instruct"
 
-	// Default model - using the latest Qwen3-Max for best performance
-	DefaultModel = "qwen3-max"
+	// Default model - using the latest Qwen3.5-Plus for best performance
+	DefaultModel = "qwen3.5-plus"
 )
 
 type DashScopeModelConfig struct {
