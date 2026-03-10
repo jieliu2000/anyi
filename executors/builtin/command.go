@@ -1,4 +1,4 @@
-package executors
+package builtin
 
 import (
 	"errors"
