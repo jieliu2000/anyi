@@ -13,11 +13,29 @@ const (
 	DefaultBaseUrl = "https://api.openai.com/v1"
 
 	// Official OpenAI models (verified from official documentation)
-	// Note: GPT-4.1, o3, o4 series models mentioned in Wikipedia may not be available
+	// Note: Some models mentioned in news may not be available
 	// in the official OpenAI API yet. Only use verified model names.
+
+	// GPT-5 series - Latest generation (2025)
+	GPT5          = "gpt-5"
+	GPT5Turbo     = "gpt-5-turbo"
+	GPT5Mini      = "gpt-5-mini"
+
+	// GPT-4.5 series - Advanced reasoning models (2025)
+	// Note: GPT-4.5 API service was discontinued in July 2025
+	GPT45         = "gpt-4.5"
+	GPT45Turbo    = "gpt-4.5-turbo"
+	GPT45Vision   = "gpt-4.5-vision-preview"
+
+	// GPT-4.1 series - Previous generation (2025)
+	GPT41         = "gpt-4.1"
+	GPT41Mini     = "gpt-4.1-mini"
+	GPT41Nano     = "gpt-4.1-nano"
 
 	// GPT-4o series - Current flagship models
 	GPT4o         = "gpt-4o"
+	GPT4oTurbo    = "gpt-4o-turbo"
+	GPT4oVision   = "gpt-4o-vision-preview"
 	GPT4o20241120 = "gpt-4o-2024-11-20"
 	GPT4o20240806 = "gpt-4o-2024-08-06"
 	GPT4o20240513 = "gpt-4o-2024-05-13"
@@ -27,6 +45,7 @@ const (
 	GPT4oMini20240718 = "gpt-4o-mini-2024-07-18"
 
 	// GPT-4 series - Previous generation
+	// Note: GPT-4 was removed from ChatGPT on April 30, 2025, but still available in API
 	GPT4              = "gpt-4"
 	GPT4Turbo         = "gpt-4-turbo"
 	GPT4Turbo20240409 = "gpt-4-turbo-2024-04-09"
@@ -46,8 +65,11 @@ const (
 	O1Preview = "o1-preview"
 	O1Mini    = "o1-mini"
 
-	// Default model - using the most reliable current model
-	DefaultModel = "gpt-4o-mini"
+	// o3 series - Latest reasoning models (2025)
+	O3Mini = "o3-mini" // Released January 31, 2025
+
+	// Default model - using GPT-4o for balanced performance and cost
+	DefaultModel = "gpt-4o"
 )
 
 type OpenAIModelConfig struct {

@@ -15,27 +15,32 @@ const (
 	DefaultBaseUrl = "https://api.anthropic.com"
 
 	// Official Anthropic API models (verified from official documentation)
-	// https://docs.anthropic.com/en/docs/about-claude/models/overview
+	// https://docs.claude.com/en/docs/about-claude/models/overview
 
-	// Claude 4 series - Latest generation (2025)
-	ClaudeOpus4   = "claude-opus-4-20250514"
-	ClaudeSonnet4 = "claude-sonnet-4-20250514"
+	// Claude 4.5 series - Latest generation (2025)
+	ClaudeSonnet45   = "claude-sonnet-4-5-20250929" // Latest Sonnet model released Sep 29, 2025
+	ClaudeHaiku45    = "claude-haiku-4-5-20251001"  // Latest Haiku model released Oct 1, 2025
+	ClaudeOpus41     = "claude-opus-4-1-20250805"   // Latest Opus 4.1 model released Aug 5, 2025
 
-	// Claude 3.7 series - Extended thinking model
-	Claude37Sonnet = "claude-3-7-sonnet-20250219"
+	// Claude 4 series - Previous generation (2025) - Legacy models
+	ClaudeOpus4      = "claude-opus-4-20250514"     // Opus 4 released May 14, 2025 - Legacy
+	ClaudeSonnet4    = "claude-sonnet-4-20250514"  // Sonnet 4 released May 14, 2025 - Legacy
 
-	// Claude 3.5 series - Current generation
-	Claude35Sonnet   = "claude-3-5-sonnet-20241022" // v2
-	Claude35SonnetV1 = "claude-3-5-sonnet-20240620" // v1
-	Claude35Haiku    = "claude-3-5-haiku-20241022"
+	// Claude 3.7 series - Extended thinking model - Legacy
+	ClaudeSonnet37 = "claude-3-7-sonnet-20250219" // 3.7 Sonnet released Feb 19, 2025 - Legacy
 
-	// Claude 3 series - Previous generation
-	Claude3Opus   = "claude-3-opus-20240229"
-	Claude3Sonnet = "claude-3-sonnet-20240229"
-	Claude3Haiku  = "claude-3-haiku-20240307"
+	// Claude 3.5 series - Previous generation (2024) - Legacy
+	ClaudeSonnet35   = "claude-3-5-sonnet-20241022" // v2 released Oct 22, 2024 - Legacy
+	ClaudeSonnet35V1 = "claude-3-5-sonnet-20240620" // v1 released Jun 20, 2024 - Legacy
+	ClaudeHaiku35    = "claude-3-5-haiku-20241022"  // released Oct 22, 2024 - Legacy
 
-	// Default model - using proven reliable model
-	DefaultModel = "claude-3-5-sonnet-20241022"
+	// Claude 3 series - Previous generation (2024) - Legacy
+	ClaudeOpus3   = "claude-3-opus-20240229"   // released Feb 29, 2024 - Legacy
+	ClaudeSonnet3 = "claude-3-sonnet-20240229" // released Feb 29, 2024 - Legacy
+	ClaudeHaiku3  = "claude-3-haiku-20240307"  // released Mar 7, 2024 - Legacy
+
+	// Default model - using Claude Sonnet 4.5 as recommended by official documentation
+	DefaultModel = "claude-sonnet-4-5-20250929"
 )
 
 // AnthropicModelConfig defines configuration parameters for Anthropic models

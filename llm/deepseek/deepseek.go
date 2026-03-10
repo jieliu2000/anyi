@@ -17,13 +17,13 @@ const (
 	// Official DeepSeek API models (verified from official documentation)
 	// https://api-docs.deepseek.com/api/list-models
 
-	// DeepSeek Chat model - points to DeepSeek-V3-0324
-	DeepSeekChat = "deepseek-chat"
 
-	// DeepSeek Reasoning model - points to DeepSeek-R1-0528
-	DeepSeekReasoner = "deepseek-reasoner"
+	DeepSeekReasoner    = "deepseek-reasoner" // Alias for DeepSeek R1
 
-	// Default model - using the general chat model
+	// General chat models
+	DeepSeekChat        = "deepseek-chat" // Points to DeepSeek-V3-0324
+
+	// Default model - using the latest general chat model
 	DefaultModel = "deepseek-chat"
 )
 
